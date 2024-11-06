@@ -1,0 +1,4 @@
+PORT= 1500
+DB_HOST=''
+DB_USER=''
+DB_PASS=''
