@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv'
 import prueba from './server/appnl/prueba.mjs';
+import jwt from './server/config/jwt.mjs';
 dotenv.config();
 
 
@@ -18,6 +19,27 @@ app.get('/', (req, res) => {
 app.get('/prueba',async (req,res) => {
     const respuesta = await prueba.consultaPrueba() 
     res.send({err:false, respuesta})
+})
+
+jwt.actualizaKidPem();
+
+
+app.post('/apilogin/horaservidor', async (req,res) => {
+    const ahora = new Date();
+    const respuesta = {
+        err:false,
+        time:ahora,
+        tz: ahora.getTimezoneOffset()
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(respuesta))
+})
+
+app.post('/apilogin/loginJwt', async (req,res) => {
+    res.setHeader('Content-Type', 'application/json');
+    console.log(req.body.idtoken)
+    const loginResult = await jwt.loginJwt(req.body.idtoken);
+    res.end(JSON.stringify(loginResult))
 })
 
 const port = process.env.PORT || 3000;
