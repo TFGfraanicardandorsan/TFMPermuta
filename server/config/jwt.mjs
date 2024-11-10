@@ -29,8 +29,7 @@ class JWT {
         // Podría quitarlo??
         await this.retrieveKidPem('https://login.microsoftonline.com/common/discovery/v2.0/keys');
         // Para obtener el conjunto de claves públicas de la organización, se utiliza el endpoint con tenant-id
-        // tenant-id: ef4a684e-81b5-491c-a98e-c7b31be6c469
-        await this.retrieveKidPem('https://login.microsoftonline.com/ef4a684e-81b5-491c-a98e-c7b31be6c469/discovery/v2.0/keys')
+        await this.retrieveKidPem(`https://login.microsoftonline.com/${process.env.tenantId}/discovery/v2.0/keys`)
     }
 
     async loginJwt(jwtoken) {
