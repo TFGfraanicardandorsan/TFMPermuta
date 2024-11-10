@@ -37,7 +37,6 @@ app.post('/apilogin/horaservidor', async (req,res) => {
 
 app.post('/apilogin/loginJwt', async (req,res) => {
     res.setHeader('Content-Type', 'application/json');
-    console.log(req.body.idtoken)
     const loginResult = await jwt.loginJwt(req.body.idtoken);
     res.end(JSON.stringify(loginResult))
 })

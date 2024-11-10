@@ -9,7 +9,6 @@ class JWT {
     #autorizaciones = {};
     
     constructor(){
-        console.log('Constructor de la clase JWT')
     }
     
     hora(){
@@ -26,9 +25,12 @@ class JWT {
     }
 
     async actualizaKidPem() {
-        console.log('KID/PEM descargando...');
-        await this.retrieveKidPem('https://login.microsoftonline.com/common/discovery/keys');
+        console.log('Descargando KID/PEM...');
+        // Podría quitarlo??
         await this.retrieveKidPem('https://login.microsoftonline.com/common/discovery/v2.0/keys');
+        // Para obtener el conjunto de claves públicas de la organización, se utiliza el endpoint con tenant-id
+        // tenant-id: ef4a684e-81b5-491c-a98e-c7b31be6c469
+        await this.retrieveKidPem('https://login.microsoftonline.com/ef4a684e-81b5-491c-a98e-c7b31be6c469/discovery/v2.0/keys')
     }
 
     async loginJwt(jwtoken) {
@@ -47,7 +49,6 @@ class JWT {
             console.log('KID/PEM ha sido actualizado de manera forzosa')
             await this.actualizaKidPem();
         }
-        console.log(payload)
         const token = jwtlib.verify(jwtoken, this.#kidpems[header.kid]);
         const sesionid = uuidv4();
         this.#sesiones[sesionid] = {
