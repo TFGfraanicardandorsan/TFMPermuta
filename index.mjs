@@ -42,12 +42,12 @@ app.post('/apilogin/login', async (req,res) => {
     res.end(JSON.stringify(loginResult))
 })
 
-app.post('/api/getUserData', async (req,res) => {
+app.post('/api/obtenerDatosUsuario', async (req,res) => {
     try{
-    const datosUsuario = await appnl.getUserData(req.body.sesionid);
+    const datosUsuario = await appnl.obtenerDatosUsuario(req.body.sesionid);
     res.send({err:false, result:datosUsuario})
     } catch (err){
-        console.log('apiObtenerDatosUsuario ha tenido una excepción', err)
+        console.log('api obtenerDatosUsuario ha tenido una excepción')
         res.sendStatus(500)
     }
 })

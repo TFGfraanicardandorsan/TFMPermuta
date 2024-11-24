@@ -22,7 +22,7 @@ class AppNodeLibrary {
     return client;
   }
 
-  async getUserData(sesionid){
+  async obtenerDatosUsuario(sesionid){
     const sesion = login.getSesion(sesionid)
     const userid = sesion.userid;
     const conexion = await this.connectPostgreSQL();
