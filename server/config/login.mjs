@@ -3,7 +3,7 @@ import jwtlib from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import nodeFetch from 'node-fetch';
 
-class JWT {
+class Login {
     #kidpems = {};
     #sesiones= {};
     #autorizaciones = {};
@@ -61,7 +61,6 @@ class JWT {
         return this.#sesiones[sesionid]
         }
         catch(err) {
-            console.error(jwtoken);
             console.error('loginJwt error:', err);
             return { err:true, errmsg: 'error, hay que comprobar el origen del servidor'};
         }
@@ -85,6 +84,10 @@ class JWT {
             return { err:true, errmsg: 'error, comprobar el origen en el servidor'};
         }
     }
+
+    getSesion(sesionid){
+        return this.#sesiones[sesionid]
+    }
 }
-const jwt = new JWT();
-export default jwt;
+const login = new Login();
+export default login;

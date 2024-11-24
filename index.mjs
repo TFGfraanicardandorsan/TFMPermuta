@@ -1,7 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv'
 import prueba from './server/appnl/prueba.mjs';
-import jwt from './server/config/jwt.mjs';
+import login from './server/config/login.mjs';
+import appnl from './server/appnl.mjs';
 dotenv.config();
 
 
@@ -21,7 +22,7 @@ app.get('/prueba',async (req,res) => {
     res.send({err:false, respuesta})
 })
 
-jwt.actualizaKidPem();
+login.actualizaKidPem();
 
 
 app.post('/apilogin/horaservidor', async (req,res) => {
@@ -37,9 +38,20 @@ app.post('/apilogin/horaservidor', async (req,res) => {
 
 app.post('/apilogin/loginJwt', async (req,res) => {
     res.setHeader('Content-Type', 'application/json');
-    const loginResult = await jwt.loginJwt(req.body.idtoken);
+    const loginResult = await login.loginJwt(req.body.idtoken);
     res.end(JSON.stringify(loginResult))
 })
+
+app.post('/api/getUserData', async (req,res) => {
+    try{
+    const datosUsuario = await appnl.getUserData(req.body.sesionid);
+    res.send({err:false, result:datosUsuario})
+    } catch (err){
+        console.log('apiObtenerDatosUsuario ha tenido una excepción', err)
+        res.sendStatus(500)
+    }
+})
+
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
