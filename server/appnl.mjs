@@ -32,7 +32,6 @@ class AppNodeLibrary {
     const res = await conexion.query(query);
     await conexion.end();
     sesion.userdata = res.rows[0];
-    console.log(sesion.userdata)
     return sesion.userdata
   }
 
