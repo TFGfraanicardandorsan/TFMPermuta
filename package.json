@@ -16,6 +16,7 @@
     "jwk-to-pem": "^2.0.6",
     "node-fetch": "^3.3.2",
     "pg": "^8.13.1",
+    "tfmpermuta": "file:",
     "uuid": "^11.0.2"
   },
   "devDependencies": {
