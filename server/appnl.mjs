@@ -50,20 +50,23 @@ class AppNodeLibrary {
     const userData = await this.obtenerDatosUsuario(sesionid)
 
     if(!userData){
-      // login.killSesion(sesionid);
       return {err:true, errmsg: 'Esta cuenta no existe'}
     }
-    if (userData.estado === '1'){
+    if (userData.estado === 0){
       return {err:true, errmsg:'Cuenta deshabilitado'}
     }
-
-    // DEBEMOS ASIGNAR LA LÓGICA SEGÚN EL ROL
-    const autorizacion = {autorizado:false};
-    if(sesion.userid.endsWith('alum.us.es')){
-      autorizacion.autorizado = true;
-    }
-    sesion.autorizacion = autorizacion;
-    return autorizacion;
+    const conexion = await this.connectPostgreSQL();
+    const query = {
+      text: `SELECT f.nombre AS funcionalidad 
+      FROM Usuario u
+      JOIN roles r ON u.username = r.username_user
+      JOIN rol_funcionalidad rf ON r.permisos = rf.rol
+      JOIN funcionalidades f ON rf.id_funcionalidad = f.id
+      WHERE u.username = '${userData.username}'`,
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows
   }
 }
 const appnl = new AppNodeLibrary();
