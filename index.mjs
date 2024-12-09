@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv'
-import prueba from './server/appnl/prueba.mjs';
+import cors from 'cors'
 import login from './server/config/login.mjs';
 import appnl from './server/appnl.mjs';
 dotenv.config();
@@ -12,6 +12,13 @@ const app = express();
 app.use(express.json());
 // Middleware nativo para formularios URL encoded
 app.use(express.urlencoded({extended:true}))
+
+// Configuración de CORS
+app.use(cors({
+    origin:'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials:true
+}));
 
 app.get('/', (req, res) => {
     res.send('¡Hola Mundo! 😊');
