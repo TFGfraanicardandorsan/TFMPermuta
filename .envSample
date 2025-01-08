@@ -5,5 +5,3 @@ DB_DATABASE= ''
 DB_PORT= 
 DB_USER=''
 DB_PASS=''
-
-tenantId=''

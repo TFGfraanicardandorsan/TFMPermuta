@@ -1,12 +1,7 @@
 import pg from "pg";
-import login from "./config/login.mjs";
 
 class AppNodeLibrary {
   constructor() {}
-
-  about() {
-    return "appNodeLibrary => appnl";
-  }
 
   async connectPostgreSQL() {
     const { Client } = pg;
@@ -23,14 +18,6 @@ class AppNodeLibrary {
 
   //API PARA AUTORIZACIONES
 
-  async isSesionAutenticada(sesionid){
-    const sesion = login.getSesion(sesionid);
-    if(!sesion) {
-      console.log('isSesionValid => sesion no válida')
-      return false
-    }
-    return true;
-  }
 
   async obtenerDatosUsuario(sesionid) {
     const sesion = login.getSesion(sesionid);
