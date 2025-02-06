@@ -23,33 +23,42 @@ app.get('/', (req, res) => {
     res.send('¡Hola Mundo! 😊');
 });
 
-// A partir de aquí las peticiones deben estar autenticadas
-app.post('/api/*', async (req,res,next) => {
-    if ((typeof req.body.sesionid !== 'string') || (req.body.sesionid.length > 36)){
-        res.sendStatus(400);
-    } else if (await appnl.isSesionAutenticada(req.body.sesionid)){
-        next();
-    } else {
-        res.sendStatus(401);
-    }
-})
+// // A partir de aquí las peticiones deben estar autenticadas
+// app.post('/api/*', async (req,res,next) => {
+//     if ((typeof req.body.sesionid !== 'string') || (req.body.sesionid.length > 36)){
+//         res.sendStatus(400);
+//     } else if (await appnl.isSesionAutenticada(req.body.sesionid)){
+//         next();
+//     } else {
+//         res.sendStatus(401);
+//     }
+// })
 
-app.post('/api/getAutorizaciones', async (req,res) => {
-    try{
-    const result = await appnl.getAutorizacion(req.body.sesionid);
-    res.send({err:false, result})
-    } catch (err){
-        console.log('api getAutorizaciones ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
+// app.post('/api/getAutorizaciones', async (req,res) => {
+//     try{
+//     const result = await appnl.getAutorizacion(req.body.sesionid);
+//     res.send({err:false, result})
+//     } catch (err){
+//         console.log('api getAutorizaciones ha tenido una excepción')
+//         res.sendStatus(500)
+//     }
+// })
 
-app.post('/api/obtenerDatosUsuario', async (req,res) => {
+app.get('/api/obtenerDatosUsuario', async (req,res) => {
     try{
-    const datosUsuario = await appnl.obtenerDatosUsuario(req.body.sesionid);
+    const datosUsuario = await appnl.obtenerDatosUsuario();
     res.send({err:false, result:datosUsuario})
     } catch (err){
         console.log('api obtenerDatosUsuario ha tenido una excepción')
+        res.sendStatus(500)
+    }
+})
+app.post('/api/insertarFuncionalidadPrueba', async (req,res) => {
+    try{
+    const datosUsuario = await appnl.pruebaInsertFuncionalidades(req.body.funcionalidad);
+    res.send({err:false, result:datosUsuario})
+    } catch (err){
+        console.log('api insertarFuncionalidadPrueba ha tenido una excepción')
         res.sendStatus(500)
     }
 })

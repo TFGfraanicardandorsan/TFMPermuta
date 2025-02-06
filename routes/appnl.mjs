@@ -19,17 +19,27 @@ class AppNodeLibrary {
   //API PARA AUTORIZACIONES
 
 
-  async obtenerDatosUsuario(sesionid) {
-    const sesion = login.getSesion(sesionid);
-    const userid = sesion.userid;
+  async obtenerDatosUsuario() {
+    // const sesion = login.getSesion(sesionid);
+    // const userid = sesion.userid;
     const conexion = await this.connectPostgreSQL();
     const query = {
-      text: `SELECT * FROM Usuario WHERE email = '${userid}'`,
+      text: `SELECT * FROM Usuario`,
     };
     const res = await conexion.query(query);
     await conexion.end();
-    sesion.userdata = res.rows[0];
-    return sesion.userdata;
+    return res.rows;
+  }
+
+  async pruebaInsertFuncionalidades(funcionalidad){
+    const conexion = await this.connectPostgreSQL();
+    const query = {
+      text: `INSERT INTO funcionalidad (nombre) VALUES ($1)`,
+      values: [`${funcionalidad}`],
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows[0];
   }
 
   async getAutorizacion(sesionid) {
