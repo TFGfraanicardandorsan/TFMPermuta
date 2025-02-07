@@ -74,6 +74,67 @@ class AppNodeLibrary {
     }
   }
   
+
+  async obtenerMiEstudioUsuario() {
+    // const sesion = login.getSesion(sesionid);
+    // const userid = sesion.userid;
+    const conexion = await this.connectPostgreSQL();
+    const query = {
+      text: `select e.nombre from estudios e where id = (select u.estudios_id_fk  from usuario u where u.nombre_usuario ='fraanicar');`,
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows;
+  }
+
+  async obtenerAsignaturasMiEstudioUsuario() {
+    // const sesion = login.getSesion(sesionid);
+    // const userid = sesion.userid;
+    const conexion = await this.connectPostgreSQL();
+    const query = {
+      text: `select * from asignatura a where a.id in (select asignatura_id from asignatura_estudios ae where ae.estudios_id = (select e.id  from estudios e where id = (select u.estudios_id_fk  from usuario u where u.nombre_usuario ='fraanicar')) ) ;`,
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows;
+  }
+
+  async obtenerMisAsignaturasUsuario() {
+    // const sesion = login.getSesion(sesionid);
+    // const userid = sesion.userid;
+    const conexion = await this.connectPostgreSQL();
+    const query = {
+      text: `SELECT * FROM Usuario`,
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows;
+  }
+
+  async actualizarEstudios(estudio){
+    const conexion = await this.connectPostgreSQL();
+    const prueba = {
+      text: `select estudios_id_fk from usuario u where u.nombre_usuario ='fraanicar'`,
+    };
+
+    const resPrueba = await conexion.query(query);
+    console.log(resPrueba);
+    if (resPrueba==null){
+      const query = {
+        text: `Update usuario u set = $1 where u.nombre_usuario ='fraanicar'`,
+        values: [`${estudio}`],
+      };
+      const res = await conexion.query(query);
+      await conexion.end();
+      return 'Estudios seleccionados';
+    }
+    return 'No puedes cambiar los estudios ya seleccionados ponte en contacto con un administrador a través de una incidencia';
+  }
+
+
+
+
+
 }
 const appnl = new AppNodeLibrary();
 export default appnl;

@@ -63,6 +63,36 @@ app.post('/api/insertarFuncionalidadPrueba', async (req,res) => {
     }
 })
 
+app.post('/api/seleccionarEstudios', async (req,res) => {
+    try{
+    const datosUsuario = await appnl.actualizarEstudios();
+    res.send({err:false, result:datosUsuario})
+    } catch (err){
+        console.log('api actualizarEstudios ha tenido una excepción')
+        res.sendStatus(500)
+    }
+})
+
+app.get('/api/misEstudios', async (req,res) => {
+    try{
+    const datosUsuario = await appnl.obtenerMiEstudioUsuario();
+    res.send({err:false, result:datosUsuario})
+    } catch (err){
+        console.log('api obtenerMiEstudioUsuario ha tenido una excepción')
+        res.sendStatus(500)
+    }
+})
+
+app.get('/api/asignaturasMisEstudios', async (req,res) => {
+    try{
+    const datosUsuario = await appnl.obtenerAsignaturasMiEstudioUsuario();
+    res.send({err:false, result:datosUsuario})
+    } catch (err){
+        console.log('api obtenerMiEstudioUsuario ha tenido una excepción')
+        res.sendStatus(500)
+    }
+})
+
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
