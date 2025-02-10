@@ -147,6 +147,56 @@ async personaMatriculadaEnAsignatura(asignatura){
     return true;
 }
 
+async getSolicitudesPermuta(asignatura){
+   const conexion = await this.connectPostgreSQL();
+   const query = {
+     text: `select * from solicitud_permuta`,
+   };
+   const res = await conexion.query(query);
+   await conexion.end();
+   return res;
+}
+
+async getPermutas(){
+  const conexion = await this.connectPostgreSQL();
+  const query = {
+    text: `select * from permuta`,
+  };
+  const res = await conexion.query(query);
+  await conexion.end();
+  return res;
+}
+
+async getNotificaciones(){
+  const conexion = await this.connectPostgreSQL();
+  const query = {
+    text: `select * from notificacion`,
+  };
+  const res = await conexion.query(query);
+  await conexion.end();
+  return res;
+}
+
+async getIncidencias(){
+  const conexion = await this.connectPostgreSQL();
+  const query = {
+    text: `select * from incidencia`,
+  };
+  const res = await conexion.query(query);
+  await conexion.end();
+  return res;
+}
+
+async getGruposPorAsignatura(){
+  const conexion = await this.connectPostgreSQL();
+  const query = {
+    text: `select * from grpos where asignatura = (Select id from asignatura where codigo = $1)`,
+    values: [`${asignatura}`],
+  };
+  const res = await conexion.query(query);
+  await conexion.end();ç
+  return res;
+}
 
 async solicitarPermuta(asignatura,grupos_deseados) {
   // const sesion = login.getSesion(sesionid);
@@ -164,7 +214,10 @@ async solicitarPermuta(asignatura,grupos_deseados) {
       return "Solicitaste una permuta a tu mismo grupo.";
     }
     const insert = {
-      text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado) values ((SELECT id FROM usuario WHERE nombre_usuario = 'fraanicar'),(SELECT id FROM grupo WHERE id = (SELECT id FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = 'fraanicar')) AND asignatura_id_fk = (SELECT id FROM asignatura WHERE codigo = $1)),'SOLICITADA')`,
+      text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado) values ((
+      SELECT id FROM usuario WHERE nombre_usuario = 'fraanicar'),(SELECT id FROM grupo WHERE id = (
+      SELECT id FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = 'fraanicar')) AND asignatura_id_fk = 
+      (SELECT id FROM asignatura WHERE codigo = $1)),'SOLICITADA')`,
       values: [`${asignatura}`],
     };
     for (const grupo of grupos_deseados) {
@@ -180,6 +233,7 @@ async solicitarPermuta(asignatura,grupos_deseados) {
         values: [`${asignatura}`, `${grupo}`],
       };
       const res = await conexion.query(insert);
+      
     await conexion.end();
     console.log(res);
     }
