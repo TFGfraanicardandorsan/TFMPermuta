@@ -5,6 +5,7 @@ import usuarioService from './services/usuarioService.mjs';
 import funcionalidadService from './services/funcionalidadService.mjs';
 import estudiosService from './services/estudiosService.mjs';
 import asignaturaService from './services/asignaturaService.mjs';
+import usuarioRouter from './routes/usuarioRoutes.mjs'
 dotenv.config();
 
 const app = express();
@@ -25,15 +26,8 @@ app.get('/', (req, res) => {
     res.send('¡Hola Mundo! 😊');
 });
 
-app.get('/api/obtenerDatosUsuario', async (req,res) => {
-    try{
-        const datosUsuario = await usuarioService.obtenerDatosUsuario();
-        res.send({err:false, result:datosUsuario})
-        } catch (err){
-            console.log('api obtenerDatosUsuario ha tenido una excepción')
-            res.sendStatus(500)
-        }
-})
+
+app.use('/api/v1/usuario', usuarioRouter)
 app.get('/api/misEstudios', async (req,res) => {
     try{
     const datosUsuario = await estudiosService.obtenerMiEstudioUsuario();
