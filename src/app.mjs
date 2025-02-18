@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv'
 import cors from 'cors'
+import https from 'https'
+import fs from 'fs'
 import usuarioService from './services/usuarioService.mjs';
 import funcionalidadService from './services/funcionalidadService.mjs';
 import estudiosService from './services/estudiosService.mjs';
@@ -72,8 +74,17 @@ app.get('/api/asignaturasMisEstudios', async (req,res) => {
     }
 })
 
-//TODO: CREAR CON HTTPS PARA QUE SEAN CIFRADAS
+// CREAR EL SERVIDOR CON HTTPS
+const keyPath = process.env.SSL_KEY_PATH || './src/config/certs/key.pem';
+const certPath = process.env.SSL_CERT_PATH || './src/config/certs/cert.pem';
+const options = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath),
+    passphrase: process.env.SSL_PASSPHRASE
+};
+const server = https.createServer(options, app);
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Servidor corriendo en http://localhost:${port}`);
+server.listen(port, () => {
+    console.log(`Servidor corriendo en https://localhost:${port}`);
+    console.log(`Se están utilizando las claves ${keyPath} y ${certPath}`);
 });
