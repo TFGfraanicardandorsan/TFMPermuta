@@ -15,7 +15,7 @@ app.use(express.json());
 // Middleware nativo para formularios URL encoded
 app.use(express.urlencoded({extended:true}))
 
-// Configuración de CORS
+// Configuración de CORS para permitir las peticiones desde el cliente
 app.use(cors({
     origin:'http://localhost:3033',
     methods: ['GET', 'POST'],
@@ -26,8 +26,10 @@ app.get('/', (req, res) => {
     res.send('¡Hola Mundo! 😊');
 });
 
-
+// Rutas de usuario
 app.use('/api/v1/usuario', usuarioRouter)
+
+// TODO: Tenemos que hacer que el sistema de rutas para que sea igual que el arriba
 app.get('/api/misEstudios', async (req,res) => {
     try{
     const datosUsuario = await estudiosService.obtenerMiEstudioUsuario();
