@@ -1,3 +1,6 @@
+# CERTS
+src/config/certsSAML/*
+
 # Logs
 logs
 *.log

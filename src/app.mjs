@@ -1,4 +1,6 @@
 import express from 'express';
+import session from 'express-session';
+import passport from '../src/middleware/passport.mjs';
 import dotenv from 'dotenv'
 import cors from 'cors'
 import https from 'https'
@@ -7,6 +9,7 @@ import usuarioService from './services/usuarioService.mjs';
 import funcionalidadService from './services/funcionalidadService.mjs';
 import estudiosService from './services/estudiosService.mjs';
 import asignaturaService from './services/asignaturaService.mjs';
+import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
 dotenv.config();
 
@@ -17,9 +20,23 @@ app.use(express.json());
 // Middleware nativo para formularios URL encoded
 app.use(express.urlencoded({extended:true}))
 
+// Middleware de Passport 
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: true,
+    saveUninitialized: true,
+    cookie: { 
+        secure: true,  // Cambiar secure: true si se usa HTTPS
+        httpOnly: true,
+    } 
+}));
+
+// Inicializar Passport 
+app.use(passport.initialize());
+app.use(passport.session());
 // Configuración de CORS para permitir las peticiones desde el cliente
 app.use(cors({
-    origin:'http://localhost:3033',
+    origin:'https://permutas.eii.us.es',
     methods: ['GET', 'POST'],
     credentials:true
 }));
@@ -28,7 +45,7 @@ app.get('/', (req, res) => {
     res.send('¡Hola Mundo! 😊');
 });
 
-// Rutas de usuario
+app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
 
 // TODO: Tenemos que hacer que el sistema de rutas para que sea igual que el arriba
