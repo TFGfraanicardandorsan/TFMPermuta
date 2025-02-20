@@ -5,13 +5,12 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import https from 'https'
 import fs from 'fs'
-import usuarioService from './services/usuarioService.mjs';
-import funcionalidadService from './services/funcionalidadService.mjs';
-import estudiosService from './services/estudiosService.mjs';
-import asignaturaService from './services/asignaturaService.mjs';
-import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
 import estudioRouter from './routes/estudiosRoutes.mjs'
+import funcionalidadRouter from './routes/funcionalidadRoutes.mjs'
+import usuarioService from './services/usuarioService.mjs';
+import asignaturaService from './services/asignaturaService.mjs';
+import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 dotenv.config();
 
 const app = express();
@@ -49,19 +48,9 @@ app.get('/', (req, res) => {
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
 app.use('/api/v1/estudio', estudioRouter)
+app.use('/api/v1/funcionalidad', funcionalidadRouter)
 
 
-
-// FUNCIONALIDAD
-app.post('/api/insertarFuncionalidad', async (req,res) => {
-    try{
-    const datosUsuario = await funcionalidadService.insertarFuncionalidad(req.body.funcionalidad);
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api insertarFuncionalidadPrueba ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
 // ESTUDIOS
 app.post('/api/seleccionarEstudios', async (req,res) => {
     try{
