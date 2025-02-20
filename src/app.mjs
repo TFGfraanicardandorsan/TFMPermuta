@@ -8,7 +8,6 @@ import fs from 'fs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
 import estudioRouter from './routes/estudiosRoutes.mjs'
 import funcionalidadRouter from './routes/funcionalidadRoutes.mjs'
-import usuarioService from './services/usuarioService.mjs';
 import asignaturaService from './services/asignaturaService.mjs';
 import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 dotenv.config();
@@ -41,27 +40,13 @@ app.use(cors({
     credentials:true
 }));
 
-app.get('/', (req, res) => {
-    res.send('¡Hola Mundo! 😊');
-});
+app.get('/', (req, res) => {res.send('¡Hola Mundo! 😊')});
 
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
 app.use('/api/v1/estudio', estudioRouter)
 app.use('/api/v1/funcionalidad', funcionalidadRouter)
 
-
-// ESTUDIOS
-app.post('/api/seleccionarEstudios', async (req,res) => {
-    try{
-    const datosUsuario = await usuarioService.actualizarEstudiosUsuario(req.body.estudio);
-    console.log(datosUsuario)
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api actualizarEstudios ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
 // ASIGNATURA
 app.get('/api/asignaturasMisEstudios', async (req,res) => {
     try{
