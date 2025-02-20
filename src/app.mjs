@@ -11,6 +11,7 @@ import estudiosService from './services/estudiosService.mjs';
 import asignaturaService from './services/asignaturaService.mjs';
 import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
+import estudioRouter from './routes/estudiosRoutes.mjs'
 dotenv.config();
 
 const app = express();
@@ -47,17 +48,9 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
+app.use('/api/v1/estudio', estudioRouter)
 
-// TODO: Tenemos que hacer que el sistema de rutas para que sea igual que el arriba
-app.get('/api/misEstudios', async (req,res) => {
-    try{
-    const datosUsuario = await estudiosService.obtenerMiEstudioUsuario();
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api obtenerMiEstudioUsuario ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
+
 
 // FUNCIONALIDAD
 app.post('/api/insertarFuncionalidad', async (req,res) => {
@@ -80,7 +73,7 @@ app.post('/api/seleccionarEstudios', async (req,res) => {
         res.sendStatus(500)
     }
 })
-
+// ASIGNATURA
 app.get('/api/asignaturasMisEstudios', async (req,res) => {
     try{
     const datosUsuario = await asignaturaService.obtenerAsignaturasMiEstudioUsuario();
