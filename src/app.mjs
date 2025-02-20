@@ -8,10 +8,9 @@ import fs from 'fs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
 import estudioRouter from './routes/estudiosRoutes.mjs'
 import funcionalidadRouter from './routes/funcionalidadRoutes.mjs'
-import asignaturaService from './services/asignaturaService.mjs';
+import asignaturaRouter from './routes/asignaturaRoutes.mjs'
 import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 dotenv.config();
-
 const app = express();
 
 // Middleware nativo para JSON
@@ -46,19 +45,10 @@ app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
 app.use('/api/v1/estudio', estudioRouter)
 app.use('/api/v1/funcionalidad', funcionalidadRouter)
+app.use('/api/v1/asignatura', asignaturaRouter)
 
-// ASIGNATURA
-app.get('/api/asignaturasMisEstudios', async (req,res) => {
-    try{
-    const datosUsuario = await asignaturaService.obtenerAsignaturasMiEstudioUsuario();
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api obtenerMiEstudioUsuario ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
 
-// CREAR EL SERVIDOR CON HTTPS
+// Configurar el servidor con HTTPS
 const keyPath = process.env.SSL_KEY_PATH || './src/config/certs/key.pem';
 const certPath = process.env.SSL_CERT_PATH || './src/config/certs/cert.pem';
 const options = {
