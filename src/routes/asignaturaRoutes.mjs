@@ -3,6 +3,6 @@ import asignaturaController from '../controllers/asignaturaController.mjs';
 
 const router = Router()
 router
-.get('/misAsignaturas', asignaturaController.obtenerAsignaturasMiEstudioUsuario)
+.get('/asignaturasMisEstudios', asignaturaController.obtenerAsignaturasMiEstudioUsuario)
 
 export default router;

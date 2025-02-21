@@ -5,14 +5,12 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import https from 'https'
 import fs from 'fs'
-import usuarioService from './services/usuarioService.mjs';
-import funcionalidadService from './services/funcionalidadService.mjs';
-import estudiosService from './services/estudiosService.mjs';
-import asignaturaService from './services/asignaturaService.mjs';
-import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
+import estudioRouter from './routes/estudiosRoutes.mjs'
+import funcionalidadRouter from './routes/funcionalidadRoutes.mjs'
+import asignaturaRouter from './routes/asignaturaRoutes.mjs'
+import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 dotenv.config();
-
 const app = express();
 
 // Middleware nativo para JSON
@@ -41,57 +39,16 @@ app.use(cors({
     credentials:true
 }));
 
-app.get('/', (req, res) => {
-    res.send('¡Hola Mundo! 😊');
-});
+app.get('/', (req, res) => {res.send('¡Hola Mundo! 😊')});
 
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
+app.use('/api/v1/estudio', estudioRouter)
+app.use('/api/v1/funcionalidad', funcionalidadRouter)
+app.use('/api/v1/asignatura', asignaturaRouter)
 
-// TODO: Tenemos que hacer que el sistema de rutas para que sea igual que el arriba
-app.get('/api/misEstudios', async (req,res) => {
-    try{
-    const datosUsuario = await estudiosService.obtenerMiEstudioUsuario();
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api obtenerMiEstudioUsuario ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
 
-// FUNCIONALIDAD
-app.post('/api/insertarFuncionalidad', async (req,res) => {
-    try{
-    const datosUsuario = await funcionalidadService.insertarFuncionalidad(req.body.funcionalidad);
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api insertarFuncionalidadPrueba ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
-// ESTUDIOS
-app.post('/api/seleccionarEstudios', async (req,res) => {
-    try{
-    const datosUsuario = await usuarioService.actualizarEstudiosUsuario(req.body.estudio);
-    console.log(datosUsuario)
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api actualizarEstudios ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
-
-app.get('/api/asignaturasMisEstudios', async (req,res) => {
-    try{
-    const datosUsuario = await asignaturaService.obtenerAsignaturasMiEstudioUsuario();
-    res.send({err:false, result:datosUsuario})
-    } catch (err){
-        console.log('api obtenerMiEstudioUsuario ha tenido una excepción')
-        res.sendStatus(500)
-    }
-})
-
-// CREAR EL SERVIDOR CON HTTPS
+// Configurar el servidor con HTTPS
 const keyPath = process.env.SSL_KEY_PATH || './src/config/certs/key.pem';
 const certPath = process.env.SSL_CERT_PATH || './src/config/certs/cert.pem';
 const options = {
