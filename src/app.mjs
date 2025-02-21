@@ -36,7 +36,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 // Configuración de CORS para permitir las peticiones desde el cliente
 app.use(cors({
-    origin:'https://permutas.eii.us.es',
+    origin:'https://permutas.eii.us.es:3033',
     methods: ['GET', 'POST'],
     credentials:true
 }));
