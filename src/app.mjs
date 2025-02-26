@@ -18,20 +18,22 @@ app.use(express.json());
 // Middleware nativo para formularios URL encoded
 app.use(express.urlencoded({extended:true}))
 
-// Middleware de Passport 
+// Middleware 
 app.use(session({
     secret: process.env.SESSION_SECRET,
-    resave: true,
+    resave: false,
     saveUninitialized: true,
     cookie: { 
-        secure: true,  // Cambiar secure: true si se usa HTTPS
-        httpOnly: true,
-    } 
+        secure: true,
+        // domain: '.permuta.eii.us.es',
+        sameSite: 'lax',
+        maxAge: 86400000 // 24 horas
+      },
 }));
-
 // Inicializar Passport 
 app.use(passport.initialize());
 app.use(passport.session());
+
 // Configuración de CORS para permitir las peticiones desde el cliente
 app.use(cors({
     origin:'https://permutas.eii.us.es:3033',
@@ -46,7 +48,6 @@ app.use('/api/v1/usuario', usuarioRouter)
 app.use('/api/v1/estudio', estudioRouter)
 app.use('/api/v1/funcionalidad', funcionalidadRouter)
 app.use('/api/v1/asignatura', asignaturaRouter)
-
 
 // Configurar el servidor con HTTPS
 const keyPath = process.env.SSL_KEY_PATH || './src/config/certs/key.pem';

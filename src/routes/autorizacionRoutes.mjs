@@ -3,32 +3,19 @@ import passport from '../middleware/passport.mjs';
 
 const router = Router();
 
-// Iniciar la autenticación SAML
-router.get('/saml/login', passport.authenticate('saml', { failureRedirect: '/', failureFlash: true }));
-
-// Callback de autenticación SAML
-router.post('/saml/callback', passport.authenticate('saml', { failureRedirect: '/', failureFlash: true }), (req, res) => {
-    console.log('Usuario autenticado', req.user);
-    res.json({message: 'Autenticación correcta', user: req.user});
+router.get('/saml/login', (req, res, next) => {
+    passport.authenticate('saml')(req, res, next);
 });
 
-// Cerrar sesión
-router.get('/logout', (req, res) => {
-    req.logout((err) => {
-        if(err) {
-            return next(err);
-        }
-        req.session.destroy(()=> {
-            res.redirect('/');
-        })
-    })
-})
-
-// Ver perfil del usuario
-router.get('/profile', (req, res) => {
-    if(!req.isAuthenticated()) {
-        return res.status(401).json({message: 'No autenticado'});
+// Callback predeterminado del IdP
+router.get('/saml/session', (req, res) => {    
+    if (!req.user) {
+        return res.status(401).json({ message: 'No hay sesión activa en SimpleSAMLphp' });
     }
-    res.json(req.user);
-})
+    res.json({
+        message: 'Sesión obtenida correctamente',
+        user: req.user,
+    });
+});
+
 export default router;
