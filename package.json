@@ -21,7 +21,6 @@
     "passport": "^0.7.0",
     "passport-saml": "^3.2.4",
     "pg": "^8.13.1",
-    "tfmpermuta": "file:",
     "uuid": "^11.0.2"
   },
   "devDependencies": {

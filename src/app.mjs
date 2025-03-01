@@ -5,11 +5,11 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import https from 'https'
 import fs from 'fs'
+import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
 import estudioRouter from './routes/estudiosRoutes.mjs'
 import funcionalidadRouter from './routes/funcionalidadRoutes.mjs'
 import asignaturaRouter from './routes/asignaturaRoutes.mjs'
-import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 dotenv.config();
 const app = express();
 
@@ -22,12 +22,12 @@ app.use(express.urlencoded({extended:true}))
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: { 
         secure: true,
-        // domain: '.permuta.eii.us.es',
         sameSite: 'lax',
-        maxAge: 86400000 // 24 horas
+        domain: '.permuta.eii.us.es',
+        maxAge: 86400000 
       },
 }));
 // Inicializar Passport 
@@ -36,12 +36,12 @@ app.use(passport.session());
 
 // Configuración de CORS para permitir las peticiones desde el cliente
 app.use(cors({
-    origin:'https://permutas.eii.us.es:3033',
+    origin:['https://permutas.eii.us.es:3033', 'http://localhost:3033'],
     methods: ['GET', 'POST'],
     credentials:true
 }));
 
-app.get('/', (req, res) => {res.send('¡Hola Mundo! 😊')});
+app.get('/api', (req, res) => {res.send('¡Hola Mundo! 😊')});
 
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
