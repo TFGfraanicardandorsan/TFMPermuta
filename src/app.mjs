@@ -26,7 +26,6 @@ app.use(session({
     cookie: { 
         secure: true,
         sameSite: 'lax',
-        domain: '.permuta.eii.us.es',
         maxAge: 86400000 
       },
 }));
