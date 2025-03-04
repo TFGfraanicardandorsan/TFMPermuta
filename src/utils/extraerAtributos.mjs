@@ -8,7 +8,7 @@ export const extractAttributes = (html) => {
         "schacuserstatus": "Estado del usuario",
         "sn1": "Primer apellido",
         "sn2": "Segundo apellido",
-        "uid": "Identificador de usuario",
+        "uid": "uvus",
         "urn:oasis:names:tc:SAML:attribute:subject-id": "Sujeto SAML"
     };
 
