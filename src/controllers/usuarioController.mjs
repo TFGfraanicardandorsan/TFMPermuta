@@ -3,7 +3,7 @@ import usuarioService from "../services/usuarioService.mjs";
 
 const obtenerDatosUsuario = async (req,res) => {
     try{
-        const datosUsuario = await usuarioService.obtenerDatosUsuario();
+        const datosUsuario = await usuarioService.obtenerDatosUsuario(req.body.uvus);
         res.send({err:false, result:datosUsuario})
         } catch (err){
             console.log('api obtenerDatosUsuario ha tenido una excepción')
