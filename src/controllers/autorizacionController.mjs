@@ -26,15 +26,13 @@ export const verificarSesionUsuario = async (req, res) => {
         // Verificar si el usuario está en la base de datos
         const user = await autorizacionService.verificarSiExisteUsuario(uvus);
 
-        if (!user.result) {
+        if (!user) {
             return res.status(404).json({ message: "Usuario no encontrado en la base de datos" });
         }
-
         // Guardar la información del usuario en la sesión (para la sesion en Express)
-        req.session.user = user.result;
-
-        res.json({ message: "Sesión activa", user });
-
+        req.session.user = user;
+        // Redirigir al frontend con éxito
+        res.redirect(`https://permutas.eii.us.es/`);
     } catch (error) {
         console.error("Error al obtener la sesión del usuario:", error);
         res.status(500).json({ message: "Error al obtener la sesión", error: error.message });
