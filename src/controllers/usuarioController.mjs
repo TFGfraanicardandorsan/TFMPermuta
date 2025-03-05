@@ -1,15 +1,19 @@
 import usuarioService from "../services/usuarioService.mjs";
 
 
-const obtenerDatosUsuario = async (req,res) => {
-    try{
-        const datosUsuario = await usuarioService.obtenerDatosUsuario(req.body.uvus);
-        res.send({err:false, result:datosUsuario})
-        } catch (err){
-            console.log('api obtenerDatosUsuario ha tenido una excepción')
-            res.sendStatus(500)
+const obtenerDatosUsuario = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-}
+        const uvus = req.session.user.nombre_usuario;
+        res.json({ err: false, result: await usuarioService.obtenerDatosUsuario(uvus) });
+    } catch (err) {
+        console.error("API obtenerDatosUsuario ha tenido una excepción", err);
+        res.sendStatus(500);
+    }
+};
+
 
 const actualizarEstudiosUsuario = async (req,res) => {
     try{
