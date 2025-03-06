@@ -1,7 +1,7 @@
 import database from "../config/database.mjs";
 
 class EstudiosService{
-    async obtenerMiEstudioUsuario() {
+    async obtenerMiEstudioUsuario(uvus) {
         const conexion = await database.connectPostgreSQL();
         const query = {
           text: `select e.nombre from estudios e where id = (select u.estudios_id_fk  from usuario u where u.nombre_usuario =$1);`,
