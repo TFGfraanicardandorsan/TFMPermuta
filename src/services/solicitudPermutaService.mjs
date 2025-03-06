@@ -2,21 +2,11 @@ import database from "../config/database.mjs";
 import asignaturaService from "./asignaturaService.mjs";
 
 class SolicitudPermutaService {
-    async getSolicitudesPermuta(asignatura){
-        const conexion = await database.connectPostgreSQL();
-        const query = {
-          text: `select * from solicitud_permuta`,
-        };
-        const res = await conexion.query(query);
-        await conexion.end();
-        return res;
-     }
-
-     async solicitarPermuta(asignatura,grupos_deseados,uvus) {
+     async solicitarPermuta(uvus,asignatura,grupos_deseados) {
         const conexion = await database.connectPostgreSQL();
         matriculado= asignaturaService.personaMatriculadaEnAsignatura(asignatura);
     
-        if (matriculado == true){    
+        if (matriculado === true){    
           const query = {
           text: `SELECT id 
           FROM grupo 
@@ -35,15 +25,20 @@ class SolicitudPermutaService {
           (SELECT id FROM asignatura WHERE codigo = $1)),'SOLICITADA')`,
           values: [`${asignatura}`,`${uvus}`],
         };
+        await conexion.query(insert);
         for (const grupo of grupos_deseados) {
           const insert = {
-            text: `insert into grupo_deseado (solicitud_permuta_id_fk,grupo_id_fk) values ((select id from solicitud_permuta where solicitud_permuta.usuario_id_fk = (
-            select id from usuario where usuario.nombre_usuario =$3) 
-            and solicitud_permuta.grupo_solicitante_id_fk = (
-            SELECT id FROM grupo WHERE id = (
-            SELECT usuario_grupo.grupo_id_fk  FROM usuario_grupo WHERE usuario_id_fk = (
-            SELECT id FROM usuario WHERE nombre_usuario = $3)) AND asignatura_id_fk = (SELECT id FROM asignatura WHERE id = 3))),
-          (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where id = (select sp.grupo_solicitante_id_fk  from solicitud_permuta sp )))
+            text: `insert into grupo_deseado (solicitud_permuta_id_fk,grupo_id_fk) values (
+              (select id from solicitud_permuta where solicitud_permuta.usuario_id_fk = (
+              select id from usuario where usuario.nombre_usuario =$3) 
+              and solicitud_permuta.grupo_solicitante_id_fk = (
+              SELECT id FROM grupo WHERE id = (
+              SELECT usuario_grupo.grupo_id_fk  FROM usuario_grupo WHERE usuario_id_fk = (
+              SELECT id FROM usuario WHERE nombre_usuario = $3)) AND asignatura_id_fk = (SELECT id FROM asignatura 
+              WHERE id = SELECT solicitud_permuta.grupo_solicitante_id_fk FROM solicitud_permuta))),
+                (select id from grupo where nombre = $2 
+                and grupo.asignatura_id_fk = (select id from asignatura 
+                                     where id = (select sp.grupo_solicitante_id_fk  from solicitud_permuta sp )))
             )`,
             values: [`${asignatura}`, `${grupo}`,`${uvus}`],
           };
@@ -56,7 +51,7 @@ class SolicitudPermutaService {
       }
     }
 
-
+    // TODO: Implementar el método getSolicitudesPermutaInteresantes
     async getSolicitudesPermutaInteresantes(num_grupo,codigo){
       const conexion = await database.connectPostgreSQL();
       const insert = {
