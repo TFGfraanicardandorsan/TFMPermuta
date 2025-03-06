@@ -25,16 +25,17 @@ async obtenerDatosUsuario(uvus) {
     return res.rows;
   }
 
-  async actualizarEstudiosUsuario(estudio){
+  async actualizarEstudiosUsuario(estudio, uvus){
     const conexion = await database.connectPostgreSQL();
     const prueba = {
-      text: `select estudios_id_fk from usuario u where u.nombre_usuario ='fraanicar'`,
+      text: `select estudios_id_fk from usuario u where u.nombre_usuario =$1`,
+      values: [`${uvus}`],
     };
     const resPrueba = await conexion.query(prueba);
     if (resPrueba===null){
       const query = {
-        text: `Update usuario u set = $1 where u.nombre_usuario ='fraanicar'`,
-        values: [`${estudio}`],
+        text: `Update usuario u set = $1 where u.nombre_usuario =$2`,
+        values: [`${estudio}`, `${uvus}`],
       };
       const res = await conexion.query(query);
       await conexion.end();
