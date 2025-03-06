@@ -4,6 +4,6 @@ import { verificarRol } from '../middleware/rolMiddleware.mjs';
 const router = Router()
 router
 .post('/obtenerDatosUsuario',verificarRol('estudiante'), usuarioController.obtenerDatosUsuario)
-.post('/actualizarEstudiosUsuario',usuarioController.actualizarEstudiosUsuario)
+.post('/actualizarEstudiosUsuario',verificarRol('estudiante'),usuarioController.actualizarEstudiosUsuario)
 
 export default router;
