@@ -1,15 +1,43 @@
 import grupoService from "../services/grupoService.mjs";
 
 
-const getMiGrupoAsignatura = async (req,res) => {
+const obtenerGruposPorAsignatura = async (req,res) => {
     try{
-        const getMiGrupoAsignatura = await grupoService.getMiGrupoAsignatura(req.body.funcionalidad);
-        res.send({err:false, result:getMiGrupoAsignatura})
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        res.send({err:false, result: await grupoService.obtenerGruposPorAsignatura(req.body.asignatura)})
         } catch (err){
-            console.log('api getMiGrupoAsignatura ha tenido una excepción')
+            console.log('api obtenerGruposPorAsignatura ha tenido una excepción')
+            res.sendStatus(500)
+        }
+}
+const añadirMisGrupos = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({err:false, result: await grupoService.añadirMisGrupos(uvus,req.body.num_grupo,req.body.codigo)})
+        } catch (err){
+            console.log('api añadirMisGrupos ha tenido una excepción')
+            res.sendStatus(500)
+        }
+}
+const obtenerMiGrupoAsignatura = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({err:false, result: await grupoService.obtenerMiGrupoAsignatura(uvus)})
+        } catch (err){
+            console.log('api obtenerMiGrupoAsignatura ha tenido una excepción')
             res.sendStatus(500)
         }
 }
 export default {
-    getMiGrupoAsignatura
+    obtenerGruposPorAsignatura,
+    añadirMisGrupos,
+    obtenerMiGrupoAsignatura
 }

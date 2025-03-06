@@ -1,17 +1,17 @@
 import database from "../config/database.mjs";
 
 class GrupoService{
-    async getGruposPorAsignatura(){
+    async obtenerGruposPorAsignatura(asignatura){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `select * from grupo where asignatura = (Select id from asignatura where codigo = $1)`,
+          text: `select id,nombre as numGrupo from grupo where asignatura = (Select id from asignatura where codigo = $1)`,
           values: [`${asignatura}`],
         };
         const res = await conexion.query(query);
         await conexion.end();
-        return res;
+        return res.rows;
       }
-      async añadirMisGrupos(num_grupo,codigo,uvus){
+      async añadirMisGrupos(uvus,num_grupo,codigo){
         const conexion = await database.connectPostgreSQL();
         const insert = {
           text: `insert into usuario_grupo (usuario_id_fk, grupo_id_fk ) values (
@@ -19,21 +19,20 @@ class GrupoService{
           (select id from grupo g  where g.nombre = $1 and g.asignatura_id_fk = (select id from asignatura where codigo =$2 )))`,
           values: [`${num_grupo}`, `${codigo}`, `${uvus}`],
         };
-        const res = await conexion.query(query);
+        await conexion.query(insert);
         await conexion.end();
-        return res;
       }
 
-      async getMiGrupoAsignatura(uvus){
+      async obtenerMiGrupoAsignatura(uvus){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `select g.nombre as n_grupo , a.nombre as titulacion from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
+          text: `select g.nombre as numGrupo , a.nombre as titulacion from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
           where g.id in (select ug.grupo_id_fk  from usuario_grupo ug where ug.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
           values: [`${uvus}`],
         };
         const res = await conexion.query(query);
         await conexion.end();
-        return res;
+        return res.rows;
       }
       
 }
