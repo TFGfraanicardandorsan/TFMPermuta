@@ -21,7 +21,7 @@ const actualizarEstudiosUsuario = async (req,res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.send(await usuarioService.actualizarEstudiosUsuario(uvus, req.body.estudio))
+        res.send({err:false, result:await usuarioService.actualizarEstudiosUsuario(uvus, req.body.estudio)})
         } catch (err){
             console.log('api actualizarEstudiosUsuario ha tenido una excepción')
             res.sendStatus(500)
