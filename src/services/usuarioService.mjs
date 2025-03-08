@@ -31,7 +31,7 @@ async obtenerDatosUsuario(uvus) {
       await conexion.end();
       return 'Estudios seleccionados';
     }
-    return resQueryUsuario.rows[0];
+    return typeof(resQueryUsuario.rows[0]);
   }
 }
 const usuarioService = new UsuarioService();
