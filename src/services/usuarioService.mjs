@@ -22,6 +22,7 @@ async obtenerDatosUsuario(uvus) {
       values: [`${uvus}`],
     };
     const resQueryUsuario = await conexion.query(queryUsuario);
+    console.log(resQueryUsuario.rows);
     if (resQueryUsuario.rows.length === 0){
       const query = {
         text: `Update usuario u set estudios_id_fk =(select id from estudios where nombre = $1) where u.nombre_usuario =$2`,
