@@ -22,7 +22,6 @@ async obtenerDatosUsuario(uvus) {
       values: [`${uvus}`],
     };
     const resQueryUsuario = await conexion.query(queryUsuario);
-    console.log(resQueryUsuario.rows);
     if (resQueryUsuario.rows.length === 0){
       const query = {
         text: `Update usuario u set estudios_id_fk =(select id from estudios where nombre = $1) where u.nombre_usuario =$2`,
@@ -32,7 +31,8 @@ async obtenerDatosUsuario(uvus) {
       await conexion.end();
       return 'Estudios seleccionados';
     }
-    return 'No puedes cambiar los estudios ya seleccionados ponte en contacto con un administrador a través de una incidencia';
+    // return 'No puedes cambiar los estudios ya seleccionados ponte en contacto con un administrador a través de una incidencia';
+    return resQueryUsuario.rows
   }
 }
 const usuarioService = new UsuarioService();
