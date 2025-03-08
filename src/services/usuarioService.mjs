@@ -22,7 +22,7 @@ async obtenerDatosUsuario(uvus) {
       values: [`${uvus}`],
     };
     const resQueryUsuario = await conexion.query(queryUsuario);
-    if (resQueryUsuario.rows[0][0]=== null){
+    if (resQueryUsuario.rows[0].estudios_id_fk === null){
       const query = {
         text: `Update usuario u set estudios_id_fk =(select id from estudios where nombre = $1) where u.nombre_usuario =$2`,
         values: [`${estudio}`, `${uvus}`],
@@ -31,7 +31,7 @@ async obtenerDatosUsuario(uvus) {
       await conexion.end();
       return 'Estudios seleccionados';
     }
-    return (resQueryUsuario.rows[0][0]);
+    return 'Ya tienes estudios seleccionados. Ponte en contacto con el administrador si deseas cambiarlos';
   }
 }
 const usuarioService = new UsuarioService();
