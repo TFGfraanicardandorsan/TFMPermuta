@@ -31,7 +31,7 @@ async obtenerDatosUsuario(uvus) {
       await conexion.end();
       return 'Estudios seleccionados';
     }
-    return 'No puedes cambiar los estudios ya seleccionados ponte en contacto con un administrador a través de una incidencia';
+    return resQueryUsuario.rows[0];
   }
 }
 const usuarioService = new UsuarioService();
