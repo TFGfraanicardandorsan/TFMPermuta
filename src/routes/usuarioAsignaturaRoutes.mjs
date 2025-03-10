@@ -3,6 +3,6 @@ import usuarioAsignaturaController from '../controllers/usuarioAsignaturaControl
 import { verificarRol } from '../middleware/rolMiddleware.mjs';
 const router = Router()
 router
-.post('/registrarAsignatura',verificarRol('estudiante'), usuarioAsignaturaController.actualizarAsignaturasUsuario)
+.post('/actualizarAsignaturasUsuario',verificarRol('estudiante'), usuarioAsignaturaController.actualizarAsignaturasUsuario)
 
 export default router;

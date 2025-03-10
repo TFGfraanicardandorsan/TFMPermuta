@@ -14,4 +14,5 @@ const actualizarAsignaturasUsuario = async (req, res) => {
 }
 
 export default { 
-    actualizarAsignaturasUsuario }
+    actualizarAsignaturasUsuario 
+}
