@@ -6,8 +6,7 @@ const añadirGrupoAsignatura = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        await UsuarioGrupoService.añadirGrupoAsignatura(uvus, req.body.grupo, req.body.asignatura);
-        res.send({ err: false });
+        res.send({ err: false, result: await UsuarioGrupoService.añadirGrupoAsignatura(uvus, req.body.grupo, req.body.asignatura)});
     } catch (err) {
         console.log('api añadirGrupoAsignatura ha tenido una excepción')
         res.sendStatus(500)
