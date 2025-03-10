@@ -1,7 +1,7 @@
 import database from "../config/database.mjs";
 
 class UsuarioGrupoService{ 
-async añadirGrupoAsignatura(uvus, grupo, asignatura) {
+async insertarGrupoAsignatura(uvus, grupo, asignatura) {
     const conexion = await database.connectPostgreSQL();
     try {
     const query = {
