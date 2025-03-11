@@ -11,7 +11,7 @@ import estudioRouter from './routes/estudiosRoutes.mjs'
 import funcionalidadRouter from './routes/funcionalidadRoutes.mjs'
 import asignaturaRouter from './routes/asignaturaRoutes.mjs'
 import usuarioAsignaturaRouter from './routes/usuarioAsignaturaRoutes.mjs'
-import usuarioGrupoRouter from './routes/usuarioGrupoRoutes.mjs'
+// import usuarioGrupoRouter from './routes/usuarioGrupoRoutes.mjs'
 dotenv.config();
 const app = express();
 
@@ -50,7 +50,7 @@ app.use('/api/v1/estudio', estudioRouter)
 app.use('/api/v1/funcionalidad', funcionalidadRouter)
 app.use('/api/v1/asignatura', asignaturaRouter)
 app.use('/api/v1/usuarioAsignatura', usuarioAsignaturaRouter)
-app.use('/api/v1/usuarioGrupo', usuarioGrupoRouter)
+// app.use('/api/v1/usuarioGrupo', usuarioGrupoRouter)
 
 // Configurar el servidor con HTTPS
 const keyPath = process.env.SSL_KEY_PATH || './src/config/certs/key.pem';
