@@ -3,6 +3,16 @@ import database from "../config/database.mjs";
 class UsuarioGrupoService{ 
 async insertarGrupoAsignatura(uvus, grupo, asignatura) {
     const conexion = await database.connectPostgreSQL();
+    const query = {
+      text: `select count(*) usuario_grupo where grupo_id_fk = (select id from grupo g  where g.nombre = $2 and g.asignatura_id_fk = (select id from asignatura where codigo =$3 )) 
+      and usuario_id_fk = (select id from usuario where nombre_usuario =$1)`,
+      values: [`${uvus}`, `${grupo}`, `${asignatura}`],
+    };
+    const res = await conexion.query(query);
+    if (res.rows[0].count > 0) {
+      await conexion.end();
+      return 'El usuario ya está en el grupo';
+    }
     try {
     const query = {
       text: `insert into usuario_grupo values (
