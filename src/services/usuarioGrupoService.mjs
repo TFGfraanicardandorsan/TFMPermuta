@@ -4,7 +4,7 @@ class UsuarioGrupoService{
 async insertarGrupoAsignatura(uvus, grupo, asignatura) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `select count(*) usuario_grupo where grupo_id_fk = (select id from grupo g  where g.nombre = $2 and g.asignatura_id_fk = (select id from asignatura where codigo =$3 )) 
+      text: `select count(*) from usuario_grupo where grupo_id_fk = (select id from grupo g  where g.nombre = $2 and g.asignatura_id_fk = (select id from asignatura where codigo =$3 )) 
       and usuario_id_fk = (select id from usuario where nombre_usuario =$1)`,
       values: [`${uvus}`, `${grupo}`, `${asignatura}`],
     };
