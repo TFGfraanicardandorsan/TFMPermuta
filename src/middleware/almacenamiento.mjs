@@ -2,7 +2,7 @@ import multer from "multer";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
-const UPLOADS_FOLDER = process.env.UPLOADS_FOLDER || "uploads"; 
+const UPLOADS_FOLDER = "/usr/local/src/buzon"; 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         console.log("Guardando en:", UPLOADS_FOLDER); 
