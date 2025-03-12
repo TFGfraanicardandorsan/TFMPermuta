@@ -60,12 +60,12 @@ app.post('/api/v1/upload', upload.single("file"), (req, res) => {
     if(!req.file){
         return res.status(400).send('No se ha subido ningún archivo');
     }
-    res.json({
+    console.log(req.body);
+
+    return res.json({
         message:"Archivo subido correctamente",
         filePath:`/api/v1/uploads/${req.file.filename}`
     })
-    console.log(req.body);
-    res.send('Recibido');
 });
 
 // Configurar el servidor con HTTPS
