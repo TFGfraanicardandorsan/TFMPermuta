@@ -12,15 +12,15 @@ const obtenerGruposPorAsignatura = async (req,res) => {
             res.sendStatus(500)
         }
 }
-const añadirMisGrupos = async (req,res) => {
+const insertarMisGrupos = async (req,res) => {
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.send({err:false, result: await grupoService.añadirMisGrupos(uvus,req.body.num_grupo,req.body.codigo)})
+        res.send({err:false, result: await grupoService.insertarMisGrupos(uvus,req.body.num_grupo,req.body.codigo)})
         } catch (err){
-            console.log('api añadirMisGrupos ha tenido una excepción')
+            console.log('api insertarMisGrupos ha tenido una excepción')
             res.sendStatus(500)
         }
 }
@@ -38,6 +38,6 @@ const obtenerMiGrupoAsignatura = async (req,res) => {
 }
 export default {
     obtenerGruposPorAsignatura,
-    añadirMisGrupos,
+    insertarMisGrupos,
     obtenerMiGrupoAsignatura
 }

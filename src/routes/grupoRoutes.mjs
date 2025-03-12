@@ -5,7 +5,7 @@ import { verificarRol } from '../middleware/rolMiddleware.mjs';
 const router = Router()
 router
 .post('/obtenerGruposPorAsignatura',verificarRol('estudiante'), grupoController.obtenerGruposPorAsignatura)
-.post('/añadirMisGrupos',verificarRol('estudiante'), grupoController.añadirMisGrupos)
+.post('/insertarMisGrupos',verificarRol('estudiante'), grupoController.insertarMisGrupos)
 .post('/obtenerMiGrupoAsignatura',verificarRol('estudiante'), grupoController.obtenerMiGrupoAsignatura)
 
 export default router;

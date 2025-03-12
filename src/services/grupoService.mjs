@@ -11,7 +11,7 @@ class GrupoService{
         await conexion.end();
         return res.rows;
       }
-      async añadirMisGrupos(uvus,num_grupo,codigo){
+      async insertarMisGrupos(uvus,num_grupo,codigo){
         const conexion = await database.connectPostgreSQL();
         const insert = {
           text: `insert into usuario_grupo (usuario_id_fk, grupo_id_fk ) values (
