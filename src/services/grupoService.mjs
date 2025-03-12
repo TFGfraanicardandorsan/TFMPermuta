@@ -4,7 +4,7 @@ class GrupoService{
     async obtenerGruposPorAsignatura(asignatura){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `select id,nombre as numGrupo from grupo where asignatura = (Select id from asignatura where codigo = $1)`,
+          text: `select id,nombre as numGrupo from grupo where asignatura_id_fk = (Select id from asignatura where codigo = $1)`,
           values: [`${asignatura}`],
         };
         const res = await conexion.query(query);
