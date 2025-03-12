@@ -5,8 +5,10 @@ import incidenciaService from "../services/incidenciaService.mjs";
  */
 const obtenerIncidencias = async (req, res) => {
     try {
-        const result = await incidenciaService.getIncidencias();
-        res.json({ error: false, result: result.rows });
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        res.json({ error: false, result: await incidenciaService.obtenerIncidencias() });
     } catch (err) {
         console.error("Error en obtenerIncidencias:", err);
         res.status(500).json({ error: true, message: "Error al obtener las incidencias" });
@@ -17,11 +19,12 @@ const obtenerIncidencias = async (req, res) => {
  * Obtiene las incidencias asignadas a un usuario específico.
  */
 const obtenerIncidenciasAsignadasUsuario = async (req, res) => {
-    const { uvus } = req.params;
-
     try {
-        const result = await incidenciaService.getIncidenciasAsignadasUsuario(uvus);
-        res.json({ error: false, result: result.rows });
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.json({ error: false, result: await incidenciaService.obtenerIncidenciasAsignadasUsuario(uvus) });
     } catch (err) {
         console.error("Error en obtenerIncidenciasAsignadasUsuario:", err);
         res.status(500).json({ error: true, message: "Error al obtener incidencias asignadas al usuario" });
@@ -33,8 +36,10 @@ const obtenerIncidenciasAsignadasUsuario = async (req, res) => {
  */
 const obtenerIncidenciasAsignadas = async (req, res) => {
     try {
-        const result = await incidenciaService.getIncidenciasAsignadas();
-        res.json({ error: false, result: result.rows });
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        res.json({ error: false, result: await incidenciaService.obtenerIncidenciasAsignadas() });
     } catch (err) {
         console.error("Error en obtenerIncidenciasAsignadas:", err);
         res.status(500).json({ error: true, message: "Error al obtener incidencias asignadas" });
@@ -46,8 +51,10 @@ const obtenerIncidenciasAsignadas = async (req, res) => {
  */
 const obtenerIncidenciasSinAsignar = async (req, res) => {
     try {
-        const result = await incidenciaService.getIncidenciasSinAsignar();
-        res.json({ error: false, result: result.rows });
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        res.json({ error: false, result: await incidenciaService.obtenerIncidenciasSinAsignar() });
     } catch (err) {
         console.error("Error en obtenerIncidenciasSinAsignar:", err);
         res.status(500).json({ error: true, message: "Error al obtener incidencias sin asignar" });
@@ -58,15 +65,16 @@ const obtenerIncidenciasSinAsignar = async (req, res) => {
  * Permite asignar una incidencia a sí mismo.
  */
 const asignarmeIncidencia = async (req, res) => {
-    const { uvus, id_incidencia } = req.body;
-
-    if (!uvus || !id_incidencia) {
-        return res.status(400).json({ error: true, message: "Datos incompletos" });
-    }
-
     try {
-        const result = await incidenciaService.asignarmeIncidencia(uvus, id_incidencia);
-        res.json({ error: false, message: "Incidencia asignada con éxito", result: result.rows });
+        const uvus = req.session.user.nombre_usuario;
+        const id_incidencia = req.body.id_incidencia;
+        if (!req.session.user) {
+        return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        if (!id_incidencia) {
+        return res.status(400).json({ error: true, message: "Datos incompletos" });
+        }
+        res.json({ error: false, result: await incidenciaService.asignarmeIncidencia(uvus, id_incidencia)});
     } catch (err) {
         console.error("Error en asignarmeIncidencia:", err);
         res.status(500).json({ error: true, message: "Error al asignar la incidencia" });
@@ -77,15 +85,16 @@ const asignarmeIncidencia = async (req, res) => {
  * Permite marcar una incidencia como solucionada.
  */
 const solucionarIncidencia = async (req, res) => {
-    const { uvus, id_incidencia } = req.body;
-
-    if (!uvus || !id_incidencia) {
-        return res.status(400).json({ error: true, message: "Datos incompletos" });
-    }
-
     try {
-        const result = await incidenciaService.solucionarIncidencia(uvus, id_incidencia);
-        res.json({ error: false, message: "Incidencia solucionada con éxito", result: result.rows });
+        const uvus = req.session.user.nombre_usuario;
+        const id_incidencia = req.body.id_incidencia;
+        if (!req.session.user) {
+        return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        if (!id_incidencia) {
+        return res.status(400).json({ error: true, message: "Datos incompletos" });
+        }
+        res.json({ error: false, result: await incidenciaService.solucionarIncidencia(uvus, id_incidencia) });
     } catch (err) {
         console.error("Error en solucionarIncidencia:", err);
         res.status(500).json({ error: true, message: "Error al solucionar la incidencia" });
@@ -97,16 +106,16 @@ const solucionarIncidencia = async (req, res) => {
  */
 const crearIncidencia = async (req, res) => {
     try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+            }
         const { descripcion, tipo_incidencia } = req.body;
         const archivoPath = req.file ? req.file.path : null; // Si se adjunta un archivo, guarda su ruta
 
         if (!descripcion || !tipo_incidencia) {
             return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
         }
-
-        const nuevaIncidencia = await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, archivoPath);
-
-        res.status(201).json({ error: false, message: "Incidencia creada con éxito", incidencia: nuevaIncidencia });
+        res.status(201).json({ error: false, result: await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, archivoPath) });
     } catch (err) {
         console.error("Error en crearIncidencia:", err);
         res.status(500).json({ error: true, message: "Error al crear la incidencia" });

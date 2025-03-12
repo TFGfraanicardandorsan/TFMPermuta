@@ -1,29 +1,15 @@
 import express from "express";
-import multer from "multer";
-import path from "path";
 import incidenciaController from "../controllers/incidenciaController.mjs";
+import { verificarRol } from '../middleware/rolMiddleware.mjs';
 
 const router = express.Router();
 
-// Configuración de `multer` para subir archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, "uploads/");
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
-    },
-});
-
-const upload = multer({ storage: storage });
-
-// Rutas de la API
-router.get("/incidencias", incidenciaController.obtenerIncidencias);
-router.get("/incidencias/asignadasMias", incidenciaController.obtenerIncidenciasAsignadasUsuario);
-router.get("/incidencias/asignadas", incidenciaController.obtenerIncidenciasAsignadas);
-router.get("/incidencias/sinAsignar", incidenciaController.obtenerIncidenciasSinAsignar);
-router.post("/incidencias/asignar", incidenciaController.asignarmeIncidencia);
-router.post("/incidencias/solucionar", incidenciaController.solucionarIncidencia);
-router.post("/incidencias", upload.single("archivo"), incidenciaController.crearIncidencia);
+router.get("/obtenerIncidencias", verificarRol('administrador'), incidenciaController.obtenerIncidencias);
+router.get("/obtenerIncidenciasAsignadasUsuario", verificarRol('estudiante'), incidenciaController.obtenerIncidenciasAsignadasUsuario);
+router.get("/obtenerIncidenciasAsignadas",verificarRol('administrador'), incidenciaController.obtenerIncidenciasAsignadas);
+router.get("/obtenerIncidenciasSinAsignar",verificarRol('administrador'),incidenciaController.obtenerIncidenciasSinAsignar);
+router.post("/asignarmeIncidencia",verificarRol('administrador'), incidenciaController.asignarmeIncidencia);
+router.post("/solucionarIncidencia",verificarRol('administrador'), incidenciaController.solucionarIncidencia);
+router.post("/crearIncidencia",verificarRol('estudiante'), incidenciaController.crearIncidencia);
 
 export default router;
