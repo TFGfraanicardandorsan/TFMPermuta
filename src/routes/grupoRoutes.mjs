@@ -7,5 +7,5 @@ router
 .post('/obtenerGruposPorAsignatura',verificarRol('estudiante'), grupoController.obtenerGruposPorAsignatura)
 .post('/insertarMisGrupos',verificarRol('estudiante'), grupoController.insertarMisGrupos)
 .post('/obtenerMiGrupoAsignatura',verificarRol('estudiante'), grupoController.obtenerMiGrupoAsignatura)
-
+.post('/obtenerTodosGruposMisAsignaturasUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasUsuario)
 export default router;

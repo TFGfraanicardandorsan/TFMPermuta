@@ -34,6 +34,18 @@ class GrupoService{
         await conexion.end();
         return res.rows;
       }
+
+      async obtenerTodosGruposMisAsignaturasUsuario(uvus){
+        const conexion = await database.connectPostgreSQL();
+        const query = {
+          text: `select g.nombre as numGrupo , a.nombre as asignatura from grupo g left join asignatura a on a.id = g.asignatura_id_fk
+          where g.asignatura_id_fk in (select ua.asignatura_id_fk from usuario_asignatura ua where ua.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
+          values: [`${uvus}`],
+        };
+        const res = await conexion.query(query);
+        await conexion.end();
+        return res.rows;
+      }
       
 }
 const grupoService = new GrupoService();
