@@ -5,7 +5,7 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
     const conexion = await database.connectPostgreSQL();
     const query = {
       text: `select count(*) from usuario_asignatura where asignatura_id_fk = (select id from asignatura where codigo = $2) 
-      and usuario_id_fk = (select u.estudios_id_fk from usuario u where u.nombre_usuario =$1)`,
+      and usuario_id_fk = (select u.id from usuario u where u.nombre_usuario =$1)`,
       values: [`${uvus}`, `${asignatura}`],
     };
     const res = await conexion.query(query);
