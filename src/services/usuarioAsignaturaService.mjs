@@ -27,6 +27,27 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
     return 'Se ha producido un error al insertar el usuario en la asignatura';
     }
   }
+
+  async obtenerAsignaturasUsuario(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+    const query = {
+      text: `select nombre as asignatura, codigo from asignatura (select id from usuario_asignatura where
+              (select u.id from usuario u where u.nombre_usuario =$1))`,
+      values: [`${uvus}`, `${asignatura}`],
+    };
+    await conexion.query(query);
+    await conexion.end();
+    const res = await conexion.query(query);
+    return res.rows; 
+  } catch (err) {
+    console.error(err);
+    return 'Se ha producido un error al conseguir las asignaturas del usuario';
+    }
+  }
+
 }
+
+
 const asignaturaUsuarioService = new AsignaturaUsuarioService();
 export default asignaturaUsuarioService;
