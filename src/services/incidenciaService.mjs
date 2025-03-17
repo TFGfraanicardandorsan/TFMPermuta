@@ -67,7 +67,7 @@ class IncidenciaService{
                       SELECT 1
                       FROM incidencia_usuario
                       JOIN usuario ON incidencia_usuario.usuario_id_mantenimiento_fk = usuario.id
-                      WHERE usuario.nombre_usuario = $2)
+                      WHERE usuario.nombre_usuario = $2
                       AND incidencia_usuario.id = incidencia.id)`,
           values: [`${id_incidencia}`,`${uvus}`],
         };
