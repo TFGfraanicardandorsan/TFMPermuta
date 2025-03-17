@@ -110,9 +110,7 @@ const crearIncidencia = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
             }
 
-        console.log(req.body);
-        const { descripcion, tipo_incidencia } = req.body;
-        const archivoPath = req.file ? req.file.path : null; // Si se adjunta un archivo, guarda su ruta
+        const { descripcion, tipo_incidencia,archivoPath } = req.body;
         console.log(descripcion, tipo_incidencia, archivoPath);
         if (!descripcion || !tipo_incidencia) {
             return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
