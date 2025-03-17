@@ -14,7 +14,9 @@ class IncidenciaService{
       async obtenerIncidenciasAsignadasUsuario(uvus){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia from incidencia where id in (select id from incidencia_usuario where usuario_id_fk = (select id from usuario where nombre_usuario = $1))`,
+          text: ` select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
+                  from incidencia 
+                  where id in (select id from incidencia_usuario where usuario_id_fk = (select id from usuario where nombre_usuario = $1))`,
           values: [`${uvus}`],
         };
         const res = await conexion.query(query);
