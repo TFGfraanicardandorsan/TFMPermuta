@@ -20,11 +20,12 @@ const obtenerAsignaturasUsuario = async (req, res) => {
         const uvus = req.session.user.nombre_usuario;
         res.send({ err: false, result: await usuarioAsignaturaService.obtenerAsignaturasUsuario(uvus) })
     } catch (err) {
-        console.log('api actualizarAsignaturasUsuario ha tenido una excepción')
+        console.log('api obtenerAsignaturasUsuario ha tenido una excepción')
         res.sendStatus(500)
     }
 }
 
 export default { 
-    actualizarAsignaturasUsuario 
+    actualizarAsignaturasUsuario,
+    obtenerAsignaturasUsuario
 }

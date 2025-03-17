@@ -34,7 +34,7 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
     const query = {
       text: `select nombre as asignatura, codigo from asignatura (select id from usuario_asignatura where
               (select u.id from usuario u where u.nombre_usuario =$1))`,
-      values: [`${uvus}`, `${asignatura}`],
+      values: [`${uvus}`],
     };
     await conexion.query(query);
     await conexion.end();
