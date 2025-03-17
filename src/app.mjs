@@ -13,6 +13,7 @@ import asignaturaRouter from './routes/asignaturaRoutes.mjs'
 import usuarioAsignaturaRouter from './routes/usuarioAsignaturaRoutes.mjs'
 import usuarioGrupoRouter from './routes/usuarioGrupoRoutes.mjs'
 import grupoRouter from './routes/grupoRoutes.mjs'
+import incidenciaRouter from './routes/incidenciaRoutes.mjs'
 import upload from './middleware/almacenamiento.mjs';
 dotenv.config();
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/v1/funcionalidad', funcionalidadRouter)
 app.use('/api/v1/asignatura', asignaturaRouter)
 app.use('/api/v1/usuarioAsignatura', usuarioAsignaturaRouter)
 app.use('/api/v1/usuarioGrupo', usuarioGrupoRouter)
+app.use('/api/v1/incidencia', incidenciaRouter)
 app.use('/api/v1/grupo', grupoRouter)
 
 //Prueba
