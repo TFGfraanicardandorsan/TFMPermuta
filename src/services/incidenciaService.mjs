@@ -60,7 +60,15 @@ class IncidenciaService{
       async solucionarIncidencia(uvus,id_incidencia){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `update incidencia set estado_incidencia = 'solucionada' where id = $1 and incidencia_usuario.usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario = $2)`,
+          text: ` update incidencia 
+                  set estado_incidencia = 'solucionada' 
+                  where id = $1 
+                    AND EXISTS (
+                      SELECT 1
+                      FROM incidencia_usuario
+                      JOIN usuario ON incidencia_usuario.usuario_id_mantenimiento_fk = usuario.id
+                      WHERE usuario.nombre_usuario = $2)
+                      AND incidencia_usuario.id = incidencia.id)`,
           values: [`${id_incidencia}`,`${uvus}`],
         };
         await conexion.query(query);
