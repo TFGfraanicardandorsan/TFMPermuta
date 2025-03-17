@@ -25,7 +25,9 @@ class IncidenciaService{
       async obtenerIncidenciasAsignadas(){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia from incidencia where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario IS NOT NULL))`,
+          text: ` select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
+                  from incidencia 
+                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario IS NOT NULL))`,
         };
         const res = await conexion.query(query);
         await conexion.end();
