@@ -37,7 +37,9 @@ class IncidenciaService{
       async obtenerIncidenciasSinAsignar(){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia from incidencia where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario IS NULL))`,
+          text: ` select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
+                  from incidencia 
+                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk IS NULL)`,
         };
         const res = await conexion.query(query);
         await conexion.end();
