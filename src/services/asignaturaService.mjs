@@ -29,6 +29,22 @@ class AsignaturaService{
          }
          return res.rows;
      }
+     async asignaturasPermutables(){
+      const conexion = await database.connectPostgreSQL();
+      const query = {
+        text: `SELECT a.nombre, a.siglas, a.curso, a.codigo
+               FROM asignatura a
+               JOIN grupo g ON a.codigo = g.id_asignatura
+               GROUP BY a.nombre, a.siglas, a.curso, a.codigo
+               HAVING COUNT(g.id_grupo) > 1`,
+      };
+      const res = await conexion.query(query);
+      await conexion.end();
+      if (res.rows.length === 0){
+        return false;
+      }
+      return res.rows;
+  }
 }
 const asignaturaService = new AsignaturaService();
 export default asignaturaService;
