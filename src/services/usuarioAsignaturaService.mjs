@@ -32,8 +32,9 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
     const conexion = await database.connectPostgreSQL();
     try {
     const query = {
-      text: `select nombre as asignatura, codigo from asignatura (select id from usuario_asignatura where
-              (select u.id from usuario u where u.nombre_usuario =$1))`,
+      text: ` select nombre as asignatura, codigo 
+              from asignatura 
+              where id in (select asignatura_id_fk from usuario_asignatura where usuario_id_fk = (select u.id from usuario u where u.nombre_usuario = $1))`,
       values: [`${uvus}`],
     };
     await conexion.query(query);
