@@ -51,8 +51,10 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
     const conexion = await database.connectPostgreSQL();
     try {
     const query = {
-      text: `delete from usuario_asignatura where usuario_id_fk = (
-              (select u.id from usuario u where u.nombre_usuario =$1) AND  asignatura_id_fk= (select id from asignatura where codigo = $2))`,
+      text: `delete from usuario_asignatura 
+                where usuario_id_fk = (
+                  select u.id from usuario u where u.nombre_usuario = $1) 
+			  			      AND  asignatura_id_fk= (select id from asignatura where codigo = $2)`,
       values: [`${uvus}`, `${asignatura}`],
     };
     await conexion.query(query);
