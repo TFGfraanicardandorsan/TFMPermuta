@@ -8,9 +8,9 @@ async insertarFuncionalidad(funcionalidad){
       text: `INSERT INTO funcionalidad (nombre) VALUES ($1)`,
       values: [`${funcionalidad}`],
     };
-    const res = await conexion.query(query);
+    await conexion.query(query);
     await conexion.end();
-    return res.rows[0];
+    return 'Se ha insertado la funcionalidad correctamente';
   }
 }
 const funcionalidadService = new FuncionalidadService();
