@@ -21,6 +21,16 @@ class NotificacionService{
         await conexion.end();
         return res.rows;
       }
-}
+      async crearNotificacionesUsuario(uvus,contenido,receptor){
+        const conexion = await database.connectPostgreSQL();
+        const query = {
+          text: `insert into notificacion (usuario_id_fk, contenido, receptor) values ( (select id from usuario where nombre_usuario = $1), $2, $3)`,
+          values: [`${uvus}`, `${contenido}`, `${receptor}`],
+        };
+        const res = await conexion.query(query);
+        await conexion.end();
+        return 'Se ha creado la notificación correctamente';      
+      }
+    }
 const notificacionService = new NotificacionService();
 export default notificacionService

@@ -13,6 +13,19 @@ const getNotificacionesUsuario = async (req, res) => {
     }
 };
 
+const insertarNotificacion = async (req,res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({err:false, result: await notificacionService.crearNotificacionesUsuario(uvus,req.body.contenido, req.body.receptor)})
+        } catch (err){
+            console.log('api insertarNotificacion ha tenido una excepción')
+
+            res.sendStatus(500) }
+        }
 export default {
-    getNotificacionesUsuario
+    getNotificacionesUsuario,
+    insertarNotificacion
 }

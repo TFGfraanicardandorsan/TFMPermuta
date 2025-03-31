@@ -4,6 +4,6 @@ import { verificarRol } from '../middleware/rolMiddleware.mjs';
 const router = Router()
 router
 .post('/notificaciones', notificacionController.getNotificacionesUsuario)
-
+.post('/insertarNotificacion',verificarRol('administrador'), notificacionController.insertarNotificacion)
 
 export default router;
