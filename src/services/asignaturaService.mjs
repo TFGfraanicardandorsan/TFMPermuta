@@ -46,6 +46,25 @@ class AsignaturaService{
       }
       return res.rows;
   }
+async asignaturasPermutablesUsuario(uvus){
+  const conexion = await database.connectPostgreSQL();
+  const query = {
+    text: `SELECT a.nombre, a.siglas, a.curso, a.codigo
+            FROM asignatura a
+            JOIN grupo g ON a.id = g.asignatura_id_fk
+            WHERE g.id IN (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1))
+            GROUP BY a.nombre, a.siglas, a.curso, a.codigo
+            HAVING COUNT(g.id) > 1
+            ORDER BY a.curso`,
+    values: [`${uvus}`],
+  };
+  const res = await conexion.query(query);
+  await conexion.end();
+  if (res.rows.length === 0){
+    return false;
+  }
+  return res.rows;
+}
 }
 const asignaturaService = new AsignaturaService();
 export default asignaturaService;

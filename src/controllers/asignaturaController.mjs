@@ -24,7 +24,21 @@ const asignaturaPermutable = async (req,res) => {
         }
 }
 
+const asignaturaPermutableUsuario = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({err:false, result:await asignaturaService.asignaturasPermutablesUsuario(uvus)})
+        } catch (err){
+            console.log('api asignaturasPermutables ha tenido una excepción')
+            res.sendStatus(500)
+        }
+}
+
 export default {
     obtenerAsignaturasMiEstudioUsuario,
-    asignaturaPermutable
+    asignaturaPermutable,
+    asignaturaPermutableUsuario
 }
