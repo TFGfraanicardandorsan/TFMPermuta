@@ -5,3 +5,5 @@ import uploadController from '../controllers/uploadController.mjs';
 const router = Router()
 router
 .post('/upload',upload.single('file'),uploadController.subirArchivo)
+
+export default router
