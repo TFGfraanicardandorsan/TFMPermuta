@@ -14,8 +14,8 @@ import usuarioAsignaturaRouter from './routes/usuarioAsignaturaRoutes.mjs'
 import usuarioGrupoRouter from './routes/usuarioGrupoRoutes.mjs'
 import grupoRouter from './routes/grupoRoutes.mjs'
 import incidenciaRouter from './routes/incidenciaRoutes.mjs'
-import upload from './middleware/almacenamiento.mjs';
 import notificacionRoutes from './routes/notificacionRoutes.mjs'
+import uploadRouter from './routes/uploadRoutes.mjs'
 dotenv.config();
 const app = express();
 
@@ -58,19 +58,7 @@ app.use('/api/v1/usuarioGrupo', usuarioGrupoRouter)
 app.use('/api/v1/incidencia', incidenciaRouter)
 app.use('/api/v1/grupo', grupoRouter)
 app.use('/api/v1/notificacion', notificacionRoutes)
-
-//Prueba
-app.post('/api/v1/upload', upload.single("file"), (req, res) => {
-    if(!req.file){
-        return res.status(400).send('No se ha subido ningún archivo');
-    }
-    console.log(req.body);
-
-    return res.json({
-        message:"Archivo subido correctamente",
-        filePath:`/api/v1/uploads/${req.file.filename}`
-    })
-});
+app.use('/api/v1', uploadRouter)
 
 // Configurar el servidor con HTTPS
 const keyPath = process.env.SSL_KEY_PATH || './src/config/certs/key.pem';
