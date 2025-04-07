@@ -26,7 +26,7 @@ class GrupoService {
   async obtenerMiGrupoAsignatura(uvus) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `select id, g.nombre as numGrupo , a.nombre as asignatura from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
+      text: `select g.id, g.nombre as numGrupo , a.nombre as asignatura from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
           where g.id in (select ug.grupo_id_fk  from usuario_grupo ug where ug.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
       values: [`${uvus}`],
     };
