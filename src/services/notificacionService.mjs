@@ -14,7 +14,7 @@ class NotificacionService{
       async getNotificacionesUsuario(uvus){
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `select id,contenido,fecha_creacion from notificacion n where receptor = (select rol  from roles r where usuario_id_fk = (select id from usuario u where u.nombre_usuario =$1) ) or receptor = 'all'`,
+          text: `select id,contenido,fecha_creacion from notificacion n where receptor = (select rol  from roles r where usuario_id_fk = (select id from usuario u where u.nombre_usuario =$1) ) or receptor = 'all' order by fecha_creacion desc`,
           values: [`${uvus}`],
         };
         const res = await conexion.query(query);
