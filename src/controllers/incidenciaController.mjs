@@ -109,11 +109,11 @@ const crearIncidencia = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
             }
-        const { descripcion, tipo_incidencia,archivoPath } = req.body;
+        const { descripcion, tipo_incidencia,fileId } = req.body;
         if (!descripcion || !tipo_incidencia) {
             return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
         }
-        res.status(201).json({ error: false, result: await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, archivoPath) });
+        res.status(201).json({ error: false, result: await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, fileId) });
     } catch (err) {
         console.error("Error en crearIncidencia:", err);
         res.status(500).json({ error: true, message: "Error al crear la incidencia" });
