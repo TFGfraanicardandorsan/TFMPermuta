@@ -113,7 +113,8 @@ const crearIncidencia = async (req, res) => {
         if (!descripcion || !tipo_incidencia) {
             return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
         }
-        res.status(201).json({ error: false, result: await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, fileId) });
+        const uvus = req.session.user.nombre_usuario;
+        res.status(201).json({ error: false, result: await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, fileId, uvus) });
     } catch (err) {
         console.error("Error en crearIncidencia:", err);
         res.status(500).json({ error: true, message: "Error al crear la incidencia" });

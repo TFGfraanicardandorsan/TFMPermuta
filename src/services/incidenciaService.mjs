@@ -78,13 +78,18 @@ class IncidenciaService{
         return `Ha sido solucionada la incidencia ${id_incidencia} correctamente`;
       }
 
-      async crearIncidencia(descripcion,tipo_incidencia,fileId){
+      async crearIncidencia(descripcion,tipo_incidencia,fileId,uvus){
         const conexion = await database.connectPostgreSQL();
         const query = {
           text: `insert into incidencia (fecha_creacion, descripcion,tipo_incidencia,estado_incidencia,archivo) values (NOW(),$1,$2,'abierta',$3)`,
           values: [`${descripcion}`,`${tipo_incidencia}`, `${fileId}`],
         };
         await conexion.query(query);
+        const query2 = {
+          text: `insert into incidencia_usuario (id, usuario_id_fk) values ((select id from incidencia wehre archivo=$2),(select id from usuario where nombre_usuario=$2))`,
+          values: [`${fileId}`,`${uvus}`],
+        };
+        await conexion.query(query2);
         await conexion.end();
         return 'Se ha creado la incidencia correctamente';
       }
