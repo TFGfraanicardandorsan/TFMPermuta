@@ -79,15 +79,17 @@ class IncidenciaService{
       }
 
       async crearIncidencia(descripcion,tipo_incidencia,fileId,uvus){
+        //Crea un id aleatorio para la incidencia
+        const id = crypto.randomUUID();
         const conexion = await database.connectPostgreSQL();
         const query = {
-          text: `insert into incidencia (fecha_creacion, descripcion,tipo_incidencia,estado_incidencia,archivo) values (NOW(),$1,$2,'abierta',$3)`,
-          values: [`${descripcion}`,`${tipo_incidencia}`, `${fileId}`],
+          text: `insert into incidencia (id,fecha_creacion, descripcion,tipo_incidencia,estado_incidencia,archivo) values ($4,NOW(),$1,$2,'abierta',$3)`,
+          values: [`${descripcion}`,`${tipo_incidencia}`, `${fileId}`,`${id}`],
         };
         await conexion.query(query);
         const query2 = {
-          text: `insert into incidencia_usuario (id, usuario_id_fk) values ((select id from incidencia wehre archivo=$2),(select id from usuario where nombre_usuario=$2))`,
-          values: [`${fileId}`,`${uvus}`],
+          text: `insert into incidencia_usuario (id, usuario_id_fk) values ($1,(select id from usuario where nombre_usuario=$2))`,
+          values: [`${id}`,`${uvus}`],
         };
         await conexion.query(query2);
         await conexion.end();
