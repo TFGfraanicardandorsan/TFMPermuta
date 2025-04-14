@@ -7,5 +7,5 @@ const router = Router()
 router
 .post('/obtenerAsignaturasMiEstudioUsuario', verificarRol('estudiante'), asignaturaController.obtenerAsignaturasMiEstudioUsuario)
 .post('/asignaturasPermutables', verificarRol('estudiante'), asignaturaController.asignaturaPermutable)
-.post('asigaturasPermutablesUsuario', verificarRol('estudiante'), asignaturaController.asignaturaPermutableUsuario)
+.post('/asigaturasPermutablesUsuario', verificarRol('estudiante'), asignaturaController.asignaturaPermutableUsuario)
 export default router;
