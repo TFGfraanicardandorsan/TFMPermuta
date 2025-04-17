@@ -1,8 +1,5 @@
 import incidenciaService from "../services/incidenciaService.mjs";
 
-/**
- * Obtiene todas las incidencias.
- */
 const obtenerIncidencias = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -15,9 +12,6 @@ const obtenerIncidencias = async (req, res) => {
     }
 };
 
-/**
- * Obtiene las incidencias asignadas a un usuario específico.
- */
 const obtenerIncidenciasAsignadasUsuario = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -31,9 +25,6 @@ const obtenerIncidenciasAsignadasUsuario = async (req, res) => {
     }
 };
 
-/**
- * Obtiene las incidencias asignadas a cualquier usuario de mantenimiento.
- */
 const obtenerIncidenciasAsignadas = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -46,9 +37,6 @@ const obtenerIncidenciasAsignadas = async (req, res) => {
     }
 };
 
-/**
- * Obtiene las incidencias sin asignar a ningún usuario de mantenimiento.
- */
 const obtenerIncidenciasSinAsignar = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -61,9 +49,6 @@ const obtenerIncidenciasSinAsignar = async (req, res) => {
     }
 };
 
-/**
- * Permite asignar una incidencia a sí mismo.
- */
 const asignarmeIncidencia = async (req, res) => {
     try {
         const uvus = req.session.user.nombre_usuario;
@@ -81,9 +66,6 @@ const asignarmeIncidencia = async (req, res) => {
     }
 };
 
-/**
- * Permite marcar una incidencia como solucionada.
- */
 const solucionarIncidencia = async (req, res) => {
     try {
         const uvus = req.session.user.nombre_usuario;
@@ -101,9 +83,6 @@ const solucionarIncidencia = async (req, res) => {
     }
 };
 
-/**
- * Crea una nueva incidencia con o sin archivo adjunto.
- */
 const crearIncidencia = async (req, res) => {
     try {
         if (!req.session.user) {
