@@ -1,4 +1,5 @@
 import path from 'path';
+
 const subirArchivo = (req, res) => {
     if (!req.file) {
         return res.status(400).send('No se ha subido ningún archivo');
@@ -21,7 +22,18 @@ const servirArchivo = (req, res) => {
     });
 };
 
+const obtenerPlantillaPermuta = (req, res) => {
+    const pdfPath = path.join(process.env.ARCHIVADOR, 'plantillaPermuta2425.pdf');
+    res.sendFile(pdfPath, (err) => {
+        if (err) {
+            console.error('No se ha encontrado el archivo:', err);
+            res.status(404).send('Archivo no encontrado');
+        }
+    });
+}
+
 export default {
    subirArchivo,
-   servirArchivo
+   servirArchivo,
+   obtenerPlantillaPermuta
 };
