@@ -47,11 +47,10 @@ export const logout = async (req, res) => {
                 return res.status(500).json({ message: "Error al cerrar sesión" });
             }
             res.clearCookie('connect.sid');
-            // Redirigir al frontend después de cerrar sesión
-            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout');
+            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/saml/sp/saml2-logout.php/default-sp?ReturnTo=https://permutas.eii.us.es/');
         });
     } catch (error) {
         console.error("Error al cerrar sesión:", error);
         res.status(500).json({ message: "Error al cerrar sesión", error: error.message });
     }
-}
+};
