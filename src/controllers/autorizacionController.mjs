@@ -38,3 +38,20 @@ export const verificarSesionUsuario = async (req, res) => {
         res.status(500).json({ message: "Error al obtener la sesión", error: error.message });
     }
 };
+
+export const logout = async (req, res) => {
+    try {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error("Error al destruir la sesión:", err);
+                return res.status(500).json({ message: "Error al cerrar sesión" });
+            }
+            // Redirigir al frontend después de cerrar sesión
+            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php' +
+            '?as=default-sp&logout');
+        });
+    } catch (error) {
+        console.error("Error al cerrar sesión:", error);
+        res.status(500).json({ message: "Error al cerrar sesión", error: error.message });
+    }
+}
