@@ -49,7 +49,7 @@ export const logout = async (req, res) => {
             res.clearCookie('connect.sid');
             
             // Redirigir a SimpleSAMLphp logout con el parámetro ReturnTo
-            const logoutUrl = 'https://permutas.eii.us.es/simplesaml/logout.php?link_href=https://permutas.eii.us.es/login';
+            const logoutUrl = 'https://permutas.eii.us.es/simplesaml/logout.php?ReturnTo=https://permutas.eii.us.es/login';
             res.redirect(logoutUrl);
         });
     } catch (error) {
