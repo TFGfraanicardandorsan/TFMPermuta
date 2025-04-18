@@ -21,5 +21,4 @@ export const samlConfig = {
     disableRequestedAuthnContext: true,
     identifierFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
     passReqToCallback: true,
-    logoutCallbackUrl: 'https://permutas.eii.us.es/simplesaml/module.php/saml/sp/saml2-logout.php/default-sp',
 };
