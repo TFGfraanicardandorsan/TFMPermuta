@@ -15,6 +15,7 @@ import usuarioGrupoRouter from './routes/usuarioGrupoRoutes.mjs'
 import grupoRouter from './routes/grupoRoutes.mjs'
 import incidenciaRouter from './routes/incidenciaRoutes.mjs'
 import notificacionRoutes from './routes/notificacionRoutes.mjs'
+import solicitudPermutaRoutes from './routes/solicitudPermutaRoutes.mjs'
 import uploadRouter from './routes/uploadRoutes.mjs'
 dotenv.config();
 const app = express();
@@ -58,6 +59,7 @@ app.use('/api/v1/usuarioGrupo', usuarioGrupoRouter)
 app.use('/api/v1/incidencia', incidenciaRouter)
 app.use('/api/v1/grupo', grupoRouter)
 app.use('/api/v1/notificacion', notificacionRoutes)
+app.use('/api/v1/solicitudPermuta', solicitudPermutaRoutes)
 app.use('/api/v1', uploadRouter)
 
 // Configurar el servidor con HTTPS
