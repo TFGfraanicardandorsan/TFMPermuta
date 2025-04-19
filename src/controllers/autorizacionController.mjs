@@ -48,8 +48,7 @@ export const logout = async (req, res) => {
             }
             res.clearCookie('connect.sid');
             // Redirigir al frontend después de cerrar sesión
-            const returnToURL = encodeURIComponent("https://permutas.eii.us.es/");
-            res.redirect(`https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout&ReturnTo=${returnToURL}`);
+            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout&ReturnTo=https://google.com');
             
         });
     } catch (error) {
