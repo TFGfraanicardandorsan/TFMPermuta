@@ -48,7 +48,7 @@ export const logout = async (req, res) => {
             }
             res.clearCookie('connect.sid');
             // Redirigir al frontend después de cerrar sesión
-            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout&RelayState=https://permutas.eii.us.es/login');
+            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout');
             
         });
     } catch (error) {
