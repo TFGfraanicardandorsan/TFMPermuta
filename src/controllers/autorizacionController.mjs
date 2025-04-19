@@ -18,7 +18,6 @@ export const verificarSesionUsuario = async (req, res) => {
 
         // Obtener el identificador único del usuario
         const uvus = userAttributes.uvus;
-
         if (!uvus) {
             return res.status(400).json({ message: "No se encontró el uvus en los atributos del usuario" });
         }
@@ -47,9 +46,7 @@ export const logout = async (req, res) => {
                 return res.status(500).json({ message: "Error al cerrar sesión" });
             }
             res.clearCookie('connect.sid');
-            // Redirigir al frontend después de cerrar sesión
-            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout');
-            
+            res.redirect('https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout');            
         });
     } catch (error) {
         console.error("Error al cerrar sesión:", error);
