@@ -1,5 +1,4 @@
 import database from "../config/database.mjs";
-import asignaturaService from "./asignaturaService.mjs";
 
 class SolicitudPermutaService {
      async solicitarPermuta(uvus,asignatura,grupos_deseados) {
