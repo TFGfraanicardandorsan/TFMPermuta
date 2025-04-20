@@ -48,16 +48,56 @@ class GrupoService {
   }
 
   async obtenerTodosGruposMisAsignaturasSinGrupoUsuario(uvus) {
-    const conexion = await database.connectPostgreSQL();
-    const query = {
-      text: `select g.nombre as numGrupo , a.nombre as nombreAsignatura, a.codigo as codAsignatura from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
-where g.asignatura_id_fk in (select ua.asignatura_id_fk from usuario_asignatura ua where ua.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1)) and 
-g.asignatura_id_fk not in (select asignatura_id_fk  from grupo where id in (select usuario_grupo.grupo_id_fk from usuario_grupo where  usuario_grupo.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1)));`,
-      values: [`${uvus}`],
-    };
-    const res = await conexion.query(query);
-    await conexion.end();
-    return res.rows;
+      const conexion = await database.connectPostgreSQL();
+      const query = {
+        text: `
+          SELECT 
+            g.nombre AS numGrupo, 
+            a.nombre AS nombreAsignatura, 
+            a.codigo AS codAsignatura 
+          FROM 
+            grupo g 
+          LEFT JOIN 
+            asignatura a 
+          ON 
+            a.id = g.asignatura_id_fk 
+          WHERE 
+            g.asignatura_id_fk IN (
+              SELECT 
+                ua.asignatura_id_fk 
+              FROM 
+                usuario_asignatura ua 
+              WHERE 
+                ua.usuario_id_fk = (
+                  SELECT 
+                    id 
+                  FROM 
+                    usuario u 
+                  WHERE 
+                    u.nombre_usuario = $1
+                )
+            ) 
+            AND g.id NOT IN (
+              SELECT 
+                ug.grupo_id_fk 
+              FROM 
+                usuario_grupo ug 
+              WHERE 
+                ug.usuario_id_fk = (
+                  SELECT 
+                    id 
+                  FROM 
+                    usuario u 
+                  WHERE 
+                    u.nombre_usuario = $1
+                )
+            );
+        `,
+        values: [`${uvus}`],
+      };
+      const res = await conexion.query(query);
+      await conexion.end();
+      return res.rows;
   }
 }
 const grupoService = new GrupoService();
