@@ -43,7 +43,7 @@ const obtenerTodosGruposMisAsignaturasSinGrupoUsuario = async (req,res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.send({err:false, result: await grupoService.obtenerTodosGruposMisAsignaturasUsuario(uvus)})
+        res.send({err:false, result: await grupoService.obtenerTodosGruposMisAsignaturasSinGrupoUsuario(uvus)})
         } catch (err){
             console.log('api obtenerTodosGruposMisAsignaturasSinGrupoUsuario ha tenido una excepción')
             res.sendStatus(500)
