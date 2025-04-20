@@ -6,18 +6,7 @@ class SolicitudPermutaService {
         const conexion = await database.connectPostgreSQL();
         matriculado = await asignaturaService.personaMatriculadaEnAsignatura(asignatura);    
         
-        if (matriculado === true){    
-          const query = {
-          text: `SELECT id 
-          FROM grupo 
-          WHERE id = (SELECT id FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) 
-          AND asignatura_id_fk = (SELECT id FROM asignatura WHERE codigo = $1)`,
-          values: [`${asignatura}`,`${uvus}`],
-        };
-        const grupo_actual = (await conexion.query(query)).rows[0]?.id;
-        if (grupos_deseados.includes(grupo_actual)) {
-          return "Solicitaste una permuta a tu mismo grupo.";
-        }
+
         const insert = {
           text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk) values ((
           SELECT id FROM usuario WHERE nombre_usuario = $2),(
@@ -41,7 +30,7 @@ SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE us
         console.log(res);
         }
       return 'Permuta de la asignatura solicitada.';
-      }
+      
     }
 
 
