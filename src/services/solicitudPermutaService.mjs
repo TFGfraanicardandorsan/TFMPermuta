@@ -4,9 +4,7 @@ import asignaturaService from "./asignaturaService.mjs";
 class SolicitudPermutaService {
      async solicitarPermuta(uvus,asignatura,grupos_deseados) {
         const conexion = await database.connectPostgreSQL();
-        matriculado = await asignaturaService.personaMatriculadaEnAsignatura(asignatura);    
         
-
         const insert = {
           text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk) values ((
           SELECT id FROM usuario WHERE nombre_usuario = $2),(
