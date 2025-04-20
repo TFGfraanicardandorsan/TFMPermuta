@@ -75,16 +75,10 @@ export const obtenerSesion = async (req, res) => {
     if (!req.session || !req.session.user) {
         return res.status(401).json({ isAuthenticated: false, message: "Sesión expirada o no iniciada." });
       }      
-    console.log("req.session.user", req.session.user);
-    const { nombre, rol, uvus } = req.session.user;
-    return res.status(200).json({
-      isAuthenticated: true,
-      user: { nombre, rol, uvus },
-    });
+    const { nombre_usuario:uvus, rol } = req.session.user;
+    return res.status(200).send({isAuthenticated: true,user: { uvus, rol }});
   } catch (error) {
     console.error("Error al obtener la sesión:", error);
-    res
-      .status(500)
-      .json({ message: "Error al obtener la sesión", error: error.message });
+    res.status(500).json({ message: "Error al obtener la sesión", error: error.message });
   }
 };
