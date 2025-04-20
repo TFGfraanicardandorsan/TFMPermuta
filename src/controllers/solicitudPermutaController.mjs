@@ -13,6 +13,21 @@ const solicitarPermuta = async (req,res) => {
             res.sendStatus(500)
         }
 }
+
+const getSolicitudesPermutaInteresantes = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({err:false, result:await solicitudPermutaService.getSolicitudesPermutaInteresantes(uvus)})
+        } catch (err){
+            console.log('api getSolicitudesPermutaInteresantes ha tenido una excepción')
+            res.sendStatus(500)
+        }
+    }
+
 export default {
-    solicitarPermuta
+    solicitarPermuta,
+    getSolicitudesPermutaInteresantes
 }

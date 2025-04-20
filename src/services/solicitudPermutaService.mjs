@@ -44,17 +44,61 @@ SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE us
       }
     }
 
-    // TODO: Implementar el método getSolicitudesPermutaInteresantes
-    async getSolicitudesPermutaInteresantes(num_grupo,codigo){
-      const conexion = await database.connectPostgreSQL();
-      const insert = {
-        text: ``,
 
-      };
-      const res = await conexion.query(query);
-      await conexion.end();
-      return res;
-   }
+async getSolicitudesPermutaInteresantes(uvus) {
+  const conexion = await database.connectPostgreSQL();
+
+  // Obtener las asignaturas en las que el usuario está matriculado
+  const asignaturasUsuarioQuery = {
+    text: `
+      SELECT id 
+      FROM asignatura 
+      WHERE id IN (
+        SELECT asignatura_id_fk 
+        FROM usuario_asignatura 
+        WHERE usuario_id_fk = (
+          SELECT id FROM usuario WHERE nombre_usuario = $1
+        )
+      )
+    `,
+    values: [uvus],
+  };
+  const asignaturasUsuario = await conexion.query(asignaturasUsuarioQuery);
+
+  if (asignaturasUsuario.rows.length === 0) {
+    await conexion.end();
+    return 'El usuario no está matriculado en ninguna asignatura.';
+  }
+
+  // Obtener las solicitudes de permuta interesantes para todas las asignaturas del usuario
+  const query = {
+    text: `
+      SELECT sp.id AS solicitud_id, sp.estado, g.nombre AS grupo_solicitante, gd.grupo_id_fk AS grupo_deseado, a.codigo AS codigo_asignatura
+      FROM solicitud_permuta sp
+      INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
+      INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
+      INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
+      WHERE sp.id_asignatura_fk = ANY($1::int[])
+      AND gd.grupo_id_fk = (
+        SELECT grupo_id_fk
+        FROM usuario_grupo
+        WHERE usuario_id_fk = (
+          SELECT id FROM usuario WHERE nombre_usuario = $2
+        )
+      )
+      AND sp.usuario_id_fk != (
+        SELECT id FROM usuario WHERE nombre_usuario = $2
+      )
+    `,
+    values: [asignaturasUsuario.rows.map(row => row.id), uvus],
+  };
+
+  const res = await conexion.query(query);
+  await conexion.end();
+
+  return res.rows;
+}
+
 }
 const solicitudPermutaService = new SolicitudPermutaService();
 export default solicitudPermutaService
