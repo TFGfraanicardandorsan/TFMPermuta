@@ -88,6 +88,28 @@ async getSolicitudesPermutaInteresantes(uvus) {
   return res.rows;
 }
 
+async getMisSolicitudesPermuta(uvus) {
+  const conexion = await database.connectPostgreSQL();
+  const query = {
+    text: `
+      SELECT sp.id AS solicitud_id, sp.estado, g.nombre AS grupo_solicitante, gd.grupo_id_fk AS grupo_deseado, a.codigo AS codigo_asignatura, a.nombre AS nombre_asignatura
+      FROM solicitud_permuta sp
+      INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
+      INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
+      INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
+      WHERE sp.usuario_id_fk = (
+        SELECT id FROM usuario WHERE nombre_usuario = $1
+      )
+    `,
+    values: [uvus],
+  };
+
+  const res = await conexion.query(query);
+  await conexion.end();
+
+  return res.rows;
+
+}
 }
 const solicitudPermutaService = new SolicitudPermutaService();
 export default solicitudPermutaService

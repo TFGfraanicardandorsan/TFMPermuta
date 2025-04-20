@@ -5,4 +5,5 @@ const router = Router()
 router
 .post('/solicitarPermuta',verificarRol('estudiante'), solicitudPermutaController.solicitarPermuta)
 .post('/getSolicitudesPermutaInteresantes',verificarRol('estudiante'), solicitudPermutaController.getSolicitudesPermutaInteresantes)
+.post('/getMisSolicitudesPermuta',verificarRol('estudiante'), solicitudPermutaController.getMisSolicitudesPermuta)
 export default router;
