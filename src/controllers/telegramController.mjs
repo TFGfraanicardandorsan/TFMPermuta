@@ -2,6 +2,7 @@ import { sendMessage } from '../services/telegramService.mjs';
 
 export const handleWebhook = async (req, res) => {
   try {
+    console.log('SOY EL BODY',req.body)
     const message = req.body.message;
     if (message?.text) {
       const chatId = message.chat.id;
