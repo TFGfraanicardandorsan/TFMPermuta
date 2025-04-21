@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { handleWebhook } from '../controllers/telegramController.mjs';
+import { telegramWebhookHandler } from '../controllers/telegramController.mjs';
 
 const router = Router();
 
-router.post('/webhook', handleWebhook);
+router.post('/webhook', telegramWebhookHandler);
 
 export default router;

@@ -1,18 +1,14 @@
-import { sendMessage } from '../services/telegramService.mjs';
+import { handleIncomingMessage } from '../services/telegramService.mjs';
 
-export const handleWebhook = async (req, res) => {
+export const telegramWebhookHandler = async (req, res) => {
   try {
-    console.log('SOY EL BODY',req.body)
     const message = req.body.message;
-    if (message?.text) {
-      const chatId = message.chat.id;
-      const text = message.text;
-      console.log('Mensaje recibido:', text);
-      await sendMessage(chatId, `Hola! Me escribiste: "${text}"`);
+    if (message) {
+      await handleIncomingMessage(message);
     }
-    res.sendStatus(200);
+    res.status(200).send('OK');
   } catch (error) {
-    console.error('Error en webhook de Telegram:', error);
-    res.sendStatus(500);
+    console.error('Error en el controller:', error);
+    res.status(500).send('Internal Server Error');
   }
 };

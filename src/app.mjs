@@ -4,6 +4,7 @@ import passport from '../src/middleware/passport.mjs';
 import dotenv from 'dotenv'
 import cors from 'cors'
 import https from 'https'
+import http from 'http'
 import fs from 'fs'
 import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
@@ -73,7 +74,8 @@ const options = {
     cert: fs.readFileSync(certPath),
     passphrase: process.env.SSL_PASSPHRASE
 };
-const server = https.createServer(options, app);
+// const server = https.createServer(options, app);
+const server = http.createServer(app)
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
     console.log(`Servidor corriendo en https://localhost:${port}`);
