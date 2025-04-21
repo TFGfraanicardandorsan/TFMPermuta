@@ -92,23 +92,50 @@ async getMisSolicitudesPermuta(uvus) {
   const conexion = await database.connectPostgreSQL();
   const query = {
     text: `
-      SELECT sp.id AS solicitud_id, sp.estado, g.nombre AS grupo_solicitante, gd.grupo_id_fk AS grupo_deseado, a.codigo AS codigo_asignatura, a.nombre AS nombre_asignatura
+      SELECT 
+        sp.id AS solicitud_id, 
+        sp.estado, 
+        g_solicitante.nombre AS grupo_solicitante, 
+        g_deseado.nombre AS grupo_deseado,
+        a.codigo AS codigo_asignatura, 
+        a.nombre AS nombre_asignatura
       FROM solicitud_permuta sp
+      INNER JOIN grupo g_solicitante ON sp.grupo_solicitante_id_fk = g_solicitante.id
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
-      INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
+      INNER JOIN grupo g_deseado ON gd.grupo_id_fk = g_deseado.id
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.usuario_id_fk = (
         SELECT id FROM usuario WHERE nombre_usuario = $1
       )
+      ORDER BY sp.id, g_deseado.nombre
     `,
     values: [uvus],
   };
 
   const res = await conexion.query(query);
+  
+  // Agrupar los resultados por solicitud
+  const solicitudesAgrupadas = res.rows.reduce((acc, row) => {
+    const solicitudExistente = acc.find(s => s.solicitud_id === row.solicitud_id);
+    
+    if (solicitudExistente) {
+      solicitudExistente.grupos_deseados.push(row.grupo_deseado);
+    } else {
+      acc.push({
+        solicitud_id: row.solicitud_id,
+        estado: row.estado,
+        grupo_solicitante: row.grupo_solicitante,
+        grupos_deseados: [row.grupo_deseado],
+        codigo_asignatura: row.codigo_asignatura,
+        nombre_asignatura: row.nombre_asignatura
+      });
+    }
+    
+    return acc;
+  }, []);
+
   await conexion.end();
-
-  return res.rows;
-
+  return solicitudesAgrupadas;
 }
 }
 const solicitudPermutaService = new SolicitudPermutaService();
