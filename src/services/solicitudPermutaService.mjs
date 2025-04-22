@@ -25,6 +25,7 @@ SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE us
             values: [`${asignatura}`, `${grupo}`,`${uvus}`],
           };
           console.log("Funciona3");
+          console.log(insert);
           const res = await conexion.query(insert);
           console.log(insert);
           console.log("Funciona4");
