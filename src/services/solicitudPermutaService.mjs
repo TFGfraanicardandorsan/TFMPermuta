@@ -16,9 +16,8 @@ SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE us
         console.log("Funciona");
         const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
         console.log("Funciona2");
-        console.log(res_solicitud_permuta);
-        console.log(res_solicitud_permuta.rows[0]);
-        id = res_solicitud_permuta.rows[0].id;
+       
+        const id = res_solicitud_permuta.rows[0].id;
         console.log(id);
         for (const grupo of grupos_deseados) {
           const insert = {
