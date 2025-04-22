@@ -168,7 +168,67 @@ async rechazarSolicitudPermuta(uvus, solicitud) {
   await conexion.end();
   return 'Solicitud de permuta rechazada.';
 }
+async verListaPermutas(uvus) {
+  const conexion = await database.connectPostgreSQL();
+  const query = {
+    text: `
+      SELECT 
+        p.id AS permuta_id,
+        u1.nombre_completo AS usuario_1_nombre,
+        u1.nombre_usuario AS usuario_1_uvus,
+        e1.siglas AS usuario_1_estudio,
+        u2.nombre_completo AS usuario_2_nombre,
+        u2.nombre_usuario AS usuario_2_uvus,
+        e2.siglas AS usuario_2_estudio,
+        a.nombre AS nombre_asignatura,
+        a.codigo AS codigo_asignatura
+      FROM permuta p
+      INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
+      INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
+      INNER JOIN estudio e1 ON u1.estudio_id_fk = e1.id
+      INNER JOIN estudio e2 ON u2.estudio_id_fk = e2.id
+      INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
+      WHERE p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+         OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+      ORDER BY p.usuario_id_1_fk, p.usuario_id_2_fk, p.id
+    `,
+    values: [`${uvus}`],
+  };
 
+  const res = await conexion.query(query);
+
+  // Agrupar las permutas por usuario_1 y usuario_2
+  const permutasAgrupadas = res.rows.reduce((acc, row) => {
+    const key = `${row.usuario_1_uvus}-${row.usuario_2_uvus}`;
+    if (!acc[key]) {
+      acc[key] = {
+        usuarios: [
+          {
+            nombre_completo: row.usuario_1_nombre,
+            uvus: row.usuario_1_uvus,
+            estudio: row.usuario_1_estudio,
+          },
+          {
+            nombre_completo: row.usuario_2_nombre,
+            uvus: row.usuario_2_uvus,
+            estudio: row.usuario_2_estudio,
+          },
+        ],
+        permutas: [],
+      };
+    }
+    acc[key].permutas.push({
+      nombre_asignatura: row.nombre_asignatura,
+      codigo_asignatura: row.codigo_asignatura,
+    });
+    return acc;
+  }, {});
+
+  await conexion.end();
+
+  // Convertir el objeto agrupado en una lista de listas
+  return Object.values(permutasAgrupadas);
+}
 }
 const solicitudPermutaService = new SolicitudPermutaService();
 export default solicitudPermutaService
