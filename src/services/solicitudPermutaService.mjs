@@ -16,23 +16,22 @@ SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE us
         console.log("Funciona");
         const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
         console.log("Funciona2");
-       
+        await conexion.end();
         const id = res_solicitud_permuta.rows[0].id;
         console.log(id);
         for (const grupo of grupos_deseados) {
+          const conexion = await database.connectPostgreSQL();
           const insert = {
-            text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) values(
-            ($4),
-            (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
+            text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) values(($4),(select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
             values: [asignatura, grupo,uvus, id],
           };
           console.log("Funciona3");
           console.log(insert);
-          const res = await conexion.query(insert);
+          await conexion.query(insert);
           console.log(insert);
           console.log("Funciona4");
-        await conexion.end();
-        console.log(res);
+          await conexion.end();
+        
         }
       return 'Permuta de la asignatura solicitada.';
       
