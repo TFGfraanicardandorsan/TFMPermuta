@@ -8,4 +8,5 @@ router
 .post('/getMisSolicitudesPermuta',verificarRol('estudiante'), solicitudPermutaController.getMisSolicitudesPermuta)
 .post('aceptarSolicitudPermuta',verificarRol('estudiante'), solicitudPermutaController.aceptarSolicitudPermuta)
 .post('/rechazarSolicitudPermuta',verificarRol('estudiante'), solicitudPermutaController.rechazarSolicitudPermuta)
+.post('/verListaPermutas',verificarRol('estudiante'), solicitudPermutaController.verListaPermutas)
 export default router;
