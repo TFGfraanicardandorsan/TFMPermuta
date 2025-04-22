@@ -3,38 +3,33 @@ import database from "../config/database.mjs";
 class SolicitudPermutaService {
      async solicitarPermuta(uvus,asignatura,grupos_deseados) {
         const conexion = await database.connectPostgreSQL();
-        console.log(uvus,asignatura,grupos_deseados);
         const insert_solicitud_permuta = {
           text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk) values ((
-          SELECT id FROM usuario WHERE nombre_usuario = $2),(
-SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
+          SELECT id FROM usuario WHERE nombre_usuario = $2),
+          (SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
           (SELECT id FROM asignatura WHERE codigo = $1)),
           'SOLICITADA',
         (Select id from asignatura where codigo = $1)) returning id`,
           values: [`${asignatura}`,`${uvus}`],
         };
-        console.log("Funciona");
         const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
-        console.log("Funciona2");
-        await conexion.end();
         const id = res_solicitud_permuta.rows[0].id;
-        console.log(id);
         for (const grupo of grupos_deseados) {
           const conexion = await database.connectPostgreSQL();
           const insert = {
-            text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) values(($4),(select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
+            text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) 
+            values(
+              ($4),
+              (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
             values: [asignatura, grupo,uvus, id],
           };
           console.log("Funciona3");
           console.log(insert);
           await conexion.query(insert);
-          console.log(insert);
           console.log("Funciona4");
-          await conexion.end();
-        
         }
+        await conexion.end();
       return 'Permuta de la asignatura solicitada.';
-      
     }
 
 
