@@ -141,8 +141,18 @@ async getMisSolicitudesPermuta(uvus) {
 async aceptarSolicitudPermuta(uvus, solicitud) {
   const conexion = await database.connectPostgreSQL();
   const update = {
-    text: `update solicitud_permuta set estado = 'ACEPTADA' where id = $1`,
-    values: [`${solicitud}`],
+    text: ` insert into permuta id, usuario_id_1_fk, usuario_id_2_fk,asignatura_id_fk, grupo_id_1_fk, grupo_id_2_fk, estado, aceptada_1, aceptada_2) values (
+      (select id from solicitud_permuta where id = $1),
+      (select usuario_id_fk from solicitud_permuta where id = $1),
+      (select usuario_id_fk from grupo_deseado where solicitud_permuta_id_fk = $1),
+      (select id_asignatura_fk from solicitud_permuta where id = $1),
+      (select grupo_solicitante_id_fk from solicitud_permuta where id = $1),
+      (select grupo_id_fk from grupo_deseado where solicitud_permuta_id_fk = $1),
+      'ACEPTADA',
+      true,
+      false
+    )`,
+    values: [`${solicitud}`, `${uvus}`],
   };
   await conexion.query(update);
   await conexion.end();
@@ -151,8 +161,8 @@ async aceptarSolicitudPermuta(uvus, solicitud) {
 async rechazarSolicitudPermuta(uvus, solicitud) {
   const conexion = await database.connectPostgreSQL();
   const update = {
-    text: `update solicitud_permuta set estado = 'RECHAZADA' where id = $1`,
-    values: [`${solicitud}`],
+    text: `update permuta set estado = 'RECHAZADA' where id = $1 and usurio_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
+    values: [`${solicitud}`, `${uvus}`],
   };
   await conexion.query(update);
   await conexion.end();
