@@ -18,9 +18,9 @@ class SolicitudPermutaService {
           const insertGrupoDeseado = {
             text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) 
             values(
-              ($4),
+              $3,
               (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
-            values: [asignatura, grupo,uvus, id],
+            values: [asignatura, grupo, id],
           };
           console.log("Funciona3");
           console.log(insertGrupoDeseado);
