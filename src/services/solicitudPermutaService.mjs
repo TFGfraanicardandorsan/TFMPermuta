@@ -15,8 +15,7 @@ class SolicitudPermutaService {
         const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
         const id = res_solicitud_permuta.rows[0].id;
         for (const grupo of grupos_deseados) {
-          const conexion = await database.connectPostgreSQL();
-          const insert = {
+          const insertGrupoDeseado = {
             text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) 
             values(
               ($4),
@@ -24,8 +23,8 @@ class SolicitudPermutaService {
             values: [asignatura, grupo,uvus, id],
           };
           console.log("Funciona3");
-          console.log(insert);
-          await conexion.query(insert);
+          console.log(insertGrupoDeseado);
+          await conexion.query(insertGrupoDeseado);
           console.log("Funciona4");
         }
         await conexion.end();
