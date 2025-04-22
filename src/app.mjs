@@ -74,8 +74,8 @@ const options = {
     cert: fs.readFileSync(certPath),
     passphrase: process.env.SSL_PASSPHRASE
 };
-// const server = https.createServer(options, app);
-const server = http.createServer(app)
+ const server = https.createServer(options, app);
+//const server = http.createServer(app)
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
     console.log(`Servidor corriendo en https://localhost:${port}`);
