@@ -10,7 +10,7 @@ class SolicitudPermutaService {
           (SELECT id FROM asignatura WHERE codigo = $1)),
           'SOLICITADA',
         (Select id from asignatura where codigo = $1)) returning id`,
-          values: [`${asignatura}`,`${uvus}`],
+          values: [asignatura,uvus],
         };
         const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
         const id = res_solicitud_permuta.rows[0].id;
@@ -22,10 +22,7 @@ class SolicitudPermutaService {
               (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
             values: [asignatura, grupo, id],
           };
-          console.log("Funciona3");
-          console.log(insertGrupoDeseado);
           await conexion.query(insertGrupoDeseado);
-          console.log("Funciona4");
         }
         await conexion.end();
       return 'Permuta de la asignatura solicitada.';
