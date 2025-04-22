@@ -24,7 +24,7 @@ SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE us
             text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) values(
             ($4),
             (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
-            values: [`${asignatura}`, `${grupo}`,`${uvus}`, `${id}`],
+            values: [asignatura, grupo,uvus, id],
           };
           console.log("Funciona3");
           console.log(insert);
