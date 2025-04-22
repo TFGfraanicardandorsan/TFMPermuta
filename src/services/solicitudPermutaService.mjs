@@ -4,25 +4,25 @@ class SolicitudPermutaService {
      async solicitarPermuta(uvus,asignatura,grupos_deseados) {
         const conexion = await database.connectPostgreSQL();
         console.log(uvus,asignatura,grupos_deseados);
-        const insert = {
+        const insert_solicitud_permuta = {
           text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk) values ((
           SELECT id FROM usuario WHERE nombre_usuario = $2),(
 SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
           (SELECT id FROM asignatura WHERE codigo = $1)),
           'SOLICITADA',
-        (Select id from asignatura where codigo = $1))`,
+        (Select id from asignatura where codigo = $1)) returning id`,
           values: [`${asignatura}`,`${uvus}`],
         };
         console.log("Funciona");
-        await conexion.query(insert);
+        const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
         console.log("Funciona2");
-
+        id = res_solicitud_permuta.rows[0].id;
         for (const grupo of grupos_deseados) {
           const insert = {
             text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) values(
-            (select id from solicitud_permuta where usuario_id_fk = (select id from usuario where nombre_usuario=$3) and id_asignatura_fk = (select id from asignatura where codigo = $1)),
+            ($4),
             (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
-            values: [`${asignatura}`, `${grupo}`,`${uvus}`],
+            values: [`${asignatura}`, `${grupo}`,`${uvus}`, `${id}`],
           };
           console.log("Funciona3");
           console.log(insert);
