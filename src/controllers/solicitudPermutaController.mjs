@@ -42,8 +42,34 @@ const getMisSolicitudesPermuta = async (req,res) => {
         }
     }
 
+const aceptarSolicitudPermuta = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({err:false, result:await solicitudPermutaService.aceptarSolicitudPermuta(uvus, req.body.solicitud)})
+        } catch (err){
+            console.log('api aceptarSolicitudPermuta ha tenido una excepción')
+            res.sendStatus(500)
+        }
+    }
+const rechazarSolicitudPermuta = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({err:false, result:await solicitudPermutaService.rechazarSolicitudPermuta(uvus, req.body.solicitud)})
+        } catch (err){
+            console.log('api rechazarSolicitudPermuta ha tenido una excepción')
+            res.sendStatus(500)
+        }
+    }
 export default {
     solicitarPermuta,
     getSolicitudesPermutaInteresantes,
     getMisSolicitudesPermuta,
+    aceptarSolicitudPermuta,
+    rechazarSolicitudPermuta
 }

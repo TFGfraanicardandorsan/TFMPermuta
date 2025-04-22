@@ -137,6 +137,28 @@ async getMisSolicitudesPermuta(uvus) {
   await conexion.end();
   return solicitudesAgrupadas;
 }
+
+async aceptarSolicitudPermuta(uvus, solicitud) {
+  const conexion = await database.connectPostgreSQL();
+  const update = {
+    text: `update solicitud_permuta set estado = 'ACEPTADA' where id = $1`,
+    values: [`${solicitud}`],
+  };
+  await conexion.query(update);
+  await conexion.end();
+  return 'Solicitud de permuta aceptada.';
+}
+async rechazarSolicitudPermuta(uvus, solicitud) {
+  const conexion = await database.connectPostgreSQL();
+  const update = {
+    text: `update solicitud_permuta set estado = 'RECHAZADA' where id = $1`,
+    values: [`${solicitud}`],
+  };
+  await conexion.query(update);
+  await conexion.end();
+  return 'Solicitud de permuta rechazada.';
+}
+
 }
 const solicitudPermutaService = new SolicitudPermutaService();
 export default solicitudPermutaService
