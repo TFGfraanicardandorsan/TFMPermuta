@@ -9,8 +9,8 @@ const solicitarPermuta = async (req,res) => {
         const uvus = req.session.user.nombre_usuario;
         res.send({err:false, result:await solicitudPermutaService.solicitarPermuta(uvus, req.body.asignatura, req.body.grupos_deseados)})
         } catch (err){
-            console.log('api solicitarPermuta ha tenido una excepción')
-            res.sendStatus(500)
+            console.error('api solicitarPermuta ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en solicitarPermuta', details: err.message });
         }
 }
 
@@ -22,8 +22,8 @@ const getSolicitudesPermutaInteresantes = async (req,res) => {
         const uvus = req.session.user.nombre_usuario;
         res.send({err:false, result:await solicitudPermutaService.getSolicitudesPermutaInteresantes(uvus)})
         } catch (err){
-            console.log('api getSolicitudesPermutaInteresantes ha tenido una excepción')
-            res.sendStatus(500)
+            console.error('api getSolicitudesPermutaInteresantes ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en getSolicitudesPermutaInteresantes', details: err.message });
         }
     }
 
@@ -35,8 +35,8 @@ const getMisSolicitudesPermuta = async (req,res) => {
         const uvus = req.session.user.nombre_usuario;
         res.send({err:false, result:await solicitudPermutaService.getMisSolicitudesPermuta(uvus)})
         } catch (err){
-            console.log('api getMisSolicitudesPermuta ha tenido una excepción')
-            res.sendStatus(500)
+            console.error('api getMisSolicitudesPermuta ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en getMisSolicitudesPermuta', details: err.message });
         }
     }
 
@@ -48,8 +48,8 @@ const aceptarSolicitudPermuta = async (req,res) => {
         const uvus = req.session.user.nombre_usuario;
         res.send({err:false, result:await solicitudPermutaService.aceptarSolicitudPermuta(uvus, req.body.solicitud)})
         } catch (err){
-            console.log('api aceptarSolicitudPermuta ha tenido una excepción')
-            res.sendStatus(500)
+            console.error('api aceptarSolicitudPermuta ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en aceptarSolicitudPermuta', details: err.message });
         }
     }
 const rechazarSolicitudPermuta = async (req,res) => {
@@ -60,10 +60,23 @@ const rechazarSolicitudPermuta = async (req,res) => {
         const uvus = req.session.user.nombre_usuario;
         res.send({err:false, result:await solicitudPermutaService.rechazarSolicitudPermuta(uvus, req.body.solicitud)})
         } catch (err){
-            console.log('api rechazarSolicitudPermuta ha tenido una excepción')
-            res.sendStatus(500)
+            console.error('api rechazarSolicitudPermuta ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en rechazarSolicitudPermuta', details: err.message });
         }
     }
+
+    const validarSolicitudPermuta = async (req,res) => {
+        try{
+            if (!req.session.user) {
+                return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+            }
+            const uvus = req.session.user.nombre_usuario;
+            res.send({err:false, result:await solicitudPermutaService.validarSolicitudPermuta(uvus, req.body.solicitud)})
+            } catch (err){
+                console.error('api validarSolicitudPermuta ha tenido una excepción:', err);
+                res.status(500).json({ err: true, message: 'Error interno en validarSolicitudPermuta', details: err.message });
+            }
+        }
 
     const verListaPermutas = async (req,res) => {
         try{
@@ -73,8 +86,8 @@ const rechazarSolicitudPermuta = async (req,res) => {
             const uvus = req.session.user.nombre_usuario;
             res.send({err:false, result:await solicitudPermutaService.verListaPermutas(uvus)})
             } catch (err){
-                console.log('api verListaPermutas ha tenido una excepción')
-                res.sendStatus(500)
+                console.error('api verListaPermutas ha tenido una excepción:', err);
+                res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
             }
         }
 
@@ -84,5 +97,6 @@ export default {
     getMisSolicitudesPermuta,
     aceptarSolicitudPermuta,
     rechazarSolicitudPermuta,
-    verListaPermutas
+    verListaPermutas,
+    validarSolicitudPermuta
 }
