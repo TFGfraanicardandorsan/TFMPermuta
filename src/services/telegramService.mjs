@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
-
+import incidenciaService from "./incidenciaService.mjs";
+import { formatearIncidencias } from "../utils/formateadorIncidenciasBot.mjs";
 export const getTelegramApiUrl = () => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 
 export const handleIncomingMessage = async (message) => {
@@ -12,24 +13,39 @@ export const handleIncomingMessage = async (message) => {
   console.log('ID del chat:', chatId);
 
   if (text === '/start') {
-    const bienvenida = `Hola ${nombre}, soy el bot de Permutas. Estoy aquí para ayudarte con tus incidencias y dudas. Usa el menú para navegar por las opciones 👇`;
+    const bienvenida = `¡Hola ${nombre}! 🤖 Soy el bot de Permutas ETSII. Has solicitado acceso a nuestra aplicación de permutas. En breve, los administradores procesarán tu solicitud y te darán de alta. ¡Gracias por tu paciencia!`;
     await sendMessage(chatId, bienvenida);
-  } else if(text === '/misincidencias'){
-    await sendMessage(chatId, 'Aquí tienes un resumen de tus incidencias: \n\n- Incidencia 1: Pendiente\n- Incidencia 2: Resuelta\n- Incidencia 3: En progreso');
+  } else if (text === '/misincidencias') {
+    try {
+      const incidenciasData = await incidenciaService.obtenerIncidencias() ?? [];  
+  
+      if (incidenciasData.length === 0) {
+        await sendMessage(chatId, 'No tienes incidencias registradas 📭');
+      } else {
+        const incidenciasFormateadas = formatearIncidencias(incidenciasData);
+        await sendMessage(chatId, incidenciasFormateadas, 'HTML');
+      }
+    } catch (error) {
+      await sendMessage(chatId, 'Hubo un problema al recuperar tus incidencias. Por favor, inténtalo más tarde.');
+      console.error('Error al obtener incidencias:', error);
+    }  
   } else {
     await sendMessage(chatId, 'No entiendo ese mensaje. Usa el menú 👇');
   }
 };
 
-const sendMessage = async (chatId, text) => {
+const sendMessage = async (chatId, text, parseMode = 'HTML') => {
   try {
+    const body = {
+      chat_id: chatId,
+      text,
+      parse_mode: parseMode,
+    };
+
     const response = await fetch(`${getTelegramApiUrl()}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
