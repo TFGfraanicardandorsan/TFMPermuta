@@ -19,9 +19,11 @@ import notificacionRoutes from './routes/notificacionRoutes.mjs'
 import solicitudPermutaRoutes from './routes/solicitudPermutaRoutes.mjs'
 import uploadRouter from './routes/uploadRoutes.mjs'
 import telegramRouter from './routes/telegramRoutes.mjs'
+import { setBotCommands } from './middleware/botCommands.mjs';
 dotenv.config();
 const app = express();
 
+await setBotCommands(); // Establecer los comandos del bot de Telegram
 // Middleware nativo para JSON
 app.use(express.json());
 // Middleware nativo para formularios URL encoded
@@ -74,9 +76,9 @@ const options = {
     cert: fs.readFileSync(certPath),
     passphrase: process.env.SSL_PASSPHRASE
 };
- const server = https.createServer(options, app);
-//const server = http.createServer(app)
-const port = process.env.PORT || 3000;
+const server = https.createServer(options, app);
+// const server = http.createServer(app)
+const port = 3000;
 server.listen(port, () => {
     console.log(`Servidor corriendo en https://localhost:${port}`);
     console.log(`Se están utilizando las claves ${keyPath} y ${certPath}`);
