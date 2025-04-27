@@ -14,3 +14,10 @@ ${emojisNumeros[index]}
     `.trim())
     .join('\n\n'); // separación entre incidencias
 };
+
+export const avisoAdmin = (nombreCompleto, uvusEnviado, chatId) =>
+`📥 *Nuevo registro pendiente de aprobación:*\n\n` +
+`👤 *Nombre completo:* ${nombreCompleto}\n` +
+`🆔 *UVUS:* ${uvusEnviado}\n` +
+`✉️ *Correo:* ${uvusEnviado}@alum.us.es\n` +
+`💬 *Chat ID:* ${chatId}\n`
