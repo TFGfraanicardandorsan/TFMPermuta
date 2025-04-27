@@ -52,8 +52,6 @@ app.use(cors({
     credentials:true
 }));
 
-app.get('/api', (req, res) => {res.send('¡Hola Mundo! 😊')});
-
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
 app.use('/api/v1/estudio', estudioRouter)
@@ -76,9 +74,9 @@ const options = {
     cert: fs.readFileSync(certPath),
     passphrase: process.env.SSL_PASSPHRASE
 };
-const server = https.createServer(options, app);
 // const server = http.createServer(app)
 // const port = 3000;
+const server = https.createServer(options, app);
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
     console.log(`Servidor corriendo en https://localhost:${port}`);

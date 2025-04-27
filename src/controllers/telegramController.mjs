@@ -1,4 +1,4 @@
-import { handleIncomingMessage } from '../services/telegramService.mjs';
+import { handleIncomingMessage, handleCallbackQuery } from '../services/telegramService.mjs';
 
 export const telegramWebhookHandler = async (req, res) => {
   try {
@@ -6,7 +6,13 @@ export const telegramWebhookHandler = async (req, res) => {
     if (message) {
       await handleIncomingMessage(message);
     }
-    res.status(200).send('OK');
+
+    const callbackQuery = req.body.callback_query;
+    if (callbackQuery) {
+      await handleCallbackQuery(callbackQuery);
+    }
+
+    res.status(200).send('OK'); 
   } catch (error) {
     console.error('Error en el controller:', error);
     res.status(500).send('Internal Server Error');
