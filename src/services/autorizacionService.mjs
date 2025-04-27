@@ -42,6 +42,63 @@ class AutorizacionService{
       return { err: true, errmsg: 'Error al verificar si existe el usuario en Telegram' };
     }
   }
+
+  async consultarSolicitudAltaUsuario(uvusEnviado,chatId){
+    try{
+      const conexion = await database.connectPostgreSQL();
+      const query = {
+        text: ` SELECT uvus, correo, nombre_completo, chat_id, user_id
+                FROM alta_usuario_bot 
+                WHERE uvus = $1
+                AND userId = $2 AND chatId = $2`,
+        values: [uvusEnviado, chatId],
+      };
+      const res = await conexion.query(query);
+      await conexion.end();
+      if (res.rows.length > 0) {
+        return res.rows[0];
+      } else {
+        return 'No existe ningún usuario';
+      }
+    } catch (error){
+      console.error('Error al consultarSolicitudAltaUsuario:', error);
+      return { err: true, errmsg: 'Error al consultarSolicitudAltaUsuario' };
+    }
+  }
+
+  async insertarSolicitudAltaUsuario(uvusEnviado,nombreCompleto,chatId){
+    try{
+      const conexion = await database.connectPostgreSQL();
+      const query = {
+        text: ` INSERT INTO alta_usuario_bot (uvus, correo, nombre_completo, chat_id, user_id)
+                VALUES ($1,${uvusEnviado}@alum.us.es, $2, $3, $3)`,
+        values: [uvusEnviado,nombreCompleto, chatId],
+      };
+      await conexion.query(query);
+      await conexion.end();
+      return 'Se ha insertado la solicitud de alta correctamente';
+    } catch (error){
+      console.error('Error al insertar la solicitud de alta:', error);
+      return { err: true, errmsg: 'Error al insertar la solicitud de alta' };
+    }
+  }
+
+  async insertarUsuario(uvusEnviado,nombreCompleto,correo,chatId){
+    try{
+      const conexion = await database.connectPostgreSQL();
+      const query = {
+        text: ` INSERT INTO usuario (nombre_completo, correo, nombre_usuario, activo, chatid, userid)
+                VALUES ($2, $3, $1, true, $4, $4)`,
+        values: [uvusEnviado,nombreCompleto,correo, chatId],
+      };
+      await conexion.query(query);
+      await conexion.end();
+      return 'Se ha insertado el usuario correctamente';
+    } catch (error){
+      console.error('Error al insertar el usuario:', error);
+      return { err: true, errmsg: 'Error al insertar el usuario' };
+    }
+  }
 }
 const autorizacionService = new AutorizacionService();
 export default autorizacionService;
