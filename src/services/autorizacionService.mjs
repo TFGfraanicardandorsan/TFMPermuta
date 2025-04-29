@@ -84,19 +84,31 @@ class AutorizacionService{
   }
 
   async insertarUsuario(uvusEnviado,nombreCompleto,correo,chatId){
-    try{
-      const conexion = await database.connectPostgreSQL();
-      const query = {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      await conexion.query('BEGIN');
+      const queryUsuario = {
         text: ` INSERT INTO usuario (nombre_completo, correo, nombre_usuario, activo, chatid, userid)
-                VALUES ($1, $2, $3, true, $4, $5)`,
+                VALUES ($1, $2, $3, true, $4, $5)
+                RETURNING id`,
         values: [nombreCompleto, correo, uvusEnviado, chatId, chatId],
       };
-      await conexion.query(query);
-      await conexion.end();
+      const resultado = await conexion.query(queryUsuario);
+      const usuarioId = resultado.rows[0].id;
+      const queryRol = {
+        text: ` INSERT INTO roles (usuario_id_fk,rol)
+                VALUES ($1, 'estudiante')`,
+        values: [usuarioId],
+      };
+      await conexion.query(queryRol);
+      await conexion.query('COMMIT');
       return 'Se ha insertado el usuario correctamente';
     } catch (error){
+      await conexion.query('ROLLBACK');
       console.error('Error al insertar el usuario:', error);
-      return { err: true, errmsg: 'Error al insertar el usuario' };
+      throw new Error("Error al crear la incidencia");
+    } finally {
+      await conexion.end();
     }
   }
 
