@@ -99,6 +99,25 @@ class AutorizacionService{
       return { err: true, errmsg: 'Error al insertar el usuario' };
     }
   }
+
+  async borrarSolicitudAltaUsuario(uvus,chatId){
+    try{
+      const conexion = await database.connectPostgreSQL();
+      const query = {
+        text: ` DELETE
+                FROM alta_usuario_bot
+                WHERE uvus = $1
+                  AND chat_id = $2 AND user_id = $3`,
+        values: [uvus,chatId],
+      };
+      await conexion.query(query);
+      await conexion.end();
+      return 'Se ha eliminado el alta de usuario correctamente'
+    } catch (error){
+      console.error('Error al eliminar el alta de usuario:', error);
+      return { err: true, errmsg: 'Error al eliminar el alta de usuario' };
+    }
+  }
 }
 const autorizacionService = new AutorizacionService();
 export default autorizacionService;
