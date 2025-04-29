@@ -6,15 +6,12 @@ import autorizacionService from "./autorizacionService.mjs";
 export const getTelegramApiUrl = () => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 
 const estadosRegistro = {}; // userId => 'esperando_datos' Variables auxiliares para gestionar "estado" de usuarios en registro
-let solicitudesPendientes = {}; // { uvus: { nombre, chatId, username }}
-
 export const handleIncomingMessage = async (message) => {
   const chatId = message.chat.id;
   const userId = message.from.id;
   const text = message.text;
   let usuarioExistente = null;
   let uvus = null;
-
   try {
     uvus = await autorizacionService?.verificarSiExisteUsuarioEnTelegram(userId, chatId);
     if (uvus) {
@@ -23,7 +20,6 @@ export const handleIncomingMessage = async (message) => {
   } catch (error) {
     console.error("Error al verificar si existe el usuario en Telegram:", error);
   }
-
   try {
     if (text === "/start") {
       if (usuarioExistente) {
@@ -60,15 +56,9 @@ export const handleIncomingMessage = async (message) => {
         await sendMessage(chatId, aviso,"Markdown");
         return;
       }
-      // TODO: INSERTAR USUARIO EN BASE DE DATOS
-      console.log("Datos del nuevo usuario:", { uvus: uvusEnviado, nombre: nombreCompleto, correo: `${uvusEnviado}@alum.us.es`,
-        telegram_user_id: userId, telegram_chat_id: chatId,rol: "estudiante" });
-
-      // TODO: TEMPORAL: DEBE IR EN BASE DE DATOS => Almacenar la solicitud pendiente en memoria
-      solicitudesPendientes[uvusEnviado] = { nombre: nombreCompleto, chatId: chatId, username: message.from.username, uvus: uvusEnviado };
+      await autorizacionService?.insertarSolicitudAltaUsuario(uvusEnviado, nombreCompleto, chatId);
       await sendMessage(chatId, "✅ ¡Gracias! Tu solicitud ha sido enviada a los administradores. Pronto te darán acceso.");
       await sendMessage(process.env.ADMIN_CHAT_ID, avisoAdmin(nombreCompleto,uvusEnviado,chatId), "Markdown", markupAceptarRechazarUsuario(uvusEnviado));
-  
       // Eliminar el estado de registro del usuario, ya que la solicitud fue procesada
       delete estadosRegistro[userId];
     } else {
@@ -106,30 +96,29 @@ export const handleCallbackQuery = async (callbackQuery) => {
   const chatId = callbackQuery.message.chat.id;
   const callbackData = callbackQuery.data;
   const [accion, uvus] = callbackData.split('_');
-  console.log(`Botón clickeado: ${accion} con UVUS ${uvus}`); // Log para depuración
   try {
     if (accion === 'aceptar') {
-      const solicitud = solicitudesPendientes[uvus];
+      const solicitud = await autorizacionService?.consultarSolicitudAltaUsuario(uvus);
       if (!solicitud) {
         await sendMessage(chatId, "No se encontró ninguna solicitud con ese UVUS.");
         return;
       }
-      await sendMessage(solicitud.chatId, `🎉 ¡Felicidades! Has sido aceptado en el sistema de Permutas ETSII. Bienvenido.`);
+      await sendMessage(solicitud.chat_id, `🎉 ¡Felicidades! Has sido aceptado en el sistema de Permutas ETSII. Bienvenido.`);
       // Eliminar la solicitud de la lista de pendientes
-      delete solicitudesPendientes[uvus];
+      await autorizacionService?.insertarUsuario(solicitud.uvus, solicitud.nombre_completo, solicitud.correo, solicitud.chat_id,);
       // Notificar al administrador que la solicitud fue aceptada
       await sendMessage(chatId, `Usuario ${uvus} aceptado correctamente.`);
+      await autorizacionService?.eliminarSolicitudAltaUsuario(uvus);
     } else if (accion === 'rechazar') {
       // Rechazar la solicitud
-      const solicitud = solicitudesPendientes[uvus];
+      const solicitud = await autorizacionService?.consultarSolicitudAltaUsuario(uvus);
       if (!solicitud) {
         await sendMessage(chatId, "No se encontró ninguna solicitud con ese UVUS.");
         return;
       }
       // Notificar al usuario que ha sido rechazado
-      await sendMessage(solicitud.chatId, `❌ Lo sentimos, tu solicitud ha sido rechazada por el administrador.`);
-      // Eliminar la solicitud de la lista de pendientes
-      delete solicitudesPendientes[uvus];
+      await sendMessage(solicitud.chat_id, `❌ Lo sentimos, tu solicitud ha sido rechazada por el administrador.`);
+      await autorizacionService?.eliminarSolicitudAltaUsuario(uvus);
       // Notificar al administrador que la solicitud fue rechazada
       await sendMessage(chatId, `Usuario ${uvus} rechazado correctamente.`);
     }

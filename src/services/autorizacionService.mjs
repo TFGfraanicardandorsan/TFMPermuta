@@ -43,15 +43,14 @@ class AutorizacionService{
     }
   }
 
-  async consultarSolicitudAltaUsuario(uvusEnviado,chatId){
+  async consultarSolicitudAltaUsuario(uvusEnviado){
     try{
       const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` SELECT uvus, correo, nombre_completo, chat_id, user_id
                 FROM alta_usuario_bot 
-                WHERE uvus = $1
-                AND userId = $2 AND chatId = $2`,
-        values: [uvusEnviado, chatId],
+                WHERE uvus = $1`,
+        values: [uvusEnviado],
       };
       const res = await conexion.query(query);
       await conexion.end();
@@ -69,10 +68,11 @@ class AutorizacionService{
   async insertarSolicitudAltaUsuario(uvusEnviado,nombreCompleto,chatId){
     try{
       const conexion = await database.connectPostgreSQL();
+      const correo = `${uvusEnviado}@alum.us.es`;
       const query = {
         text: ` INSERT INTO alta_usuario_bot (uvus, correo, nombre_completo, chat_id, user_id)
-                VALUES ($1,${uvusEnviado}@alum.us.es, $2, $3, $3)`,
-        values: [uvusEnviado,nombreCompleto, chatId],
+                VALUES ($1, $2, $3, $4, $5)`,
+        values: [uvusEnviado,correo,nombreCompleto, chatId,chatId],
       };
       await conexion.query(query);
       await conexion.end();
@@ -88,8 +88,8 @@ class AutorizacionService{
       const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` INSERT INTO usuario (nombre_completo, correo, nombre_usuario, activo, chatid, userid)
-                VALUES ($2, $3, $1, true, $4, $4)`,
-        values: [uvusEnviado,nombreCompleto,correo, chatId],
+                VALUES ($1, $2, $3, true, $4, $5)`,
+        values: [nombreCompleto, correo, uvusEnviado, chatId, chatId],
       };
       await conexion.query(query);
       await conexion.end();
@@ -100,15 +100,14 @@ class AutorizacionService{
     }
   }
 
-  async borrarSolicitudAltaUsuario(uvus,chatId){
+  async eliminarSolicitudAltaUsuario(uvus){
     try{
       const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` DELETE
                 FROM alta_usuario_bot
-                WHERE uvus = $1
-                  AND chat_id = $2 AND user_id = $3`,
-        values: [uvus,chatId],
+                WHERE uvus = $1`,
+        values: [uvus],
       };
       await conexion.query(query);
       await conexion.end();
