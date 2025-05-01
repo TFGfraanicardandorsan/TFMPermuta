@@ -19,6 +19,7 @@ import notificacionRoutes from './routes/notificacionRoutes.mjs'
 import solicitudPermutaRoutes from './routes/solicitudPermutaRoutes.mjs'
 import uploadRouter from './routes/uploadRoutes.mjs'
 import telegramRouter from './routes/telegramRoutes.mjs'
+import permutaRouter from './routes/permutasRoutes.mjs'
 import { setBotCommands } from './middleware/botCommands.mjs';
 dotenv.config();
 const app = express();
@@ -63,6 +64,7 @@ app.use('/api/v1/incidencia', incidenciaRouter)
 app.use('/api/v1/grupo', grupoRouter)
 app.use('/api/v1/notificacion', notificacionRoutes)
 app.use('/api/v1/solicitudPermuta', solicitudPermutaRoutes)
+app.use('/api/v1/permutas', permutaRouter)
 app.use('/api/v1', uploadRouter)
 app.use('/api/v1/telegram',telegramRouter)
 

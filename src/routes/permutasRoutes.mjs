@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import permutasController from '../controllers/premutasController.mjs';
+import permutasController from '../controllers/permutasController.mjs';
+import { verificarRol } from '../middleware/rolMiddleware.mjs';
 
 const router = Router()
 router
-.get('/permutas', permutasController.obtenerPermutas)
+.post('/crearListaPermutas', verificarRol('estudiante'), permutasController.crearListaPermutas)
 
 export default router;
