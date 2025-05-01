@@ -5,14 +5,11 @@ import { v4 as uuidv4 } from "uuid";
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const tipo = req.body.tipo;
-    console.log("TIPO", tipo);
     let uploadPath;
     if (tipo === "buzon") {
       uploadPath = process.env.BUZON;
-      console.log("BUZON", uploadPath);
     } else if (tipo === "archivador") {
       uploadPath = process.env.ARCHIVADOR;
-      console.log("ARCHIVADOR", uploadPath);
     } else {
       return cb(new Error("Tipo de carpeta no válido"));
     }

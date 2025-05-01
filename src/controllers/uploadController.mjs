@@ -13,7 +13,7 @@ const subirArchivo = (req, res) => {
 
 const servirArchivo = (req, res) => {
     const fileId = req.params.fileId;
-    const filePath = path.join(process.env.UPLOADS_FOLDER, fileId);
+    const filePath = path.join(process.env.ARCHIVADOR, fileId);
     res.sendFile(filePath, (err) => {
         if (err) {
             console.error('No se ha encontrado el archivo:', err);
