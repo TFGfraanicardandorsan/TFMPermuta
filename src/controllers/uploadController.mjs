@@ -12,8 +12,16 @@ const subirArchivo = (req, res) => {
 };
 
 const servirArchivo = (req, res) => {
-    const fileId = req.params.fileId;
-    const filePath = path.join(process.env.ARCHIVADOR, fileId);
+    const { tipo, fileId } = req.params;
+    let baseDir;
+    if (tipo === "archivador") {
+        baseDir = process.env.ARCHIVADOR;
+    } else if (tipo === "buzon") {
+        baseDir = process.env.BUZON;
+    } else {
+        return res.status(400).send("Tipo de carpeta no válido");
+    }
+    const filePath = path.join(baseDir, fileId);
     res.sendFile(filePath, (err) => {
         if (err) {
             console.error('No se ha encontrado el archivo:', err);
