@@ -1,10 +1,10 @@
 import database from "../config/database.mjs";
 
-class PermutaService{
-  async crearListaPermutas(archivo,IdsPermuta) {
+class PermutaService {
+  async crearListaPermutas(archivo, IdsPermuta) {
     const conexion = await database.connectPostgreSQL();
     try {
-      await conexion.query('BEGIN');
+      await conexion.query("BEGIN");
       const queryPermutas = {
         text: ` INSERT INTO permutas (estado, archivo ) VALUES ('FIRMADA',$1) 
                 RETURNING id`,
@@ -16,18 +16,33 @@ class PermutaService{
         const queryPermutas_permuta = {
           text: ` INSERT INTO permutas_permuta (permuta_id_fk, permutas_id_fk) 
                   VALUES ($1, $2)`,
-          values: [id,permutasId],
+          values: [id, permutasId],
         };
         await conexion.query(queryPermutas_permuta);
       }
-      await conexion.query('COMMIT');
+      await conexion.query("COMMIT");
       return "Se ha creado la lista de permutas correctamente";
     } catch (error) {
-      await conexion.query('ROLLBACK');
+      await conexion.query("ROLLBACK");
       console.error("Error al listar permutas:", error);
       throw new Error("Error al listar permutas");
     } finally {
       await conexion.end();
+    }
+  }
+  async listarPermutas() {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: ` SELECT estado, archivo
+                FROM permutas`
+      };
+      const resultado = await conexion.query(query);
+      await conexion.end();
+      return resultado.rows;
+    } catch (error) {
+      console.error("Error al listar permutas:", error);
+      throw new Error("Error al listar permutas");
     }
   }
 }
