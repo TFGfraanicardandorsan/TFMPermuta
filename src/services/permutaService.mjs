@@ -34,7 +34,7 @@ class PermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
-        text: ` SELECT estado, archivo
+        text: ` SELECT id, estado, archivo
                 FROM permutas`
       };
       const resultado = await conexion.query(query);
