@@ -106,24 +106,24 @@ class AdministradorService {
       };
 
       // Ratio de aceptación de solicitudes
-      const ratioAceptacion = {
-        text: `
-          SELECT 
-            COUNT(CASE WHEN estado = 'ACEPTADA' THEN 1 END)::float / 
-            COUNT(*)::float * 100 as porcentaje_aceptacion
-          FROM solicitud_permuta
-          WHERE estado IN ('ACEPTADA', 'RECHAZADA')
-        `
-      };
+      // const ratioAceptacion = {
+      //   text: `
+      //     SELECT 
+      //       COUNT(CASE WHEN estado = 'ACEPTADA' THEN 1 END)::float / 
+      //       COUNT(*)::float * 100 as porcentaje_aceptacion
+      //     FROM solicitud_permuta
+      //     WHERE estado IN ('ACEPTADA', 'RECHAZADA')
+      //   `
+      // };
 
       const [estadosRes, ratioRes] = await Promise.all([
         conexion.query(solicitudesPorEstado),
-        conexion.query(ratioAceptacion)
+        // conexion.query(ratioAceptacion)
       ]);
 
       return {
         solicitudesPorEstado: estadosRes.rows,
-        ratioAceptacion: ratioRes.rows[0]
+        // ratioAceptacion: ratioRes.rows[0]
       };
 
     } catch (error) {
