@@ -172,6 +172,11 @@ async validarSolicitudPermuta(uvus, solicitud) {
     values: [`${solicitud}`, `${uvus}`],
   };
   await conexion.query(update);
+  const updateSolicitud = {
+    text: `update solicitud_permuta set estado = 'ACEPTADA' where id = $1`,
+    values: [`${solicitud}`],
+  };
+  await conexion.query(updateSolicitud);
   await conexion.end();
   return 'Solicitud de permuta validada.';
 }
