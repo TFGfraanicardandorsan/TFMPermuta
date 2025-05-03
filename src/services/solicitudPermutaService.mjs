@@ -214,7 +214,6 @@ async verListaPermutas(uvus) {
     const key = `${row.usuario_1_uvus}-${row.usuario_2_uvus}`;
     if (!acc[key]) {
       acc[key] = {
-        permuta_id: row.permuta_id,
         usuarios: [
           {
             nombre_completo: row.usuario_1_nombre,
@@ -233,6 +232,7 @@ async verListaPermutas(uvus) {
     acc[key].permutas.push({
       nombre_asignatura: row.nombre_asignatura,
       codigo_asignatura: row.codigo_asignatura,
+      permuta_id: row.permuta_id,
     });
     return acc;
   }, {});
