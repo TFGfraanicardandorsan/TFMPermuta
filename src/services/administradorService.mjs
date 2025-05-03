@@ -25,29 +25,29 @@ class AdministradorService {
         `
       };
 
-      // Permutas por mes
-      const permutasPorMes = {
-        text: `
-          SELECT 
-            EXTRACT(MONTH FROM created_at) as mes,
-            EXTRACT(YEAR FROM created_at) as anio,
-            COUNT(*) as cantidad
-          FROM permuta
-          GROUP BY mes, anio
-          ORDER BY anio, mes
-        `
-      };
+    //   // Permutas por mes
+    //   const permutasPorMes = {
+    //     text: `
+    //       SELECT 
+    //         EXTRACT(MONTH FROM created_at) as mes,
+    //         EXTRACT(YEAR FROM created_at) as anio,
+    //         COUNT(*) as cantidad
+    //       FROM permuta
+    //       GROUP BY mes, anio
+    //       ORDER BY anio, mes
+    //     `
+    //   };
 
-      // Tiempo promedio hasta completar permuta
-      const tiempoPromedioPermuta = {
-        text: `
-          SELECT AVG(
-            EXTRACT(EPOCH FROM (updated_at - created_at))/86400
-          ) as dias_promedio
-          FROM permuta
-          WHERE estado = 'VALIDADA'
-        `
-      };
+    //   // Tiempo promedio hasta completar permuta
+    //   const tiempoPromedioPermuta = {
+    //     text: `
+    //       SELECT AVG(
+    //         EXTRACT(EPOCH FROM (updated_at - created_at))/86400
+    //       ) as dias_promedio
+    //       FROM permuta
+    //       WHERE estado = 'VALIDADA'
+    //     `
+    //   };
 
       // Top estudios con más permutas
       const topEstudios = {
