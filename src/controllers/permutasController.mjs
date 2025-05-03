@@ -28,11 +28,10 @@ const aceptarPermuta = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        const permutaId = req.params.id;
-        
+        const { archivo, permutaId } = req.body;        
         res.send({
             err: false, 
-            result: await permutaService.aceptarPermuta(permutaId)
+            result: await permutaService.aceptarPermuta(permutaId, archivo)
         });
     } catch (err) {
         console.error('api aceptarPermuta ha tenido una excepción:', err);

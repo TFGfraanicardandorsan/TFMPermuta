@@ -45,14 +45,14 @@ class PermutaService {
       throw new Error("Error al listar permutas");
     }
   }
-  async aceptarPermuta(permutaId) {
+  async aceptarPermuta(permutaId, archivo) {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: `UPDATE permutas 
-               SET estado = 'ACEPTADA' 
+               SET estado = 'ACEPTADA', archivo = $2
                WHERE id = $1`,
-        values: [permutaId]
+        values: [permutaId, archivo]
       };
       
       await conexion.query(query);
