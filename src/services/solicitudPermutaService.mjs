@@ -325,6 +325,111 @@ async proponerPermutas() {
   await conexion.end();
   return permutasOptimas;
 }
+async aceptarPermutaPropuesta(uvus, permutaId) {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    // Verificar si el usuario es parte de la permuta
+    const verificarUsuarioQuery = {
+      text: `
+        SELECT 
+          CASE 
+            WHEN usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1) THEN 'usuario1'
+            WHEN usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1) THEN 'usuario2'
+            ELSE NULL
+          END as tipo_usuario,
+          estado,
+          aceptada_1,
+          aceptada_2
+        FROM permuta
+        WHERE id = $2 AND estado = 'PROPUESTA'
+      `,
+      values: [uvus, permutaId]
+    };
+
+    const res = await conexion.query(verificarUsuarioQuery);
+    
+    if (res.rows.length === 0) {
+      throw new Error('La permuta propuesta no existe o ya no está en estado PROPUESTA');
+    }
+
+    const { tipo_usuario, aceptada_1, aceptada_2 } = res.rows[0];
+    
+    if (!tipo_usuario) {
+      throw new Error('No eres participante de esta permuta');
+    }
+
+    // Actualizar el estado de aceptación según el usuario
+    const updateQuery = {
+      text: `
+        UPDATE permuta 
+        SET ${tipo_usuario === 'usuario1' ? 'aceptada_1' : 'aceptada_2'} = true,
+            estado = CASE 
+              WHEN ${tipo_usuario === 'usuario1' ? 'aceptada_2' : 'aceptada_1'} = true 
+              THEN 'VALIDADA' 
+              ELSE 'PROPUESTA' 
+            END
+        WHERE id = $1
+      `,
+      values: [permutaId]
+    };
+
+    await conexion.query(updateQuery);
+    await conexion.end();
+    
+    return 'Has aceptado la permuta propuesta';
+  } catch (error) {
+    await conexion.query('ROLLBACK');
+    throw error;
+  } finally {
+    await conexion.end();
+  }
+}
+
+async rechazarPermutaPropuesta(uvus, permutaId) {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    // Verificar si el usuario es parte de la permuta
+    const verificarUsuarioQuery = {
+      text: `
+        SELECT 1
+        FROM permuta
+        WHERE id = $1 
+        AND estado = 'PROPUESTA'
+        AND (
+          usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)
+          OR usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)
+        )
+      `,
+      values: [permutaId, uvus]
+    };
+
+    const res = await conexion.query(verificarUsuarioQuery);
+    
+    if (res.rows.length === 0) {
+      throw new Error('La permuta propuesta no existe, ya no está en estado PROPUESTA o no eres participante');
+    }
+
+    // Actualizar el estado de la permuta a RECHAZADA
+    const updateQuery = {
+      text: `
+        UPDATE permuta 
+        SET estado = 'RECHAZADA'
+        WHERE id = $1
+      `,
+      values: [permutaId]
+    };
+
+    await conexion.query(updateQuery);
+    await conexion.end();
+    
+    return 'Has rechazado la permuta propuesta';
+  } catch (error) {
+    await conexion.query('ROLLBACK');
+    throw error;
+  } finally {
+    await conexion.end();
+  }
+}
 }
 const solicitudPermutaService = new SolicitudPermutaService();
 export default solicitudPermutaService

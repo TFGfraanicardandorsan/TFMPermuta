@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import solicitudPermutaController from '../controllers/solicitudPermutaController.mjs';
 import { verificarRol } from '../middleware/rolMiddleware.mjs';
+
 const router = Router()
+
 router
 .post('/solicitarPermuta',verificarRol('estudiante'), solicitudPermutaController.solicitarPermuta)
 .post('/getSolicitudesPermutaInteresantes',verificarRol('estudiante'), solicitudPermutaController.getSolicitudesPermutaInteresantes)
@@ -11,5 +13,11 @@ router
 .post('/verListaPermutas',verificarRol('estudiante'), solicitudPermutaController.verListaPermutas)
 .post('/validarSolicitudPermuta',verificarRol('estudiante'), solicitudPermutaController.validarSolicitudPermuta)
 .post('/proponerPermutas',verificarRol('estudiante'), solicitudPermutaController.proponerPermutas)
+.post('/permuta/:id/aceptar', 
+        verificarRol('estudiante'), 
+        solicitudPermutaController.aceptarPermutaPropuesta)
+    .post('/permuta/:id/rechazar', 
+        verificarRol('estudiante'), 
+        solicitudPermutaController.rechazarPermutaPropuesta)
 
 export default router;
