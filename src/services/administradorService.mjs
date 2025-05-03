@@ -65,22 +65,22 @@ class AdministradorService {
       const [
         estadosRes,
         asignaturasRes,
-        mesesRes,
-        tiempoRes,
+        // mesesRes,
+        // tiempoRes,
         estudiosRes
       ] = await Promise.all([
         conexion.query(permutasPorEstado),
         conexion.query(permutasPorAsignatura),
-        conexion.query(permutasPorMes),
-        conexion.query(tiempoPromedioPermuta),
+        // conexion.query(permutasPorMes),
+        // conexion.query(tiempoPromedioPermuta),
         conexion.query(topEstudios)
       ]);
 
       return {
         permutasPorEstado: estadosRes.rows,
         permutasPorAsignatura: asignaturasRes.rows,
-        permutasPorMes: mesesRes.rows,
-        tiempoPromedioPermuta: tiempoRes.rows[0],
+        // permutasPorMes: mesesRes.rows,
+        // tiempoPromedioPermuta: tiempoRes.rows[0],
         topEstudios: estudiosRes.rows
       };
 
