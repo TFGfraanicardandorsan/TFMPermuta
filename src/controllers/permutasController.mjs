@@ -23,7 +23,29 @@ const listarPermutas = async (req, res) => {
         res.status(500).json({ error: true, message: "Error al listarPermutas" });
     }
 };
+const aceptarPermuta = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const permutaId = req.params.id;
+        
+        res.send({
+            err: false, 
+            result: await permutaService.aceptarPermuta(permutaId)
+        });
+    } catch (err) {
+        console.error('api aceptarPermuta ha tenido una excepción:', err);
+        res.status(500).json({ 
+            err: true, 
+            message: 'Error interno en aceptarPermuta', 
+            details: err.message 
+        });
+    }
+};
+
 export default {
     crearListaPermutas,
-    listarPermutas
+    listarPermutas,
+    aceptarPermuta
 }

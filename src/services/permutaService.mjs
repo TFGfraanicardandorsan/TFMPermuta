@@ -45,6 +45,27 @@ class PermutaService {
       throw new Error("Error al listar permutas");
     }
   }
+  async aceptarPermuta(permutaId) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `UPDATE permutas 
+               SET estado = 'ACEPTADA' 
+               WHERE id = $1`,
+        values: [permutaId]
+      };
+      
+      await conexion.query(query);
+      await conexion.end();
+      return "La permuta ha sido aceptada correctamente";
+    } catch (error) {
+      console.error("Error al aceptar la permuta:", error);
+      throw new Error("Error al aceptar la permuta");
+    } finally {
+      await conexion.end();
+    }
+  }
 }
+
 const permutaService = new PermutaService();
 export default permutaService;
