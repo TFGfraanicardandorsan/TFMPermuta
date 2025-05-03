@@ -85,9 +85,3 @@ class PermutaMatching {
 }
 
 export default PermutaMatching;
-
-
-const permuta = new PermutaMatching(estudiantes, permutas);
-permuta.construirGrafo();
-const permutasOptimas = permuta.emparejar();
-console.log("Permutas óptimas:", permutasOptimas);
