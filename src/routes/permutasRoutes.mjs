@@ -6,7 +6,7 @@ const router = Router()
 router
 .post('/crearListaPermutas', verificarRol('estudiante'), permutasController.crearListaPermutas)
 .post('/listarPermutas', verificarRol('estudiante'), permutasController.listarPermutas)
-.post('/permuta/aceptar', 
+.post('/permuta/aceptarPermuta', 
     verificarRol('estudiante'), 
     permutasController.aceptarPermuta);
 
