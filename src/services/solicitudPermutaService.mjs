@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import PermutaMatching from "../algorithm/AlgoritmoCruzadoSolicitudes.mjs";
 
 class SolicitudPermutaService {
      async solicitarPermuta(uvus,asignatura,grupos_deseados) {
@@ -234,6 +235,90 @@ async verListaPermutas(uvus) {
 
   // Convertir el objeto agrupado en una lista de listas
   return Object.values(permutasAgrupadas);
+}
+async proponerPermutas() {
+  const conexion = await database.connectPostgreSQL();
+  
+  // 1. Obtener todas las solicitudes de permuta activas
+  const solicitudesQuery = {
+    text: `
+      SELECT 
+        sp.id,
+        u.id as estudiante_id,
+        sp.id_asignatura_fk as asignatura,
+        g.nombre as permuta_a
+      FROM solicitud_permuta sp
+      INNER JOIN usuario u ON sp.usuario_id_fk = u.id
+      INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
+      INNER JOIN grupo g ON gd.grupo_id_fk = g.id
+      WHERE sp.estado = 'SOLICITADA'
+    `
+  };
+
+  const estudiantesQuery = {
+    text: `
+      SELECT DISTINCT 
+        u.id,
+        u.nombre_usuario,
+        g.nombre as grupo
+      FROM usuario u
+      INNER JOIN usuario_grupo ug ON u.id = ug.usuario_id_fk
+      INNER JOIN grupo g ON ug.grupo_id_fk = g.id
+    `
+  };
+
+  const [solicitudesRes, estudiantesRes] = await Promise.all([
+    conexion.query(solicitudesQuery),
+    conexion.query(estudiantesQuery)
+  ]);
+
+  // 2. Preparar los datos para el algoritmo
+  const estudiantes = estudiantesRes.rows;
+  const permutas = solicitudesRes.rows.map(s => ({
+    estudianteId: s.estudiante_id,
+    permutaA: s.permuta_a,
+    asignatura: s.asignatura
+  }));
+
+  // 3. Ejecutar el algoritmo de matching
+  const permutaMatching = new PermutaMatching(estudiantes, permutas);
+  permutaMatching.construirGrafo();
+  const permutasOptimas = permutaMatching.emparejar();
+
+  // 4. Registrar las permutas propuestas en la base de datos
+  for (const permuta of permutasOptimas) {
+    const insertPermutaQuery = {
+      text: `
+        INSERT INTO permuta (
+          id,
+          usuario_id_1_fk,
+          usuario_id_2_fk,
+          asignatura_id_fk,
+          grupo_id_1_fk,
+          grupo_id_2_fk,
+          estado,
+          aceptada_1,
+          aceptada_2
+        ) VALUES (
+          DEFAULT,
+          $1,
+          $2,
+          $3,
+          (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = $1 AND asignatura_id_fk = $3),
+          (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = $2 AND asignatura_id_fk = $3),
+          'PROPUESTA',
+          false,
+          false
+        )
+      `,
+      values: [permuta.estudiante1, permuta.estudiante2, permuta.asignaturas[0]]
+    };
+
+    await conexion.query(insertPermutaQuery);
+  }
+
+  await conexion.end();
+  return permutasOptimas;
 }
 }
 const solicitudPermutaService = new SolicitudPermutaService();
