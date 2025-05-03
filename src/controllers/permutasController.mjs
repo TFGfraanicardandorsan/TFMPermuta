@@ -15,6 +15,15 @@ const crearListaPermutas = async (req, res) => {
         res.status(500).json({ error: true, message: "Error al crear la crearListaPermutas" });
     }
 };
+const listarPermutas = async (req, res) => {
+    try {
+        res.status(200).json({ error: false, result: await permutaService.listarPermutas()});
+    } catch (err) {
+        console.error("Error en listarPermutas:", err);
+        res.status(500).json({ error: true, message: "Error al listarPermutas" });
+    }
+};
 export default {
-    crearListaPermutas
+    crearListaPermutas,
+    listarPermutas
 }
