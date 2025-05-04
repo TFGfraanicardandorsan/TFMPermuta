@@ -65,7 +65,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
       INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
-      WHERE sp.id_asignatura_fk in ($1)
+      WHERE sp.id_asignatura_fk = ANY($1)
       AND gd.grupo_id_fk in (
         SELECT grupo_id_fk
         FROM usuario_grupo
@@ -77,7 +77,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
         SELECT id FROM usuario WHERE nombre_usuario = $2
       )
     `,
-    values: [[6,7], uvus],
+    values: [asignaturaUsuario, uvus],
   };
 
   console.log(query);
