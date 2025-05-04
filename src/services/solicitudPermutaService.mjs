@@ -48,7 +48,6 @@ async getSolicitudesPermutaInteresantes(uvus) {
     `,
     values: [uvus],
   };
-  //console.log([4,6,7,10])
   const asignaturasUsuario = await conexion.query(asignaturasUsuarioQuery);
   console.log(asignaturasUsuario.rows)
 
@@ -58,6 +57,9 @@ async getSolicitudesPermutaInteresantes(uvus) {
   }
 
   // Obtener las solicitudes de permuta interesantes para todas las asignaturas del usuario
+  const asignaturaUsuario = asignaturasUsuario.rows.map(row => row.id);
+  console.log(asignaturaUsuario)
+  //console.log([3,4,6,7,10])
   const query = {
     text: `
       SELECT sp.id AS solicitud_id, sp.estado, g.nombre AS grupo_solicitante, gd.grupo_id_fk AS grupo_deseado, a.codigo AS codigo_asignatura
@@ -77,7 +79,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
         SELECT id FROM usuario WHERE nombre_usuario = $2
       )
     `,
-    values: [asignaturasUsuario.rows.map(row => row.id), uvus],
+    values: [asignaturaUsuario, uvus],
   };
 
   const res = await conexion.query(query);
