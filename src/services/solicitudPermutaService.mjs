@@ -80,6 +80,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
     values: [asignaturaUsuario, uvus],
   };
 
+  console.log(query);
   const res = await conexion.query(query);
   await conexion.end();
 
