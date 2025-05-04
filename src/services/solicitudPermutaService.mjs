@@ -56,7 +56,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
   }
 
   // Obtener las solicitudes de permuta interesantes para todas las asignaturas del usuario
-  const asignaturaUsuario = asignaturasUsuario.rows.map(row => parseInt(row.id)).join(',');
+  const asignaturaUsuario = asignaturasUsuario.rows.map(row => parseInt(row.id));
   console.log(asignaturaUsuario);
   const query = {
     text: `
@@ -77,7 +77,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
         SELECT id FROM usuario WHERE nombre_usuario = $2
       )
     `,
-    values: [asignaturaUsuario, uvus],
+    values: [[6,7], uvus],
   };
 
   console.log(query);
