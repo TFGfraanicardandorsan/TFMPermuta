@@ -48,7 +48,9 @@ async getSolicitudesPermutaInteresantes(uvus) {
     `,
     values: [uvus],
   };
+  //console.log([4,6,7,10])
   const asignaturasUsuario = await conexion.query(asignaturasUsuarioQuery);
+  console.log(asignaturasUsuario.rows)
 
   if (asignaturasUsuario.rows.length === 0) {
     await conexion.end();
