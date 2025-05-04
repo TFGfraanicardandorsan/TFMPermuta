@@ -57,8 +57,6 @@ async getSolicitudesPermutaInteresantes(uvus) {
 
   // Obtener las solicitudes de permuta interesantes para todas las asignaturas del usuario
   const asignaturaUsuario = asignaturasUsuario.rows.map(row => row.id);
-  console.log(asignaturaUsuario)
-  //console.log([3,4,6,7,10])
   const query = {
     text: `
       SELECT sp.id AS solicitud_id, sp.estado, g.nombre AS grupo_solicitante, gd.grupo_id_fk AS grupo_deseado, a.codigo AS codigo_asignatura
@@ -66,8 +64,8 @@ async getSolicitudesPermutaInteresantes(uvus) {
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
       INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
-      WHERE sp.id_asignatura_fk = ANY($1::int[])
-      AND gd.grupo_id_fk = (
+      WHERE sp.id_asignatura_fk in ($1)
+      AND gd.grupo_id_fk in (
         SELECT grupo_id_fk
         FROM usuario_grupo
         WHERE usuario_id_fk = (
