@@ -136,7 +136,7 @@ async getMisSolicitudesPermuta(uvus) {
 async aceptarSolicitudPermuta(uvus, solicitud) {
   const conexion = await database.connectPostgreSQL();
   const update = {
-    text: ` insert into permuta (id, usuario_id_1_fk, usuario_id_2_fk,asignatura_id_fk, grupo_id_1_fk, grupo_id_2_fk, estado, aceptada_1, aceptada_2) values (
+    text: ` insert into permuta (solicitud_permuta_id_fk, usuario_id_1_fk, usuario_id_2_fk,asignatura_id_fk, grupo_id_1_fk, grupo_id_2_fk, estado, aceptada_1, aceptada_2) values (
       ($2),
       (select usuario_id_fk from solicitud_permuta where id = $2),
       (select id from usuario where nombre_usuario = $1),  
