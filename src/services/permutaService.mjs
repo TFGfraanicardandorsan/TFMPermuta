@@ -86,8 +86,9 @@ class PermutaService {
             p.id AS permuta_id,
             a.nombre AS nombre_asignatura,
             a.codigo AS codigo_asignatura,
-            g1.nombre AS grupo_1,
-            g2.nombre AS grupo_2
+            g1.nombre AS grupo_solicitante,
+            g2.nombre AS grupo_solicitado,
+            p.estado AS estado
           FROM permuta p
           INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
           INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
@@ -121,8 +122,9 @@ class PermutaService {
             p.id AS permuta_id,
             a.nombre AS nombre_asignatura,
             a.codigo AS codigo_asignatura,
-            g1.nombre AS grupo_1,
-            g2.nombre AS grupo_2
+            g1.nombre AS grupo_solicitante,
+            g2.nombre AS grupo_solicitado,
+            p.estado AS estado
           FROM permuta p
           INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
           INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
