@@ -132,7 +132,8 @@ class PermutaService {
           WHERE p.usuario_id_2_fk = (
             SELECT id FROM usuario WHERE nombre_usuario = $1
           )
-          AND p.aceptada_2 = false
+          AND p.aceptada_1 = false
+          AND p.aceptada_2 = true
           AND p.estado = 'ACEPTADA'
         `,
         values: [uvus],
