@@ -93,11 +93,11 @@ class PermutaService {
           INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
           INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
           INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
-          WHERE p.usuario_id_2_fk = (
+          WHERE p.usuario_id_1_fk = (
             SELECT id FROM usuario WHERE nombre_usuario = $1
           )
-          and p.aceptada_2 = true
-          AND p.aceptada_1 = false
+          and p.aceptada_2 = false
+          AND p.aceptada_1 = true
           AND p.estado = 'ACEPTADA'
         `,
         values: [uvus],
