@@ -69,7 +69,7 @@ class PermutaService {
   async rechazarSolicitudPermuta(uvus, solicitud) {
     const conexion = await database.connectPostgreSQL();
     const update = {
-      text: `update permuta set estado = 'RECHAZADA' where id = $1 and usurio_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
+      text: `update permuta set estado = 'RECHAZADA' where id = $1 and usuario_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
       values: [`${solicitud}`, `${uvus}`],
     };
     await conexion.query(update);
@@ -96,8 +96,8 @@ class PermutaService {
           WHERE p.usuario_id_1_fk = (
             SELECT id FROM usuario WHERE nombre_usuario = $1
           )
-          and p.aceptada_2 = false
-          AND p.aceptada_1 = true
+          and p.aceptada_2 = true
+          AND p.aceptada_1 = false
           AND p.estado = 'ACEPTADA'
         `,
         values: [uvus],
