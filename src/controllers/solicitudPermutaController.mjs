@@ -141,7 +141,6 @@ export default {
     getSolicitudesPermutaInteresantes,
     getMisSolicitudesPermuta,
     aceptarSolicitudPermuta,
-    rechazarSolicitudPermuta,
     verListaPermutas,
     proponerPermutas,
     validarSolicitudPermuta,
