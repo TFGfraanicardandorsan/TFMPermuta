@@ -157,7 +157,7 @@ async aceptarSolicitudPermuta(uvus, solicitud) {
 async validarSolicitudPermuta(uvus, solicitud) {
   const conexion = await database.connectPostgreSQL();
   const update = {
-    text: `update permuta set estado = 'VALIDADA', aceptada_2 = true where id = $1 and usuario_id_2_fk = (select id from usuario where nombre_usuario = $2)`,
+    text: `update permuta set estado = 'VALIDADA', aceptada_1 = true where id = $1 and usuario_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
     values: [`${solicitud}`, `${uvus}`],
   };
   await conexion.query(update);
@@ -167,7 +167,7 @@ async validarSolicitudPermuta(uvus, solicitud) {
   };
   await conexion.query(updateSolicitud);
   await conexion.end();
-  return 'Solicitud de permuta validada.';
+  return 'Solicitud de permuta vaada.';
 }
 async verListaPermutas(uvus) {
   const conexion = await database.connectPostgreSQL();
@@ -191,7 +191,7 @@ async verListaPermutas(uvus) {
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
       WHERE p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
          OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-      ORDER BY p.usuario_id_1_fk, p.usuario_id_2_fk, p.id
+      ORDER BY p.usuario_id_1_fk, p.usuarlidio_id_2_fk, p.id
     `,
     values: [`${uvus}`],
   };
