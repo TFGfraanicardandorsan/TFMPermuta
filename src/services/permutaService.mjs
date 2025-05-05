@@ -111,6 +111,41 @@ class PermutaService {
       await conexion.end();
     }
   }
+
+  async misPermutasPropuestasPorMi(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `
+          SELECT 
+            p.id AS permuta_id,
+            a.nombre AS nombre_asignatura,
+            a.codigo AS codigo_asignatura,
+            g1.nombre AS grupo_1,
+            g2.nombre AS grupo_2
+          FROM permuta p
+          INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
+          INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
+          INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
+          WHERE p.usuario_id_2_fk = (
+            SELECT id FROM usuario WHERE nombre_usuario = $1
+          )
+          AND p.aceptada_2 = false
+          AND p.estado = 'ACEPTADA'
+        `,
+        values: [uvus],
+      };
+
+      const resultado = await conexion.query(query);
+      await conexion.end();
+      return resultado.rows;
+    } catch (error) {
+      console.error("Error al obtener las permutas propuestas por mí:", error);
+      throw new Error("Error al obtener las permutas propuestas por mí");
+    } finally {
+      await conexion.end();
+    }
+  }
 }
 
 const permutaService = new PermutaService();
