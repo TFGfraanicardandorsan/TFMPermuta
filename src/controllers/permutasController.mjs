@@ -56,9 +56,30 @@ const rechazarSolicitudPermuta = async (req,res) => {
         }
     }
 
+const misPermutasPropuestas = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.status(200).json({ 
+            err: false, 
+            result: await permutaService.misPermutasPropuestas(uvus) 
+        });
+    } catch (err) {
+        console.error('api misPermutasPropuestas ha tenido una excepción:', err);
+        res.status(500).json({ 
+            err: true, 
+            message: 'Error interno en misPermutasPropuestas', 
+            details: err.message 
+        });
+    }
+};
+
 export default {
     crearListaPermutas,
     listarPermutas,
     aceptarPermuta,
-    rechazarSolicitudPermuta
+    rechazarSolicitudPermuta,
+    misPermutasPropuestas
 }
