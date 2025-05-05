@@ -142,11 +142,10 @@ async aceptarSolicitudPermuta(uvus, solicitud) {
       (select id from usuario where nombre_usuario = $1),  
       (select id_asignatura_fk from solicitud_permuta where id = $2),
       (select grupo_solicitante_id_fk from solicitud_permuta where id = $2),
-      (select grupo_id_fk from grupo_deseado where solicitud_permuta_id_fk = $2),
-      'ACEPTADA',
+      (select grupo_id_fk from grupo_deseado where solicitud_permuta_id_fk = $2 and grupo_id_fk in (select grupo_id_fk  from usuario_grupo where usuario_id_fk = (select id from usuario where nombre_usuario=$1 ))),
+	    'ACEPTADA',
       false,
-      true
-    )`,
+      true)`,
     values: [uvus, solicitud],
   };
   console.log(update);
