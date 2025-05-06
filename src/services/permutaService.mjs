@@ -96,10 +96,10 @@ class PermutaService {
       
       await conexion.query(query);
       await conexion.end();
-      return "La permuta ha sido aceptada correctamente";
+      return "La permuta ha sido firmada correctamente";
     } catch (error) {
-      console.error("Error al aceptar la permuta:", error);
-      throw new Error("Error al aceptar la permuta");
+      console.error("Error al firmar la permuta:", error);
+      throw new Error("Error al firmar la permuta");
     } finally {
       await conexion.end();
     }
