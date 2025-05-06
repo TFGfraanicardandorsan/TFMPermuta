@@ -189,8 +189,9 @@ async verListaPermutas(uvus) {
       INNER JOIN estudios e1 ON u1.estudios_id_fk = e1.id
       INNER JOIN estudios e2 ON u2.estudios_id_fk = e2.id
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
-      WHERE p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-         OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+      WHERE (p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+         OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1))
+         AND p.estado = 'VALIDADA'
       ORDER BY p.usuario_id_1_fk, p.usuario_id_2_fk, p.id
     `,
     values: [`${uvus}`],
