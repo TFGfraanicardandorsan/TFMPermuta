@@ -38,7 +38,6 @@ class PermutaService {
       const queryPermutas = {
         text: ` INSERT INTO permutas (estado ) VALUES ('BORRADOR') 
                 RETURNING id`,
-        values: [archivo],
       };
       const resultado = await conexion.query(queryPermutas);
       const permutasId = resultado.rows[0].id;
