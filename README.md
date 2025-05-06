@@ -12,7 +12,6 @@ TFMPermuta es una aplicación diseñada para gestionar permutas de grupos y asig
 6. [Endpoints Principales](#endpoints-principales)
 7. [Tecnologías Utilizadas](#tecnologías-utilizadas)
 8. [Contribución](#contribución)
-9. [Licencia](#licencia)
 
 ## Características
 
