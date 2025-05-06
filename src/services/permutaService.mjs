@@ -273,7 +273,7 @@ class PermutaService {
           WHERE (
             p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
             OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-          ) AND p.estado = 'VALIDADA' AND p.aceptada_1 = true
+          ) AND (p.estado = 'VALIDADA' OR p.estado ='FINALIZADA') AND p.aceptada_1 = true
             AND p.aceptada_2 = true
         `,
         values: [uvus],
