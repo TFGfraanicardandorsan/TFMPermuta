@@ -171,7 +171,7 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
 };
 
 export default {
-    crearListaPermutas,
+//    crearListaPermutas,
     listarPermutas,
     aceptarPermuta,
     rechazarSolicitudPermuta,
