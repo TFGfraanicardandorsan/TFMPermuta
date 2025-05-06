@@ -32,7 +32,8 @@ const generarBorradorPermutas = async (req, res) => {
 };
 const listarPermutas = async (req, res) => {
     try {
-        res.status(200).json({ error: false, result: await permutaService.listarPermutas()});
+        const IdsPermuta  = req.body.IdsPermuta;
+        res.status(200).json({ error: false, result: await permutaService.listarPermutas(IdsPermuta)});
     } catch (err) {
         console.error("Error en listarPermutas:", err);
         res.status(500).json({ error: true, message: "Error al listarPermutas" });

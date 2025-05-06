@@ -61,12 +61,14 @@ class PermutaService {
   }
 
 
-  async listarPermutas() {
+  async listarPermutas(IdsPermuta) {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: ` SELECT id, estado, archivo
-                FROM permutas`
+                FROM permutas 
+                WHERE id = (SELECT permutas_id_fk  FROM permutas_permuta WHERE permuta_id_fk = ANY($1))`,
+        values: [IdsPermuta],
       };
       const resultado = await conexion.query(query);
       await conexion.end();
