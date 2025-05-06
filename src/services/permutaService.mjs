@@ -44,7 +44,7 @@ class PermutaService {
       for (const id of IdsPermuta) {
         const queryPermutas_permuta = {
           text: ` INSERT INTO permutas_permuta (permuta_id_fk, permutas_id_fk) 
-                  VALUES ($1, $2)`,
+                  VALUES ($1, $2);  Update permuta set estado = 'FINALIZADA' where id = $1;`,
           values: [id, permutasId],
         };
         await conexion.query(queryPermutas_permuta);
