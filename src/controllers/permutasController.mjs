@@ -20,7 +20,7 @@ const generarBorradorPermutas = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
             }
-        const IdsPermuta  = req.body;
+        const IdsPermuta  = req.body.IdsPermuta;
         if (!IdsPermuta) {
             return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
         }
