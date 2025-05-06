@@ -70,10 +70,9 @@ class PermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
-        text: ` SELECT p.id, p.estado, p.archivo
-             FROM permutas p
-             INNER JOIN permutas_permuta pp ON p.id = pp.permutas_id_fk
-             WHERE pp.permuta_id_fk = ANY($1)`,
+        text: ` SELECT id, estado, archivo
+              FROM permutas 
+              WHERE id in (SELECT permutas_id_fk  FROM permutas_permuta WHERE permuta_id_fk = ANY($1))`,
         values: [IdsPermuta],
       };
       const resultado = await conexion.query(query);
