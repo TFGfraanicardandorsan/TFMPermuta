@@ -150,6 +150,106 @@ class PermutaService {
       await conexion.end();
     }
   }
+
+  async obtenerPermutasValidadasPorUsuario(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `
+          SELECT 
+            p.id AS permuta_id,
+            a.nombre AS nombre_asignatura,
+            a.codigo AS codigo_asignatura,
+            g1.nombre AS grupo_1,
+            g2.nombre AS grupo_2,
+            p.estado AS estado
+          FROM permuta p
+          INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
+          INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
+          INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
+          WHERE p.aceptada_1 = true
+            AND p.aceptada_2 = true
+            AND p.estado = 'VALIDADA'
+            AND (
+              p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+              OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+            )
+        `,
+        values: [uvus],
+      };
+
+      const resultado = await conexion.query(query);
+      await conexion.end();
+      return resultado.rows;
+    } catch (error) {
+      console.error("Error al obtener las permutas validadas por usuario:", error);
+      throw new Error("Error al obtener las permutas validadas por usuario");
+    } finally {
+      await conexion.end();
+    }
+  }
+
+  async obtenerPermutasAgrupadasPorUsuario(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `
+          SELECT 
+            p.id AS permuta_id,
+            a.nombre AS nombre_asignatura,
+            a.codigo AS codigo_asignatura,
+            g1.nombre AS grupo_1,
+            g2.nombre AS grupo_2,
+            p.estado AS estado,
+            u1.nombre_usuario AS usuario_1,
+            u2.nombre_usuario AS usuario_2
+          FROM permuta p
+          INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
+          INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
+          INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
+          INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
+          INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
+          WHERE (
+            p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+            OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+          )
+        `,
+        values: [uvus],
+      };
+
+      const resultado = await conexion.query(query);
+
+      // Agrupar las permutas por usuario_1 y usuario_2
+      const permutasAgrupadas = resultado.rows.reduce((acc, row) => {
+        const key = `${row.usuario_1}-${row.usuario_2}`;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push({
+          permuta_id: row.permuta_id,
+          nombre_asignatura: row.nombre_asignatura,
+          codigo_asignatura: row.codigo_asignatura,
+          grupo_1: row.grupo_1,
+          grupo_2: row.grupo_2,
+          estado: row.estado,
+        });
+        return acc;
+      }, {});
+
+      await conexion.end();
+
+      // Convertir el objeto agrupado en un array
+      return Object.entries(permutasAgrupadas).map(([usuarios, permutas]) => ({
+        usuarios: usuarios.split('-'),
+        permutas,
+      }));
+    } catch (error) {
+      console.error("Error al obtener las permutas agrupadas por usuario:", error);
+      throw new Error("Error al obtener las permutas agrupadas por usuario");
+    } finally {
+      await conexion.end();
+    }
+  }
 }
 
 const permutaService = new PermutaService();

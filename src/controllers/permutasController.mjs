@@ -96,11 +96,53 @@ const misPermutasPropuestasPorMi = async (req, res) => {
     }
 };
 
+const obtenerPermutasValidadasPorUsuario = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const uvus = req.session.user.nombre_usuario;
+    res.status(200).json({
+      err: false,
+      result: await permutaService.obtenerPermutasValidadasPorUsuario(uvus),
+    });
+  } catch (err) {
+    console.error("api obtenerPermutasValidadasPorUsuario ha tenido una excepción:", err);
+    res.status(500).json({
+      err: true,
+      message: "Error interno en obtenerPermutasValidadasPorUsuario",
+      details: err.message,
+    });
+  }
+};
+
+const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const uvus = req.session.user.nombre_usuario;
+    res.status(200).json({
+      err: false,
+      result: await permutaService.obtenerPermutasAgrupadasPorUsuario(uvus),
+    });
+  } catch (err) {
+    console.error("api obtenerPermutasAgrupadasPorUsuario ha tenido una excepción:", err);
+    res.status(500).json({
+      err: true,
+      message: "Error interno en obtenerPermutasAgrupadasPorUsuario",
+      details: err.message,
+    });
+  }
+};
+
 export default {
     crearListaPermutas,
     listarPermutas,
     aceptarPermuta,
     rechazarSolicitudPermuta,
     misPermutasPropuestas,
-    misPermutasPropuestasPorMi
+    misPermutasPropuestasPorMi,
+    obtenerPermutasValidadasPorUsuario,
+    obtenerPermutasAgrupadasPorUsuario
 }
