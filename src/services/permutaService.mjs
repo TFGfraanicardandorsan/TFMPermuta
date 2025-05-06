@@ -201,8 +201,8 @@ class PermutaService {
             g1.nombre AS grupo_1,
             g2.nombre AS grupo_2,
             p.estado AS estado,
-            u1.nombre_usuario AS usuario_1,
-            u2.nombre_usuario AS usuario_2
+            LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
+            GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario
           FROM permuta p
           INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
           INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
@@ -219,9 +219,9 @@ class PermutaService {
 
       const resultado = await conexion.query(query);
 
-      // Agrupar las permutas por usuario_1 y usuario_2
+      // Agrupar las permutas por usuario_primario y usuario_secundario
       const permutasAgrupadas = resultado.rows.reduce((acc, row) => {
-        const key = `${row.usuario_1}-${row.usuario_2}`;
+        const key = `${row.usuario_primario}-${row.usuario_secundario}`;
         if (!acc[key]) {
           acc[key] = [];
         }
