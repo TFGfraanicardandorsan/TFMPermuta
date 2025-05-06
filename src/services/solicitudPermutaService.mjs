@@ -191,7 +191,7 @@ async verListaPermutas(uvus) {
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
       WHERE p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
          OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-      ORDER BY p.usuario_id_1_fk, p.usuarlidio_id_2_fk, p.id
+      ORDER BY p.usuario_id_1_fk, p.usuario_id_2_fk, p.id
     `,
     values: [`${uvus}`],
   };
