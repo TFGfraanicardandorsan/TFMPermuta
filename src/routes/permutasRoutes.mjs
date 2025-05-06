@@ -4,8 +4,10 @@ import { verificarRol } from '../middleware/rolMiddleware.mjs';
 
 const router = Router()
 router
-.post('/crearListaPermutas', verificarRol('estudiante'), permutasController.crearListaPermutas)
+//.post('/crearListaPermutas', verificarRol('estudiante'), permutasController.crearListaPermutas)
+.post('/generarBorradorPermuta', verificarRol('estudiante'), permutasController.generarBorradorPermutas)
 .post('/listarPermutas', verificarRol('estudiante'), permutasController.listarPermutas)
+.post('/firmarPermuta', verificarRol('estudiante'), permutasController.firmarPermuta)
 .post('/aceptarPermuta', verificarRol('estudiante'), permutasController.aceptarPermuta)
 .post('/rechazarSolicitudPermuta',verificarRol('estudiante'), permutasController.rechazarSolicitudPermuta)
 .post('/misPermutasPropuestas', verificarRol('estudiante'), permutasController.misPermutasPropuestas)

@@ -1,18 +1,33 @@
 import permutaService from "../services/permutaService.mjs";
 
-const crearListaPermutas = async (req, res) => {
+//const crearListaPermutas = async (req, res) => {
+//    try {
+//        if (!req.session.user) {
+//            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+//            }
+//        const { archivo, IdsPermuta } = req.body;
+//        if (!archivo || !IdsPermuta) {
+//            return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
+//       }
+//        res.status(209).json({ error: false, result: await permutaService.crearListaPermutas(archivo,IdsPermuta)});
+//    } catch (err) {
+//        console.error("Error en crearListaPermutas:", err);
+//        res.status(500).json({ error: true, message: "Error al crear la crearListaPermutas" });
+//    }
+//};
+const generarBorradorPermutas = async (req, res) => {
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
             }
-        const { archivo, IdsPermuta } = req.body;
-        if (!archivo || !IdsPermuta) {
+        const { IdsPermuta } = req.body;
+        if (!IdsPermuta) {
             return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
         }
-        res.status(209).json({ error: false, result: await permutaService.crearListaPermutas(archivo,IdsPermuta)});
+        res.status(209).json({ error: false, result: await permutaService.generarBorradorPermutas(IdsPermuta)});
     } catch (err) {
-        console.error("Error en crearListaPermutas:", err);
-        res.status(500).json({ error: true, message: "Error al crear la crearListaPermutas" });
+        console.error("Error en generarBorradorPermutas:", err);
+        res.status(500).json({ error: true, message: "Error al crear la generarBorradorPermutas" });
     }
 };
 const listarPermutas = async (req, res) => {
@@ -21,6 +36,25 @@ const listarPermutas = async (req, res) => {
     } catch (err) {
         console.error("Error en listarPermutas:", err);
         res.status(500).json({ error: true, message: "Error al listarPermutas" });
+    }
+};
+const firmarPermuta = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const { archivo, permutaId } = req.body;        
+        res.send({
+            err: false, 
+            result: await permutaService.firmarPermuta(permutaId, archivo)
+        });
+    } catch (err) {
+        console.error('api firmarPermuta ha tenido una excepción:', err);
+        res.status(500).json({ 
+            err: true, 
+            message: 'Error interno en firmarPermuta', 
+            details: err.message 
+        });
     }
 };
 const aceptarPermuta = async (req, res) => {
@@ -144,5 +178,7 @@ export default {
     misPermutasPropuestas,
     misPermutasPropuestasPorMi,
     obtenerPermutasValidadasPorUsuario,
-    obtenerPermutasAgrupadasPorUsuario
+    obtenerPermutasAgrupadasPorUsuario,
+    generarBorradorPermutas,
+    firmarPermuta
 }
