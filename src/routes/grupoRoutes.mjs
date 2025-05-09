@@ -8,5 +8,6 @@ router
 .post('/insertarMisGrupos',verificarRol('estudiante'), grupoController.insertarMisGrupos)
 .post('/obtenerMiGrupoAsignatura',verificarRol('estudiante'), grupoController.obtenerMiGrupoAsignatura)
 .post('/obtenerTodosGruposMisAsignaturasUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasUsuario)
-. post('/obtenerTodosGruposMisAsignaturasSinGrupoUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasSinGrupoUsuario)
+.post('/obtenerTodosGruposMisAsignaturasSinGrupoUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasSinGrupoUsuario)
+.post('/obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario',verificarRol('estudiante'),grupoController.obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario);
 export default router;

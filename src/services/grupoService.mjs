@@ -62,6 +62,64 @@ and g.id not in(select g.id from grupo g left join asignatura a on a.id = g.asig
     await conexion.end();
     return res.rows;
   }
+
+  async obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    const query = {
+      text: `
+      SELECT 
+        g.id, 
+        g.nombre AS numGrupo, 
+        a.nombre AS nombreAsignatura, 
+        a.codigo AS codAsignatura 
+      FROM 
+        grupo g 
+      LEFT JOIN 
+        asignatura a 
+      ON 
+        a.id = g.asignatura_id_fk
+      WHERE 
+        g.asignatura_id_fk IN (
+          SELECT 
+            ua.asignatura_id_fk 
+          FROM 
+            usuario_asignatura ua 
+          WHERE 
+            ua.usuario_id_fk = (
+              SELECT 
+                id 
+              FROM 
+                usuario u 
+              WHERE 
+                u.nombre_usuario = $1
+            )
+        )
+        AND g.asignatura_id_fk NOT IN (
+          SELECT 
+            g.asignatura_id_fk 
+          FROM 
+            grupo g 
+          INNER JOIN 
+            usuario_grupo ug 
+          ON 
+            g.id = ug.grupo_id_fk 
+          WHERE 
+            ug.usuario_id_fk = (
+              SELECT 
+                id 
+              FROM 
+                usuario u 
+              WHERE 
+                u.nombre_usuario = $1
+            )
+        );
+    `,
+      values: [uvus],
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows;
+  }
 }
 const grupoService = new GrupoService();
 export default grupoService;

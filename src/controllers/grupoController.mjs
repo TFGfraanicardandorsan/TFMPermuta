@@ -62,10 +62,25 @@ const obtenerTodosGruposMisAsignaturasUsuario = async (req,res) => {
             res.sendStatus(500)
         }
 }
+
+const obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({ err: false, result: await grupoService.obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario(uvus) });
+    } catch (err) {
+        console.log('API obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario ha tenido una excepción:', err);
+        res.sendStatus(500);
+    }
+};
+
 export default {
     obtenerGruposPorAsignatura,
     insertarMisGrupos,
     obtenerMiGrupoAsignatura,
     obtenerTodosGruposMisAsignaturasUsuario,
-    obtenerTodosGruposMisAsignaturasSinGrupoUsuario
+    obtenerTodosGruposMisAsignaturasSinGrupoUsuario,
+    obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario
 }

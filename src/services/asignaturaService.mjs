@@ -65,6 +65,41 @@ async asignaturasPermutablesUsuario(uvus){
   }
   return res.rows;
 }
+async obtenerAsignaturasNoMatriculadas(uvus) {
+  const conexion = await database.connectPostgreSQL();
+  const query = {
+    text: `
+      SELECT nombre, siglas, curso, codigo  
+      FROM asignatura a 
+      WHERE a.id IN (
+        SELECT asignatura_id 
+        FROM asignatura_estudios ae 
+        WHERE ae.estudios_id = (
+          SELECT e.id  
+          FROM estudios e 
+          WHERE id = (
+            SELECT u.estudios_id_fk  
+            FROM usuario u 
+            WHERE u.nombre_usuario = $1
+          )
+        )
+      )
+      AND a.id NOT IN (
+        SELECT asignatura_id_fk 
+        FROM usuario_asignatura 
+        WHERE usuario_id_fk = (
+          SELECT id 
+          FROM usuario 
+          WHERE nombre_usuario = $1
+        )
+      )
+    `,
+    values: [`${uvus}`],
+  };
+  const res = await conexion.query(query);
+  await conexion.end();
+  return res.rows;
+}
 }
 const asignaturaService = new AsignaturaService();
 export default asignaturaService;

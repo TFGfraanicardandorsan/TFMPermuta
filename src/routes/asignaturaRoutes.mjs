@@ -8,4 +8,5 @@ router
 .post('/obtenerAsignaturasMiEstudioUsuario', verificarRol('estudiante'), asignaturaController.obtenerAsignaturasMiEstudioUsuario)
 .post('/asignaturasPermutables', verificarRol('estudiante'), asignaturaController.asignaturaPermutable)
 .post('/asigaturasPermutablesUsuario', verificarRol('estudiante'), asignaturaController.asignaturaPermutableUsuario)
+.post('/obtenerAsignaturasNoMatriculadas',verificarRol('estudiante'),asignaturaController.obtenerAsignaturasNoMatriculadas);
 export default router;
