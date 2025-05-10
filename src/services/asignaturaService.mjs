@@ -1,7 +1,7 @@
 import database from "../config/database.mjs";
 
 class AsignaturaService{
-    async obtenerAsignaturasMiEstudioUsuario(uvus) {
+    async obtenerAsignaturasNoMatriculadas(uvus) {
         const conexion = await database.connectPostgreSQL();
         const query = {
           text: `select nombre,siglas, curso, codigo  
@@ -65,7 +65,7 @@ async asignaturasPermutablesUsuario(uvus){
   }
   return res.rows;
 }
-async obtenerAsignaturasNoMatriculadas(uvus) {
+async obtenerAsignaturasMiEstudioUsuario(uvus) {
   const conexion = await database.connectPostgreSQL();
   const query = {
     text: `
