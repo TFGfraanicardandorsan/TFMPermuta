@@ -41,7 +41,7 @@ class IncidenciaService {
     const query = {
       text: ` select id,fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
-                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario =( $1)))`,
+                  where estado ='abierta' and id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario =( $1)))`,
       values: [uvus],
     };
     const res = await conexion.query(query);
