@@ -168,7 +168,8 @@ async actualizarEstadoPermuta(solicitud, uvus) {
   return 'Estado de la permuta actualizado a VALIDADA.';}
 
 async actualizarEstadoSolicitudPermuta(solicitud) {
-    const conexion = await database.connectPostgreSQL();
+  
+  const conexion = await database.connectPostgreSQL();
   const updateSolicitud = {
     text: `UPDATE solicitud_permuta 
            SET estado = 'ACEPTADA' 
