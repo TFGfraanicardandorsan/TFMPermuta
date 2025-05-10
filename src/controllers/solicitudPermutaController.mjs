@@ -60,7 +60,8 @@ const aceptarSolicitudPermuta = async (req,res) => {
                 return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
             }
             const uvus = req.session.user.nombre_usuario;
-            res.send({err:false, result:await solicitudPermutaService.validarSolicitudPermuta(uvus, req.body.solicitud)})
+            res.send({err:false, result:await solicitudPermutaService.actualizarEstadoPermuta(uvus, req.body.solicitud)})
+            res.send({err:false, result:await solicitudPermutaService.actualizarEstadoSolicitudPermuta( req.body.solicitud)})
             } catch (err){
                 console.error('api validarSolicitudPermuta ha tenido una excepción:', err);
                 res.status(500).json({ err: true, message: 'Error interno en validarSolicitudPermuta', details: err.message });

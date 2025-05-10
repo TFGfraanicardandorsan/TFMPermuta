@@ -153,35 +153,31 @@ async aceptarSolicitudPermuta(uvus, solicitud) {
   return 'Solicitud de permuta aceptada.';
 }
 
-async validarSolicitudPermuta(uvus, solicitud) {
+async actualizarEstadoPermuta(solicitud, uvus) {
   const conexion = await database.connectPostgreSQL();
-  try {
-    // Primera consulta: actualizar la tabla 'permuta'
-    const update = {
-      text: `UPDATE permuta 
-             SET estado = 'VALIDADA', aceptada_1 = true 
-             WHERE id = $1 
-             AND usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)`,
-      values: [solicitud, uvus],
-    };
-    await conexion.query(update);
+  const update = {
+    text: `UPDATE permuta 
+           SET estado = 'VALIDADA', aceptada_1 = true 
+           WHERE id = $1 
+           AND usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)`,
+    values: [solicitud, uvus],
+  };
+  await conexion.query(update);
+  await conexion.end();
 
-    // Segunda consulta: actualizar la tabla 'solicitud_permuta'
-    const updateSolicitud = {
-      text: `UPDATE solicitud_permuta 
-             SET estado = 'ACEPTADA' 
-             WHERE id = $1`,
-      values: [solicitud],
-    };
-    await conexion.query(updateSolicitud);
+  return 'Estado de la permuta actualizado a VALIDADA.';}
 
-    await conexion.end();
-    return 'Solicitud de permuta validada.';
-  } catch (error) {
-    await conexion.query('ROLLBACK');
-    await conexion.end();
-    throw new Error('Error al validar la solicitud de permuta: ' + error.message);
-  }
+async actualizarEstadoSolicitudPermuta(solicitud) {
+    const conexion = await database.connectPostgreSQL();
+  const updateSolicitud = {
+    text: `UPDATE solicitud_permuta 
+           SET estado = 'ACEPTADA' 
+           WHERE id = $1`,
+    values: [solicitud],
+  };
+  await conexion.query(updateSolicitud);
+  await conexion.end();
+  return 'Estado de la solicitud de permuta actualizado a ACEPTADA.';
 }
 
 async verListaPermutas(uvus) {
