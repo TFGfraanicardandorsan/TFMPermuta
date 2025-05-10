@@ -35,4 +35,21 @@ class AdministradorController {
 }
 
 const administradorController = new AdministradorController();
-export default administradorController;
+
+const obtenerEstadisticasIncidencias = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const estadisticas = await administradorService.obtenerEstadisticasIncidencias();
+    res.json({ error: false, result: estadisticas });
+  } catch (err) {
+    console.error("Error en obtenerEstadisticasIncidencias:", err);
+    res.status(500).json({ error: true, message: "Error al obtener estadísticas de incidencias" });
+  }
+};
+
+export default {
+  ...administradorController,
+  obtenerEstadisticasIncidencias
+};

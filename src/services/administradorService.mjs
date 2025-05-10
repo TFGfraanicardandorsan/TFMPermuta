@@ -133,6 +133,62 @@ class AdministradorService {
       await conexion.end();
     }
   }
+
+  async obtenerEstadisticasIncidencias() {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      // Incidencias por estado
+      const incidenciasPorEstado = {
+        text: `
+          SELECT estado, COUNT(*) as cantidad
+          FROM incidencia
+          GROUP BY estado
+          ORDER BY cantidad DESC
+        `
+      };
+
+      // Incidencias por tipo
+      const incidenciasPorTipo = {
+        text: `
+          SELECT tipo, COUNT(*) as cantidad
+          FROM incidencia
+          GROUP BY tipo
+          ORDER BY cantidad DESC
+        `
+      };
+
+      // Incidencias por mes
+      const incidenciasPorMes = {
+        text: `
+          SELECT 
+            EXTRACT(MONTH FROM created_at) as mes,
+            EXTRACT(YEAR FROM created_at) as anio,
+            COUNT(*) as cantidad
+          FROM incidencia
+          GROUP BY mes, anio
+          ORDER BY anio, mes
+        `
+      };
+
+      const [estadosRes, tiposRes, mesesRes] = await Promise.all([
+        conexion.query(incidenciasPorEstado),
+        conexion.query(incidenciasPorTipo),
+        conexion.query(incidenciasPorMes)
+      ]);
+
+      return {
+        incidenciasPorEstado: estadosRes.rows,
+        incidenciasPorTipo: tiposRes.rows,
+        incidenciasPorMes: mesesRes.rows
+      };
+
+    } catch (error) {
+      console.error("Error al obtener estadísticas de incidencias:", error);
+      throw new Error("Error al obtener estadísticas de incidencias");
+    } finally {
+      await conexion.end();
+    }
+  }
 }
 
 const administradorService = new AdministradorService();

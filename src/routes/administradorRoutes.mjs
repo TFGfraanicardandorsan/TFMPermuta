@@ -8,5 +8,7 @@ const router = Router();
 router.post('/permutas', verificarRol('administrador'), administradorController.obtenerEstadisticasPermutas);
 // Ruta para obtener estadísticas de solicitudes
 router.post('/solicitudes', verificarRol('administrador'), administradorController.obtenerEstadisticasSolicitudes);
+// Ruta para obtener estadísticas de incidencias
+router.post('/obtenerEstadisticasIncidencias',verificarRol('administrador'),administradorController.obtenerEstadisticasIncidencias);
 
 export default router;
