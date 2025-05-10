@@ -6,7 +6,7 @@ class EstudiosService{
         const query = {
           text: `select e.nombre from estudios e 
           where id = (select u.estudios_id_fk  from usuario u where u.nombre_usuario =$1)`,
-          values: [`${uvus}`],
+          values: [uvus],
         };
         const res = await conexion.query(query);
         await conexion.end();

@@ -6,7 +6,7 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
     const query = {
       text: `select count(*) from usuario_asignatura where asignatura_id_fk = (select id from asignatura where codigo = $2) 
       and usuario_id_fk = (select u.id from usuario u where u.nombre_usuario =$1)`,
-      values: [`${uvus}`, `${asignatura}`],
+      values: [uvus, asignatura],
     };
     const res = await conexion.query(query);
     if (res.rows[0].count > 0) {
@@ -17,7 +17,7 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
     const query = {
       text: `insert into usuario_asignatura values (
               (select u.id from usuario u where u.nombre_usuario =$1),  (select id from asignatura where codigo = $2))`,
-      values: [`${uvus}`, `${asignatura}`],
+      values: [uvus, asignatura],
     };
     await conexion.query(query);
     await conexion.end();
@@ -35,7 +35,7 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
       text: ` select nombre as asignatura, codigo 
               from asignatura 
               where id in (select asignatura_id_fk from usuario_asignatura where usuario_id_fk = (select u.id from usuario u where u.nombre_usuario = $1))`,
-      values: [`${uvus}`],
+      values: [uvus],
     };
     const res = await conexion.query(query);
     await conexion.end();
@@ -59,7 +59,7 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
                        select g.id from grupo g 
                        where g.asignatura_id_fk = (select id from asignatura where codigo = $2)
                    );`,
-            values: [`${uvus}`, `${asignatura}`],
+            values: [uvus, asignatura],
         };
         await conexion.query(deleteUsuarioGrupoQuery);
 
@@ -69,7 +69,7 @@ async actualizarAsignaturasUsuario(uvus,asignatura) {
                    where usuario_id_fk = (
                        select u.id from usuario u where u.nombre_usuario = $1) 
                    AND asignatura_id_fk = (select id from asignatura where codigo = $2);`,
-            values: [`${uvus}`, `${asignatura}`],
+            values: [uvus, asignatura],
         };
         await conexion.query(deleteUsuarioAsignaturaQuery);
 

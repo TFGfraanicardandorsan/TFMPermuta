@@ -25,31 +25,6 @@ class AdministradorService {
         `
       };
 
-    //   // Permutas por mes
-    //   const permutasPorMes = {
-    //     text: `
-    //       SELECT 
-    //         EXTRACT(MONTH FROM created_at) as mes,
-    //         EXTRACT(YEAR FROM created_at) as anio,
-    //         COUNT(*) as cantidad
-    //       FROM permuta
-    //       GROUP BY mes, anio
-    //       ORDER BY anio, mes
-    //     `
-    //   };
-
-    //   // Tiempo promedio hasta completar permuta
-    //   const tiempoPromedioPermuta = {
-    //     text: `
-    //       SELECT AVG(
-    //         EXTRACT(EPOCH FROM (updated_at - created_at))/86400
-    //       ) as dias_promedio
-    //       FROM permuta
-    //       WHERE estado = 'VALIDADA'
-    //     `
-    //   };
-
-      // Top estudios con más permutas
       const topEstudios = {
         text: `
           SELECT e.nombre, e.siglas, COUNT(*) as cantidad
@@ -65,22 +40,16 @@ class AdministradorService {
       const [
         estadosRes,
         asignaturasRes,
-        // mesesRes,
-        // tiempoRes,
         estudiosRes
       ] = await Promise.all([
         conexion.query(permutasPorEstado),
         conexion.query(permutasPorAsignatura),
-        // conexion.query(permutasPorMes),
-        // conexion.query(tiempoPromedioPermuta),
         conexion.query(topEstudios)
       ]);
 
       return {
         permutasPorEstado: estadosRes.rows,
         permutasPorAsignatura: asignaturasRes.rows,
-        // permutasPorMes: mesesRes.rows,
-        // tiempoPromedioPermuta: tiempoRes.rows[0],
         topEstudios: estudiosRes.rows
       };
 
@@ -95,7 +64,6 @@ class AdministradorService {
   async obtenerEstadisticasSolicitudes() {
     const conexion = await database.connectPostgreSQL();
     try {
-      // Solicitudes por estado
       const solicitudesPorEstado = {
         text: `
           SELECT estado, COUNT(*) as cantidad
@@ -105,25 +73,12 @@ class AdministradorService {
         `
       };
 
-      // Ratio de aceptación de solicitudes
-      // const ratioAceptacion = {
-      //   text: `
-      //     SELECT 
-      //       COUNT(CASE WHEN estado = 'ACEPTADA' THEN 1 END)::float / 
-      //       COUNT(*)::float * 100 as porcentaje_aceptacion
-      //     FROM solicitud_permuta
-      //     WHERE estado IN ('ACEPTADA', 'RECHAZADA')
-      //   `
-      // };
-
       const [estadosRes, ratioRes] = await Promise.all([
         conexion.query(solicitudesPorEstado),
-        // conexion.query(ratioAceptacion)
       ]);
 
       return {
         solicitudesPorEstado: estadosRes.rows,
-        // ratioAceptacion: ratioRes.rows[0]
       };
 
     } catch (error) {
@@ -137,7 +92,6 @@ class AdministradorService {
   async obtenerEstadisticasIncidencias() {
     const conexion = await database.connectPostgreSQL();
     try {
-      // Incidencias por estado
       const incidenciasPorEstado = {
         text: `
           SELECT estado_incidencia, COUNT(*) as cantidad
@@ -147,7 +101,6 @@ class AdministradorService {
         `
       };
 
-      // Incidencias por tipo
       const incidenciasPorTipo = {
         text: `
           SELECT tipo_incidencia, COUNT(*) as cantidad
@@ -157,7 +110,6 @@ class AdministradorService {
         `
       };
 
-      // Incidencias por mes
       const incidenciasPorMes = {
         text: `
                 SELECT 

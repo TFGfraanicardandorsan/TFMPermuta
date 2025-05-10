@@ -9,7 +9,7 @@ class AutorizacionService{
                 FROM usuario u
                 LEFT JOIN roles r ON u.id = r.usuario_id_fk
                 WHERE u.nombre_usuario = $1`,
-                values: [`${uvus}`],
+                values: [uvus],
       };
       const res = await conexion.query(query);
       await conexion.end();

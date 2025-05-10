@@ -8,7 +8,7 @@ class AsignaturaService{
           from asignatura a 
           where a.id in (select asignatura_id from asignatura_estudios ae 
                 where ae.estudios_id = (select e.id  from estudios e where id = (select u.estudios_id_fk  from usuario u where u.nombre_usuario =$1)))`,
-          values: [`${uvus}`],
+          values: [uvus],
         };
         const res = await conexion.query(query);
         await conexion.end();
@@ -20,7 +20,7 @@ class AsignaturaService{
            text: `select nombre,siglas, curso, codigo from asignatura a 
            where a.id in (select asignatura_id from asignatura_estudios ae 
            where ae.estudios_id = (select e.id  from estudios e where id = (select u.estudios_id_fk  from usuario u where u.nombre_usuario =$2)) ) and a.codigo= $1 ;`,
-           values: [`${asignatura}`,`${uvus}`],
+           values: [asignatura,uvus],
          };
          const res = await conexion.query(query);
          await conexion.end();
@@ -56,7 +56,7 @@ async asignaturasPermutablesUsuario(uvus){
             GROUP BY a.nombre, a.siglas, a.curso, a.codigo
             HAVING COUNT(g.id) > 1
             ORDER BY a.curso`,
-    values: [`${uvus}`],
+    values: [uvus],
   };
   const res = await conexion.query(query);
   await conexion.end();
@@ -94,7 +94,7 @@ async obtenerAsignaturasNoMatriculadas(uvus) {
         )
       )
     `,
-    values: [`${uvus}`],
+    values: [uvus],
   };
   const res = await conexion.query(query);
   await conexion.end();

@@ -55,7 +55,6 @@ async getSolicitudesPermutaInteresantes(uvus) {
     return 'El usuario no está matriculado en ninguna asignatura.';
   }
 
-  // Obtener las solicitudes de permuta interesantes para todas las asignaturas del usuario
   const asignaturaUsuario = asignaturasUsuario.rows.map(row => parseInt(row.id));
   const query = {
     text: `
@@ -158,12 +157,12 @@ async validarSolicitudPermuta(uvus, solicitud) {
   const conexion = await database.connectPostgreSQL();
   const update = {
     text: `update permuta set estado = 'VALIDADA', aceptada_1 = true where id = $1 and usuario_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
-    values: [`${solicitud}`, `${uvus}`],
+    values: [solicitud, uvus],
   };
   await conexion.query(update);
   const updateSolicitud = {
     text: `update solicitud_permuta set estado = 'ACEPTADA' where id = $1`,
-    values: [`${solicitud}`],
+    values: [solicitud],
   };
   await conexion.query(updateSolicitud);
   await conexion.end();
@@ -193,7 +192,7 @@ async verListaPermutas(uvus) {
          OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)) AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
       ORDER BY p.usuario_id_1_fk, p.usuario_id_2_fk, p.id
     `,
-    values: [`${uvus}`],
+    values: [uvus],
   };
 
   const res = await conexion.query(query);
