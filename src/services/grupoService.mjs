@@ -35,7 +35,7 @@ class GrupoService {
     return res.rows;
   }
 
-  async obtenerTodosGruposMisAsignaturasUsuario(uvus) {
+  async obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario(uvus) {
     const conexion = await database.connectPostgreSQL();
     const query = {
       text: `select g.nombre as numGrupo , a.nombre as nombreAsignatura, a.codigo as codAsignatura from grupo g left join asignatura a on a.id = g.asignatura_id_fk
@@ -62,8 +62,8 @@ and g.id not in(select g.id from grupo g left join asignatura a on a.id = g.asig
     await conexion.end();
     return res.rows;
   }
-
-  async obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario(uvus) {
+  
+  async obtenerTodosGruposMisAsignaturasUsuario(uvus) {
     const conexion = await database.connectPostgreSQL();
     const query = {
       text: `
