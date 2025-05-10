@@ -172,13 +172,13 @@ async actualizarEstadoSolicitudPermuta(solicitud) {
   const conexion = await database.connectPostgreSQL();
   const updateSolicitud = {
     text: `UPDATE solicitud_permuta 
-           SET estado = 'ACEPTADA' 
+           SET estado = 'EMPAREJADA' 
            WHERE id = (select solicitud_permuta_id_fk from permuta where id = $1)`,
     values: [solicitud],
   };
   await conexion.query(updateSolicitud);
   await conexion.end();
-  return 'Estado de la solicitud de permuta actualizado a ACEPTADA.';
+  return 'Estado de la solicitud de permuta actualizado a EMPAREJADA.';
 }
 
 async verListaPermutas(uvus) {
