@@ -173,7 +173,7 @@ async actualizarEstadoSolicitudPermuta(solicitud) {
   const updateSolicitud = {
     text: `UPDATE solicitud_permuta 
            SET estado = 'ACEPTADA' 
-           WHERE id = $1`,
+           WHERE id = (select solicitud_permuta_id_fk from permuta where id = $1)`,
     values: [solicitud],
   };
   await conexion.query(updateSolicitud);
