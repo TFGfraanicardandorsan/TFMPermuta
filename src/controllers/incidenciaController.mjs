@@ -37,6 +37,19 @@ const obtenerIncidenciasAsignadas = async (req, res) => {
     }
 };
 
+const obtenerIncidenciasAsignadasAdmin = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.json({ error: false, result: await incidenciaService.obtenerIncidenciasAsignadasAdmin(uvus) });
+    } catch (err) {
+        console.error("Error en obtenerIncidenciasAsignadas:", err);
+        res.status(500).json({ error: true, message: "Error al obtener incidencias asignadas" });
+    }
+};
+
 const obtenerIncidenciasSinAsignar = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -107,5 +120,6 @@ export default {
     obtenerIncidenciasSinAsignar,
     asignarmeIncidencia,
     solucionarIncidencia,
-    crearIncidencia
+    crearIncidencia,
+    obtenerIncidenciasAsignadasAdmin
 };

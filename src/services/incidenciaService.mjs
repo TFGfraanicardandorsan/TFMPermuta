@@ -36,6 +36,18 @@ class IncidenciaService {
     return res.rows;
   }
 
+  async obtenerIncidenciasAsignadasAdmin(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    const query = {
+      text: ` id,select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
+                  from incidencia 
+                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario =( $1)))`,
+      values: [uvus],
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows;
+  }
   async obtenerIncidenciasSinAsignar() {
     const conexion = await database.connectPostgreSQL();
     const query = {

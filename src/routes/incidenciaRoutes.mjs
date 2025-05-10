@@ -11,5 +11,5 @@ router.post("/obtenerIncidenciasSinAsignar",verificarRol('administrador'),incide
 router.post("/asignarmeIncidencia",verificarRol('administrador'), incidenciaController.asignarmeIncidencia);
 router.post("/solucionarIncidencia",verificarRol('administrador'), incidenciaController.solucionarIncidencia);
 router.post("/crearIncidencia",verificarRol('estudiante'), incidenciaController.crearIncidencia);
-
+router.post("/obtenerIncidenciasAsignadasAdmin",verificarRol('administrador'), incidenciaController.obtenerIncidenciasAsignadasAdmin);
 export default router;
