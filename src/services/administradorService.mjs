@@ -140,33 +140,33 @@ class AdministradorService {
       // Incidencias por estado
       const incidenciasPorEstado = {
         text: `
-          SELECT estado, COUNT(*) as cantidad
+          SELECT estado_incidencia, COUNT(*) as cantidad
           FROM incidencia
-          GROUP BY estado
-          ORDER BY cantidad DESC
+          GROUP BY estado_incidencia
+          ORDER BY cantidad desc;
         `
       };
 
       // Incidencias por tipo
       const incidenciasPorTipo = {
         text: `
-          SELECT tipo, COUNT(*) as cantidad
+          SELECT tipo_incidencia, COUNT(*) as cantidad
           FROM incidencia
-          GROUP BY tipo
-          ORDER BY cantidad DESC
+          GROUP BY tipo_incidencia
+          ORDER BY cantidad desc;
         `
       };
 
       // Incidencias por mes
       const incidenciasPorMes = {
         text: `
-          SELECT 
-            EXTRACT(MONTH FROM created_at) as mes,
-            EXTRACT(YEAR FROM created_at) as anio,
+                SELECT 
+            EXTRACT(MONTH from fecha_creacion ) as mes,
+            EXTRACT(YEAR FROM fecha_creacion) as anio,
             COUNT(*) as cantidad
           FROM incidencia
           GROUP BY mes, anio
-          ORDER BY anio, mes
+          ORDER BY anio, mes;
         `
       };
 
