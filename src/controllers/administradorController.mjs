@@ -1,7 +1,6 @@
 import administradorService from '../services/administradorService.mjs';
 
-class AdministradorController {
-  async obtenerEstadisticasPermutas(req, res) {
+const obtenerEstadisticasPermutas = async (req, res)=> {
     try {
       const estadisticas = await administradorService.obtenerEstadisticasPermutas();
       res.status(200).json({
@@ -17,7 +16,7 @@ class AdministradorController {
     }
   }
 
-  async obtenerEstadisticasSolicitudes(req, res) {
+  const obtenerEstadisticasSolicitudes = async (req, res)=> {
     try {
       const estadisticas = await administradorService.obtenerEstadisticasSolicitudes();
       res.status(200).json({
@@ -32,7 +31,6 @@ class AdministradorController {
       });
     }
   }
-}
 
 const administradorController = new AdministradorController();
 
@@ -50,6 +48,7 @@ const obtenerEstadisticasIncidencias = async (req, res) => {
 };
 
 export default {
-  ...administradorController,
-  obtenerEstadisticasIncidencias
+  obtenerEstadisticasIncidencias,
+  obtenerEstadisticasPermutas,
+  obtenerEstadisticasSolicitudes
 };
