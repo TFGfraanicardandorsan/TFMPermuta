@@ -32,8 +32,6 @@ const obtenerEstadisticasPermutas = async (req, res)=> {
     }
   }
 
-const administradorController = new AdministradorController();
-
 const obtenerEstadisticasIncidencias = async (req, res) => {
   try {
     if (!req.session.user) {
