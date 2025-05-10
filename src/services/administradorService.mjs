@@ -17,10 +17,10 @@ class AdministradorService {
       // Permutas por asignatura
       const permutasPorAsignatura = {
         text: `
-          SELECT a.nombre, a.codigo, COUNT(*) as cantidad
+          SELECT a.siglas, a.codigo, COUNT(*) as cantidad
           FROM permuta p
           JOIN asignatura a ON p.asignatura_id_fk = a.id
-          GROUP BY a.nombre, a.codigo
+          GROUP BY a.siglas, a.codigo
           ORDER BY cantidad DESC
         `
       };
