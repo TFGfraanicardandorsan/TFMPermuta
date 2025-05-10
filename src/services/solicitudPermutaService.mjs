@@ -159,16 +159,13 @@ async validarSolicitudPermuta(uvus, solicitud) {
     text: `update permuta set estado = 'VALIDADA', aceptada_1 = true where id = $1 and usuario_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
     values: [solicitud, uvus],
   };
-  await conexion.query(update);
-  await conexion.end();
-
-  const conexion2 = await database.connectPostgreSQL();
   const updateSolicitud = {
     text: `update solicitud_permuta set estado = 'ACEPTADA' where id = $1`,
     values: [solicitud],
   };
-  await conexion2.query(updateSolicitud);
-  await conexion2.end();
+  await conexion.query(update);
+  await conexion.query(updateSolicitud);
+  await conexion.end();
   return 'Solicitud de permuta vaada.';
 }
 async verListaPermutas(uvus) {
