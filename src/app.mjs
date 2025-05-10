@@ -9,7 +9,6 @@ import fs from 'fs'
 import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
 import estudioRouter from './routes/estudiosRoutes.mjs'
-import funcionalidadRouter from './routes/funcionalidadRoutes.mjs'
 import asignaturaRouter from './routes/asignaturaRoutes.mjs'
 import usuarioAsignaturaRouter from './routes/usuarioAsignaturaRoutes.mjs'
 import usuarioGrupoRouter from './routes/usuarioGrupoRoutes.mjs'
@@ -57,7 +56,6 @@ app.use(cors({
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
 app.use('/api/v1/estudio', estudioRouter)
-app.use('/api/v1/funcionalidad', funcionalidadRouter)
 app.use('/api/v1/asignatura', asignaturaRouter)
 app.use('/api/v1/usuarioAsignatura', usuarioAsignaturaRouter)
 app.use('/api/v1/usuarioGrupo', usuarioGrupoRouter)
