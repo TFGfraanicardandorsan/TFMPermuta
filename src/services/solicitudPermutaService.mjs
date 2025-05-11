@@ -4,29 +4,53 @@ import PermutaMatching from "../algorithm/AlgoritmoCruzadoSolicitudes.mjs";
 class SolicitudPermutaService {
      async solicitarPermuta(uvus,asignatura,grupos_deseados) {
         const conexion = await database.connectPostgreSQL();
-        const insert_solicitud_permuta = {
-          text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk) values ((
-          SELECT id FROM usuario WHERE nombre_usuario = $2),
-          (SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
-          (SELECT id FROM asignatura WHERE codigo = $1)),
-          'SOLICITADA',
-        (Select id from asignatura where codigo = $1)) returning id`,
-          values: [asignatura,uvus],
+
+        // Verificar si ya existe una solicitud activa para esta asignatura y usuario
+        const verificarSolicitudQuery = {
+            text: `
+                SELECT 1 
+                FROM solicitud_permuta 
+                WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+                AND id_asignatura_fk = (SELECT id FROM asignatura WHERE codigo = $2)
+                AND estado = 'SOLICITADA'
+            `,
+            values: [uvus, asignatura],
         };
+
+        const verificarSolicitudRes = await conexion.query(verificarSolicitudQuery);
+
+        if (verificarSolicitudRes.rows.length > 0) {
+            await conexion.end();
+            throw new Error('Ya existe una solicitud activa para esta asignatura.');
+        }
+
+        // Insertar la nueva solicitud de permuta
+        const insert_solicitud_permuta = {
+            text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk) values ((
+              SELECT id FROM usuario WHERE nombre_usuario = $2),
+              (SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
+              (SELECT id FROM asignatura WHERE codigo = $1)),
+              'SOLICITADA',
+            (Select id from asignatura where codigo = $1)) returning id`,
+            values: [asignatura, uvus],
+        };
+
         const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
         const id = res_solicitud_permuta.rows[0].id;
+
         for (const grupo of grupos_deseados) {
-          const insertGrupoDeseado = {
-            text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) 
-            values(
-              $3,
-              (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
-            values: [asignatura, grupo, id],
-          };
-          await conexion.query(insertGrupoDeseado);
+            const insertGrupoDeseado = {
+                text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) 
+                values(
+                  $3,
+                  (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
+                values: [asignatura, grupo, id],
+            };
+            await conexion.query(insertGrupoDeseado);
         }
+
         await conexion.end();
-      return 'Permuta de la asignatura solicitada.';
+        return 'Permuta de la asignatura solicitada.';
     }
 
 
