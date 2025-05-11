@@ -15,6 +15,19 @@ async obtenerDatosUsuario(uvus) {
     return res.rows[0];
   }
 
+  async obtenerDatosUsuarioAdmin(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    const query = {
+      text: `SELECT u.nombre_completo, u.correo, u.imagen  
+             FROM Usuario u 
+             WHERE u.nombre_usuario = ($1)`,
+             values: [uvus],
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows[0];
+  }
+
   async actualizarEstudiosUsuario(uvus,estudio){
     const conexion = await database.connectPostgreSQL();
     const queryUsuario = {
