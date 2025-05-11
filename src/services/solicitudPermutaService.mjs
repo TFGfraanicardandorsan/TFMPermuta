@@ -432,6 +432,68 @@ async rechazarPermutaPropuesta(uvus, permutaId) {
     await conexion.end();
   }
 }
+
+async getTodasSolicitudesPermuta() {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    const query = {
+      text: `
+        SELECT 
+          sp.id AS solicitud_id,
+          u.nombre_completo AS usuario_nombre,
+          u.nombre_usuario AS usuario_uvus,
+          e.siglas AS usuario_estudio,
+          a.nombre AS asignatura_nombre,
+          a.codigo AS asignatura_codigo,
+          g_solicitante.nombre AS grupo_solicitante,
+          g_deseado.nombre AS grupo_deseado
+        FROM solicitud_permuta sp
+        INNER JOIN usuario u ON sp.usuario_id_fk = u.id
+        INNER JOIN estudios e ON u.estudios_id_fk = e.id
+        INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
+        INNER JOIN grupo g_solicitante ON sp.grupo_solicitante_id_fk = g_solicitante.id
+        INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
+        INNER JOIN grupo g_deseado ON gd.grupo_id_fk = g_deseado.id
+        ORDER BY sp.id, g_deseado.nombre
+      `,
+    };
+
+    const res = await conexion.query(query);
+
+    // Agrupar las solicitudes por solicitud_id
+    const solicitudesAgrupadas = res.rows.reduce((acc, row) => {
+      const solicitudExistente = acc.find(s => s.solicitud_id === row.solicitud_id);
+
+      if (solicitudExistente) {
+        solicitudExistente.grupos_deseados.push(row.grupo_deseado);
+      } else {
+        acc.push({
+          solicitud_id: row.solicitud_id,
+          usuario: {
+            nombre_completo: row.usuario_nombre,
+            uvus: row.usuario_uvus,
+            estudio: row.usuario_estudio,
+          },
+          asignatura: {
+            nombre: row.asignatura_nombre,
+            codigo: row.asignatura_codigo,
+          },
+          grupo_solicitante: row.grupo_solicitante,
+          grupos_deseados: [row.grupo_deseado],
+        });
+      }
+
+      return acc;
+    }, []);
+
+    await conexion.end();
+    return solicitudesAgrupadas;
+  } catch (error) {
+    await conexion.end();
+    throw new Error('Error al obtener las solicitudes de permuta: ' + error.message);
+  }
 }
+}
+
 const solicitudPermutaService = new SolicitudPermutaService();
 export default solicitudPermutaService

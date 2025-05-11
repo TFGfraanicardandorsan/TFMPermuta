@@ -137,6 +137,19 @@ const rechazarPermutaPropuesta = async (req, res) => {
     }
 };
 
+    const getTodasSolicitudesPermuta = async (req,res) => {
+        try{
+            if (!req.session.user) {
+                return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+            }
+            const uvus = req.session.user.nombre_usuario;
+            res.send({err:false, result:await solicitudPermutaService.getTodasSolicitudesPermuta()})
+            } catch (err){
+                console.error('api verListaPermutas ha tenido una excepción:', err);
+                res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
+            }
+        }
+
 export default {
     solicitarPermuta,
     getSolicitudesPermutaInteresantes,
@@ -146,5 +159,6 @@ export default {
     proponerPermutas,
     validarSolicitudPermuta,
     aceptarPermutaPropuesta,
-    rechazarPermutaPropuesta
+    rechazarPermutaPropuesta,
+    getTodasSolicitudesPermuta
 }
