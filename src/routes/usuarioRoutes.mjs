@@ -5,6 +5,6 @@ const router = Router()
 router
 .post('/obtenerDatosUsuario',verificarRol('estudiante'), usuarioController.obtenerDatosUsuario)
 .post('/actualizarEstudiosUsuario',verificarRol('estudiante'),usuarioController.actualizarEstudiosUsuario)
-.post('/obtenerDatosUsuarioAdmin',verificarRol('admin'), usuarioController.obtenerDatosUsuarioAdmin)
+.post('/obtenerDatosUsuarioAdmin',verificarRol('administrador'), usuarioController.obtenerDatosUsuarioAdmin)
 
 export default router;
