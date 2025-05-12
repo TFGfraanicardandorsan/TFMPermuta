@@ -298,6 +298,7 @@ class PermutaService {
           grupo_1: row.grupo_1,
           grupo_2: row.grupo_2,
           estado: row.estado,
+          total_permutas_asociadas: row.total_permutas_asociadas,
         });
         return acc;
       }, {});
