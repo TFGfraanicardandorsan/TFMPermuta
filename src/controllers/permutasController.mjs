@@ -170,6 +170,22 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
     });
   }
 };
+const obtenerEstadoPermutaYUsuarios = async (req, res) => {
+  try {
+        const { permutaId } = req.body;
+        const resultado = await permutaService.obtenerEstadoPermutaYUsuarios(permutaId);
+    res.status(200).json({
+      success: true,
+      data: resultado
+    });
+  } catch (error) {
+    console.error('Error en obtenerEstadoPermutaYUsuarios:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 
 export default {
 //    crearListaPermutas,
@@ -181,5 +197,6 @@ export default {
     obtenerPermutasValidadasPorUsuario,
     obtenerPermutasAgrupadasPorUsuario,
     generarBorradorPermutas,
-    firmarPermuta
+    firmarPermuta,
+    obtenerEstadoPermutaYUsuarios
 }
