@@ -31,13 +31,14 @@ class PermutaService {
     }
   }
 
-  async generarBorradorPermutas(IdsPermuta) {
+  async generarBorradorPermutas(IdsPermuta, uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query("BEGIN");
       const queryPermutas = {
-        text: ` INSERT INTO permutas (estado ) VALUES ('BORRADOR') 
+        text: ` INSERT INTO permutas (estado, estudiante_cumplimentado_1 ) VALUES ('BORRADOR', $1) 
                 RETURNING id`,
+        values: [uvus],
       };
       const resultado = await conexion.query(queryPermutas);
       const permutasId = resultado.rows[0].id;
@@ -105,14 +106,14 @@ class PermutaService {
     }
   }
 
-  async aceptarPermuta(permutaId, archivo) {
+  async aceptarPermuta(permutaId, archivo,uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: `UPDATE permutas 
-               SET estado = 'ACEPTADA', archivo = $2
+               SET estado = 'ACEPTADA', archivo = $2, estudiante_cumplimentado_2 = $3
                WHERE id = $1`,
-        values: [permutaId, archivo]
+        values: [permutaId, archivo, uvus]
       };
       
       await conexion.query(query);

@@ -24,7 +24,8 @@ const generarBorradorPermutas = async (req, res) => {
         if (!IdsPermuta) {
             return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
         }
-        res.status(209).json({ error: false, result: await permutaService.generarBorradorPermutas(IdsPermuta)});
+        const uvus = req.session.user.nombre_usuario;
+        res.status(209).json({ error: false, result: await permutaService.generarBorradorPermutas(IdsPermuta,uvus)});
     } catch (err) {
         console.error("Error en generarBorradorPermutas:", err);
         res.status(500).json({ error: true, message: "Error al crear la generarBorradorPermutas" });
@@ -63,10 +64,11 @@ const aceptarPermuta = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        const { archivo, permutaId } = req.body;        
+        const { archivo, permutaId } = req.body;
+        const uvus = req.session.user.nombre_usuario;
         res.send({
-            err: false, 
-            result: await permutaService.aceptarPermuta(permutaId, archivo)
+            err: false,
+            result: await permutaService.aceptarPermuta(permutaId, archivo, uvus)
         });
     } catch (err) {
         console.error('api aceptarPermuta ha tenido una excepción:', err);
