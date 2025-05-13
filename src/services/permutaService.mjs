@@ -139,7 +139,7 @@ class PermutaService {
 
       await conexion.query(query);
       try {
-        await sendMessage(process.env.ADMIN_CHAT_ID, "La permuta ha sido validada correctamente. Eres un crack!");
+        await sendMessage(7791855145, "La permuta ha sido validada correctamente. Eres un crack!");
       } catch (msgError) {
         console.error("Error enviando mensaje de validación:", msgError);
       }
