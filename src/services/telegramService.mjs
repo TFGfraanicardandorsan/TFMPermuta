@@ -70,7 +70,7 @@ export const handleIncomingMessage = async (message) => {
   }
 };
 
-const sendMessage = async (chatId, text, parseMode = "HTML", markup = null) => {
+export const sendMessage = async (chatId, text, parseMode = "HTML", markup = null) => {
   try {
     const body = { chat_id: chatId, text, parse_mode: parseMode };
     if (markup) {

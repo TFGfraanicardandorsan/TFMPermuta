@@ -9,6 +9,7 @@ router
 .post('/listarPermutas', verificarRol('estudiante'), permutasController.listarPermutas)
 .post('/firmarPermuta', verificarRol('estudiante'), permutasController.firmarPermuta)
 .post('/aceptarPermuta', verificarRol('estudiante'), permutasController.aceptarPermuta)
+.post('/validarPermuta', verificarRol('estudiante'), permutasController.validarPermuta)
 .post('/rechazarSolicitudPermuta',verificarRol('estudiante'), permutasController.rechazarSolicitudPermuta)
 .post('/misPermutasPropuestas', verificarRol('estudiante'), permutasController.misPermutasPropuestas)
 .post('/misPermutasPropuestasPorMi', verificarRol('estudiante'), permutasController.misPermutasPropuestasPorMi)

@@ -80,6 +80,19 @@ const aceptarPermuta = async (req, res) => {
     }
 };
 
+const validarPermuta = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        res.send({ err: false, result: await permutaService.validarPermuta(req.body.permutaId)
+        });
+    } catch (err) {
+        console.error('api validarPermuta ha tenido una excepción:', err);
+        res.status(500).json({ err: true, message: 'Error interno en validarPermuta', details: err.message });
+    }
+};
+
 const rechazarSolicitudPermuta = async (req,res) => {
     try{
         if (!req.session.user) {
@@ -200,5 +213,6 @@ export default {
     obtenerPermutasAgrupadasPorUsuario,
     generarBorradorPermutas,
     firmarPermuta,
-    obtenerEstadoPermutaYUsuarios
+    obtenerEstadoPermutaYUsuarios,
+    validarPermuta
 }

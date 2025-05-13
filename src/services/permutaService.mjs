@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import { sendMessage } from "./telegramService.mjs"
 
 class PermutaService {
   async crearListaPermutas(archivo, IdsPermuta) {
@@ -66,7 +67,6 @@ class PermutaService {
     }
   }
 
-
   async listarPermutas(IdsPermuta) {
     const conexion = await database.connectPostgreSQL();
     try {
@@ -92,9 +92,9 @@ class PermutaService {
         text: `UPDATE permutas 
                SET estado = 'FIRMADA', archivo = $2
                WHERE id = $1`,
-        values: [permutaId, archivo]
+        values: [permutaId, archivo],
       };
-      
+
       await conexion.query(query);
       await conexion.end();
       return "La permuta ha sido firmada correctamente";
@@ -106,22 +106,48 @@ class PermutaService {
     }
   }
 
-  async aceptarPermuta(permutaId, archivo,uvus) {
+  async aceptarPermuta(permutaId, archivo, uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: `UPDATE permutas 
                SET estado = 'ACEPTADA', archivo = $2, estudiante_cumplimentado_2 = $3
                WHERE id = $1`,
-        values: [permutaId, archivo, uvus]
+        values: [permutaId, archivo, uvus],
       };
-      
+
       await conexion.query(query);
       await conexion.end();
       return "La permuta ha sido aceptada correctamente";
     } catch (error) {
       console.error("Error al aceptar la permuta:", error);
       throw new Error("Error al aceptar la permuta");
+    } finally {
+      await conexion.end();
+    }
+  }
+
+  async validarPermuta(permutaId) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `UPDATE permutas 
+               SET estado = 'VALIDADA'
+               WHERE id = $1`,
+        values: [permutaId],
+      };
+
+      await conexion.query(query);
+      try {
+        await sendMessage(process.env.ADMIN_CHAT_ID, "La permuta ha sido validada correctamente. Eres un crack!");
+      } catch (msgError) {
+        console.error("Error enviando mensaje de validación:", msgError);
+      }
+      await conexion.end();
+      return "La permuta ha sido validada correctamente";
+    } catch (error) {
+      console.error("Error al validar la permuta:", error);
+      throw new Error("Error al validar la permuta");
     } finally {
       await conexion.end();
     }
@@ -135,7 +161,7 @@ class PermutaService {
     };
     await conexion.query(update);
     await conexion.end();
-    return 'Solicitud de permuta rechazada.';
+    return "Solicitud de permuta rechazada.";
   }
 
   async misPermutasPropuestas(uvus) {
@@ -243,7 +269,10 @@ class PermutaService {
       await conexion.end();
       return resultado.rows;
     } catch (error) {
-      console.error("Error al obtener las permutas validadas por usuario:", error);
+      console.error(
+        "Error al obtener las permutas validadas por usuario:",
+        error
+      );
       throw new Error("Error al obtener las permutas validadas por usuario");
     } finally {
       await conexion.end();
@@ -307,11 +336,14 @@ class PermutaService {
 
       // Convertir el objeto agrupado en un array
       return Object.entries(permutasAgrupadas).map(([usuarios, permutas]) => ({
-        usuarios: usuarios.split('-'),
+        usuarios: usuarios.split("-"),
         permutas,
       }));
     } catch (error) {
-      console.error("Error al obtener las permutas agrupadas por usuario:", error);
+      console.error(
+        "Error al obtener las permutas agrupadas por usuario:",
+        error
+      );
       throw new Error("Error al obtener las permutas agrupadas por usuario");
     } finally {
       await conexion.end();
@@ -347,24 +379,23 @@ class PermutaService {
 
       const resultado = await conexion.query(query);
       await conexion.end();
-      
+
       if (resultado.rows.length === 0) {
-        throw new Error('No se encontró la permuta especificada');
+        throw new Error("No se encontró la permuta especificada");
       }
 
       return {
         estado: resultado.rows[0].estado,
         archivo: resultado.rows[0].archivo,
-        permutas: resultado.rows.map(row => ({
+        permutas: resultado.rows.map((row) => ({
           permuta_id: row.permuta_id,
           usuario_1: row.usuario_1,
           usuario_2: row.usuario_2,
           codigo_asignatura: row.codigo_asignatura,
           grupo_1: row.grupo_1,
-          grupo_2: row.grupo_2
-        }))
+          grupo_2: row.grupo_2,
+        })),
       };
-
     } catch (error) {
       console.error("Error al obtener estado de permuta y usuarios:", error);
       throw new Error("Error al obtener estado de permuta y usuarios");
