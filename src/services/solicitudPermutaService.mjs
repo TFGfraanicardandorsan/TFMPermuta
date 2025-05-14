@@ -82,7 +82,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
   const asignaturaUsuario = asignaturasUsuario.rows.map(row => parseInt(row.id));
   const query = {
     text: `
-SELECT 
+      SELECT 
         sp.id AS solicitud_id, 
         sp.estado, 
         g.nombre AS grupo_solicitante, 
@@ -105,6 +105,10 @@ SELECT
       )
       AND sp.usuario_id_fk != (
         SELECT id FROM usuario WHERE nombre_usuario = $2
+      )
+      AND sp.id NOT IN (
+        SELECT solicitud_permuta_id_fk
+        FROM permuta
       )
     `,
     values: [asignaturaUsuario, uvus],
