@@ -1,5 +1,6 @@
 import database from "../config/database.mjs";
 import { sendMessage } from "./telegramService.mjs"
+import autorizacionService from "./autorizacionService.mjs";
 
 class PermutaService {
   async crearListaPermutas(archivo, IdsPermuta) {
@@ -127,31 +128,41 @@ class PermutaService {
     }
   }
 
-  async validarPermuta(permutaId) {
+async validarPermuta(permutaId) {
     const conexion = await database.connectPostgreSQL();
     try {
-      const query = {
+      const queryUpdate = {
         text: `UPDATE permutas 
                SET estado = 'VALIDADA'
                WHERE id = $1`,
         values: [permutaId],
       };
+      await conexion.query(queryUpdate);
 
-      await conexion.query(query);
+      const querySelect = {
+        text: `SELECT estudiante_cumplimentado_1, estudiante_cumplimentado_2 FROM permutas WHERE id = $1`,
+        values: [permutaId],
+      };
+      const resultado = await conexion.query(querySelect);
+      const { estudiante_cumplimentado_1, estudiante_cumplimentado_2 } = resultado.rows[0];
+
+      const mensaje = "La permuta ha sido validada correctamente. Recuerda que ahora debes presentar el documento firmado en el Registro Electrónico de la Universidad para completar el proceso.";
+
       try {
-        await sendMessage(7791855145, "La permuta ha sido validada correctamente. Eres un crack!");
+        const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_1);
+        const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_2);
+        await sendMessage(chatIdEstudiante1, mensaje);
+        await sendMessage(chatIdEstudiante2, mensaje);
       } catch (msgError) {
         console.error("Error enviando mensaje de validación:", msgError);
       }
-      await conexion.end();
-      return "La permuta ha sido validada correctamente";
     } catch (error) {
       console.error("Error al validar la permuta:", error);
       throw new Error("Error al validar la permuta");
     } finally {
       await conexion.end();
     }
-  }
+}
 
   async rechazarSolicitudPermuta(uvus, solicitud) {
     const conexion = await database.connectPostgreSQL();
