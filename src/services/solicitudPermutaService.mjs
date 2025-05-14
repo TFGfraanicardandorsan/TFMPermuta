@@ -87,7 +87,7 @@ SELECT
         sp.estado, 
         g.nombre AS grupo_solicitante, 
         gd.grupo_id_fk AS grupo_deseado_id,
-        gd_grupo.nombre AS grupo_deseado_nombre,
+        gd_grupo.nombre AS grupo_deseado,
         a.codigo AS codigo_asignatura
       FROM solicitud_permuta sp
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
