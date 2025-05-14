@@ -223,10 +223,18 @@ async verListaPermutas(uvus) {
     text: `
       SELECT 
         p.id AS permuta_id,
-        LEAST(u1.nombre_completo, u2.nombre_completo) AS usuario_1_nombre,
+        -- Ordenar usuarios por nombre_usuario
         LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_1_uvus,
-        GREATEST(u1.nombre_completo, u2.nombre_completo) AS usuario_2_nombre,
         GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_2_uvus,
+        -- Alinear nombres completos con el orden de nombre_usuario
+        CASE 
+          WHEN u1.nombre_usuario < u2.nombre_usuario THEN u1.nombre_completo
+          ELSE u2.nombre_completo
+        END AS usuario_1_nombre,
+        CASE 
+          WHEN u1.nombre_usuario < u2.nombre_usuario THEN u2.nombre_completo
+          ELSE u1.nombre_completo
+        END AS usuario_2_nombre,
         e1.siglas AS usuario_1_estudio,
         e2.siglas AS usuario_2_estudio,
         a.nombre AS nombre_asignatura,
@@ -240,7 +248,7 @@ async verListaPermutas(uvus) {
       WHERE (p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
          OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)) 
         AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
-      ORDER BY p.usuario_id_1_fk, p.usuario_id_2_fk, p.id
+      ORDER BY usuario_1_uvus, usuario_2_uvus, p.id
     `,
     values: [uvus],
   };
