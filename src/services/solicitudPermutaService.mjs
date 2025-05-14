@@ -82,13 +82,20 @@ async getSolicitudesPermutaInteresantes(uvus) {
   const asignaturaUsuario = asignaturasUsuario.rows.map(row => parseInt(row.id));
   const query = {
     text: `
-      SELECT sp.id AS solicitud_id, sp.estado, g.nombre AS grupo_solicitante, gd.grupo_id_fk AS grupo_deseado, a.codigo AS codigo_asignatura
+SELECT 
+        sp.id AS solicitud_id, 
+        sp.estado, 
+        g.nombre AS grupo_solicitante, 
+        gd.grupo_id_fk AS grupo_deseado_id,
+        gd_grupo.nombre AS grupo_deseado_nombre,
+        a.codigo AS codigo_asignatura
       FROM solicitud_permuta sp
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
       INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
+      INNER JOIN grupo gd_grupo ON gd.grupo_id_fk = gd_grupo.id
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.id_asignatura_fk = ANY($1)
-      AND gd.grupo_id_fk in (
+      AND gd.grupo_id_fk IN (
         SELECT grupo_id_fk
         FROM usuario_grupo
         WHERE usuario_id_fk = (
