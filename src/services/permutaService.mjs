@@ -293,7 +293,7 @@ async validarPermuta(permutaId) {
     try {
       const query = {
         text: `
-          SELECT 
+SELECT 
               p.id AS permuta_id,
               a.nombre AS nombre_asignatura,
               a.codigo AS codigo_asignatura,
@@ -304,7 +304,16 @@ async validarPermuta(permutaId) {
               GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
               (SELECT COUNT(*) 
                FROM permutas_permuta 
-               WHERE permuta_id_fk = p.id) AS total_permutas_asociadas
+               WHERE permuta_id_fk = p.id) AS total_permutas_asociadas,
+              (SELECT estado 
+               FROM permutas 
+               WHERE id = (
+                 SELECT permutas_id_fk 
+                 FROM permutas_permuta 
+                 WHERE permuta_id_fk = p.id
+                 LIMIT 1
+               )
+              ) AS estado_permuta_asociada
           FROM permuta p
           INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
           INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
@@ -313,7 +322,7 @@ async validarPermuta(permutaId) {
           INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
           WHERE (
               p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-              OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+              OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario =$1)
           ) AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') 
             AND p.aceptada_1 = true
             AND p.aceptada_2 = true
