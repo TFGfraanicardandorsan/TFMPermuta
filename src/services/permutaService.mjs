@@ -302,9 +302,6 @@ SELECT
               p.estado AS estado,
               LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
               GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
-              (SELECT COUNT(*) 
-               FROM permutas_permuta 
-               WHERE permuta_id_fk = p.id) AS total_permutas_asociadas,
               (SELECT estado 
                FROM permutas 
                WHERE id = (
@@ -345,7 +342,7 @@ SELECT
           grupo_1: row.grupo_1,
           grupo_2: row.grupo_2,
           estado: row.estado,
-          total_permutas_asociadas: row.total_permutas_asociadas,
+          estado_permuta_asociada: row.estado_permuta_asociada,
         });
         return acc;
       }, {});
