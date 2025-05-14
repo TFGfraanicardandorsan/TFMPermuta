@@ -89,6 +89,7 @@ SELECT
         gd.grupo_id_fk AS grupo_deseado_id,
         gd_grupo.nombre AS grupo_deseado,
         a.codigo AS codigo_asignatura
+        a.siglas AS siglas_asignatura,
       FROM solicitud_permuta sp
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
       INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
