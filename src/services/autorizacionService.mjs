@@ -43,6 +43,26 @@ class AutorizacionService{
     }
   }
 
+    async obtenerChatIdUsuario(uvus){
+    try{
+      const conexion = await database.connectPostgreSQL();
+      const query = {
+        text: ` SELECT chatid FROM usuario WHERE nombre_usuario = $1`,
+        values: [uvus],
+      };
+      const res = await conexion.query(query);
+      await conexion.end();
+      if (res.rows.length > 0) {
+        return res.rows[0].chatid;
+      } else {
+        return null;
+      }
+    } catch (error){
+      console.error('Error al obtener el chatId del usuario:', error);
+      return { err: true, errmsg: 'Error al obtener el chatId del usuario' };
+    }
+  }
+
   async consultarSolicitudAltaUsuario(uvusEnviado){
     try{
       const conexion = await database.connectPostgreSQL();
