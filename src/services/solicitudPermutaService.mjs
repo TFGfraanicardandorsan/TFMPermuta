@@ -223,11 +223,11 @@ async verListaPermutas(uvus) {
     text: `
       SELECT 
         p.id AS permuta_id,
-        u1.nombre_completo AS usuario_1_nombre,
-        u1.nombre_usuario AS usuario_1_uvus,
+        LEAST(u1.nombre_completo, u2.nombre_completo) AS usuario_1_nombre,
+        LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_1_uvus,
+        GREATEST(u1.nombre_completo, u2.nombre_completo) AS usuario_2_nombre,
+        GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_2_uvus,
         e1.siglas AS usuario_1_estudio,
-        u2.nombre_completo AS usuario_2_nombre,
-        u2.nombre_usuario AS usuario_2_uvus,
         e2.siglas AS usuario_2_estudio,
         a.nombre AS nombre_asignatura,
         a.codigo AS codigo_asignatura
@@ -238,7 +238,8 @@ async verListaPermutas(uvus) {
       INNER JOIN estudios e2 ON u2.estudios_id_fk = e2.id
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
       WHERE (p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-         OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)) AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
+         OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)) 
+        AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
       ORDER BY p.usuario_id_1_fk, p.usuario_id_2_fk, p.id
     `,
     values: [uvus],
