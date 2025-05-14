@@ -1,6 +1,7 @@
 import database from "../config/database.mjs";
 import { sendMessage } from "./telegramService.mjs"
 import autorizacionService from "./autorizacionService.mjs";
+import { mensajeValidacionPermuta } from "../utils/mensajesTelegram.mjs";
 
 class PermutaService {
   async crearListaPermutas(archivo, IdsPermuta) {
@@ -145,12 +146,11 @@ async validarPermuta(permutaId) {
       };
       const resultado = await conexion.query(querySelect);
       const { estudiante_cumplimentado_1, estudiante_cumplimentado_2 } = resultado.rows[0];
-      const mensaje = "La permuta ha sido validada correctamente. Recuerda que ahora debes presentar el documento firmado en el Registro Electrónico de la Universidad para completar el proceso.";
       try {
         const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_1);
         const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_2);
-        await sendMessage(chatIdEstudiante1, mensaje);
-        await sendMessage(chatIdEstudiante2, mensaje);
+        await sendMessage(chatIdEstudiante1, mensajeValidacionPermuta);
+        await sendMessage(chatIdEstudiante2, mensajeValidacionPermuta);
       } catch (msgError) {
         console.error("Error enviando mensaje de validación:", msgError);
       }
