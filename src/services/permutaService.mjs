@@ -143,15 +143,9 @@ async validarPermuta(permutaId) {
         text: `SELECT estudiante_cumplimentado_1, estudiante_cumplimentado_2 FROM permutas WHERE id = $1`,
         values: [permutaId],
       };
-      console.log("PermutaId:", permutaId); 
       const resultado = await conexion.query(querySelect);
       const { estudiante_cumplimentado_1, estudiante_cumplimentado_2 } = resultado.rows[0];
-      console.log(resultado, resultado.rows[0]);
-      console.log("Estudiantes cumplimentados:", estudiante_cumplimentado_1);
-      console.log("Estudiantes cumplimentados:", estudiante_cumplimentado_2);
-
       const mensaje = "La permuta ha sido validada correctamente. Recuerda que ahora debes presentar el documento firmado en el Registro Electrónico de la Universidad para completar el proceso.";
-
       try {
         const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_1);
         const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_2);
