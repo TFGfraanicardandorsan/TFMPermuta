@@ -1,4 +1,6 @@
 import database from "../config/database.mjs";
+import autorizacionService from "./autorizacionService.mjs";
+import { sendMessage } from "./telegramService.mjs";
 
 class IncidenciaService {
   async obtenerIncidencias() {
@@ -109,6 +111,12 @@ class IncidenciaService {
       };
       await conexion.query(incidenciaUsuario);
       await conexion.query('COMMIT');
+      try {
+        const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
+        await sendMessage(chatIdUsuario, `Se ha creado una nueva incidencia en la aplicación de permutas. \n\nDescripción: ${descripcion} \nTipo de incidencia: ${tipo_incidencia}`);
+      } catch(error){
+        console.error("Error al enviar el mensaje de incidencia creada:", error);
+      }
       return "Se ha creado la incidencia correctamente";
     } catch (error) {
       await conexion.query('ROLLBACK');
