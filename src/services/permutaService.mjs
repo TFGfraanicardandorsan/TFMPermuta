@@ -365,6 +365,7 @@ SELECT
     }
   }
 
+
   async obtenerEstadoPermutaYUsuarios(permutasId) {
     const conexion = await database.connectPostgreSQL();
     try {
