@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 import incidenciaService from "./incidenciaService.mjs";
-import { formatearIncidencias, avisoAdmin } from "../utils/formateadorIncidenciasBot.mjs";
+import { formatearIncidencias, avisoAdmin, formatearNotificaciones } from "../utils/formateadorIncidenciasBot.mjs";
 import { markupAceptarRechazarUsuario } from "../utils/markupBot.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import notificacionService from "./notificacionService.mjs";
@@ -80,7 +80,7 @@ export const handleIncomingMessage = async (message) => {
       if (notificaciones.length === 0) {
         await sendMessage(chatId, "No tienes notificaciones pendientes 📭");
       } else {
-        await sendMessage(chatId, notificaciones, "HTML");
+        await sendMessage(chatId, formatearNotificaciones(notificaciones), "HTML");
       }
     }
      else {
