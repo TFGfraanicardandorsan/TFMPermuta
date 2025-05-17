@@ -40,11 +40,20 @@ export const handleIncomingMessage = async (message) => {
         await sendMessage(chatId, "Debes estar registrado para ver tus incidencias. Usa /start primero.");
         return;
       }
-      const incidenciasData = (await incidenciaService.obtenerIncidenciasAsignadasUsuario(uvus)) ?? [];
-      if (incidenciasData.length === 0) {
-        await sendMessage(chatId, "No tienes incidencias registradas 📭");
+      if (usuarioExistente.rol === "administrador") {
+        const incidendiasAdmin = await incidenciaService.obtenerIncidenciasAsignadasAdmin(uvus);
+        if (incidendiasAdmin.length === 0) {
+          await sendMessage(chatId, "No tienes incidencias asignadas como administrador 📭");
+        } else {
+          await sendMessage(chatId, formatearIncidencias(incidendiasAdmin), "HTML");
+        }
       } else {
+      const incidenciasData = (await incidenciaService.obtenerIncidenciasAsignadasUsuario(uvus)) ?? [];
+        if (incidenciasData.length === 0) {
+          await sendMessage(chatId, "No tienes incidencias registradas 📭");
+        } else {
         await sendMessage(chatId, formatearIncidencias(incidenciasData), "HTML");
+       }
       }
     } else if (estadosRegistro[userId] === "esperando_datos") {
       const partes = text.trim().split(" ");
