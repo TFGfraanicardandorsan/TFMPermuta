@@ -87,6 +87,7 @@ class IncidenciaService {
 
   async solucionarIncidencia(uvus, id_incidencia) {
     const conexion = await database.connectPostgreSQL();
+    try {
     const query = {
       text: ` update incidencia 
                   set estado_incidencia = 'solucionada' 
@@ -100,9 +101,20 @@ class IncidenciaService {
       values: [id_incidencia, uvus],
     };
     await conexion.query(query);
+    try {
+      const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
+      await sendMessage(chatIdUsuario,`La incidencia ${id_incidencia} ha sido solucionada correctamente.`);
+    } catch (error) {
+      console.error("Error al enviar el mensaje de solucionar incidencia:", error);
+    }
+    return `La incidencia ${id_incidencia} ha sido solucionada correctamente.`;
+  } catch (error) {
+    console.error("Error al solucionar la incidencia:", error);
+    throw new Error("Error al solucionar la incidencia");
+  } finally {
     await conexion.end();
-    return `Ha sido solucionada la incidencia ${id_incidencia} correctamente`;
   }
+}
 
   async crearIncidencia(descripcion, tipo_incidencia, fileId, uvus) {
     const conexion = await database.connectPostgreSQL();
