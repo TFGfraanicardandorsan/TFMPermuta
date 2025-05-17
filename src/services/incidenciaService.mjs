@@ -64,14 +64,26 @@ class IncidenciaService {
 
   async asignarmeIncidencia(uvus, id_incidencia) {
     const conexion = await database.connectPostgreSQL();
+    try {
     const query = {
       text: `update incidencia_usuario set usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario = $1) where id = $2`,
-      values: [`${uvus}`, `${id_incidencia}`],
+      values: [uvus, id_incidencia],
     };
     await conexion.query(query);
-    await conexion.end();
+     try {
+        const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
+        await sendMessage(chatIdUsuario,`Se te ha asignado la incidencia ${id_incidencia} para su gestión.`);
+      } catch (error) {
+        console.error("Error al enviar el mensaje de asignación de incidencia:", error);
+      }
     return `Ha sido asignada la incidencia ${id_incidencia} correctamente`;
+  } catch (error) {
+    console.error("Error al asignar la incidencia:", error);
+    throw new Error("Error al asignar la incidencia");
+  } finally {
+    await conexion.end();
   }
+}
 
   async solucionarIncidencia(uvus, id_incidencia) {
     const conexion = await database.connectPostgreSQL();
