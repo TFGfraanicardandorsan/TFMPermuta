@@ -3,6 +3,7 @@ import incidenciaService from "./incidenciaService.mjs";
 import { formatearIncidencias, avisoAdmin } from "../utils/formateadorIncidenciasBot.mjs";
 import { markupAceptarRechazarUsuario } from "../utils/markupBot.mjs";
 import autorizacionService from "./autorizacionService.mjs";
+import notificacionService from "./notificacionService.mjs";
 export const getTelegramApiUrl = () => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 
 const estadosRegistro = {}; // userId => 'esperando_datos' Variables auxiliares para gestionar "estado" de usuarios en registro
@@ -70,7 +71,19 @@ export const handleIncomingMessage = async (message) => {
       await sendMessage(process.env.ADMIN_CHAT_ID, avisoAdmin(nombreCompleto,uvusEnviado,chatId), "Markdown", markupAceptarRechazarUsuario(uvusEnviado));
       // Eliminar el estado de registro del usuario, ya que la solicitud fue procesada
       delete estadosRegistro[userId];
-    } else {
+    } else if (text === "/vernotificaciones") {
+     if (!usuarioExistente) {
+        await sendMessage(chatId, "Debes estar registrado para ver las notificaciones. Usa /start primero.");
+        return;
+      }
+      const notificaciones = await notificacionService.getNotificacionesUsuario(uvus);
+      if (notificaciones.length === 0) {
+        await sendMessage(chatId, "No tienes notificaciones pendientes 📭");
+      } else {
+        await sendMessage(chatId, notificaciones, "HTML");
+      }
+    }
+     else {
       await sendMessage(chatId, "No entiendo ese mensaje. Usa el menú 👇");
     }
   } catch (error) {
