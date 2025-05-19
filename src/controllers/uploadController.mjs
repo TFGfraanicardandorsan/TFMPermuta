@@ -5,8 +5,8 @@ const subirArchivo = (req, res) => {
     if (!req.file) {
         return res.status(400).send('No se ha subido ningún archivo');
     }
-    if (!isValidPdfOrPngMime(req.file)) {
-        return res.status(400).send('Solo se permiten archivos PDF o PNG válidos');
+    if (!isString(req.file, 50)) {
+        return res.status(400).send("Nombre de archivo no válido (debe ser PDF o PNG)");
     }
     return res.status(200).json({
         message: "Archivo subido correctamente",
