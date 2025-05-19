@@ -72,6 +72,17 @@ class GenericValidators {
         }
         return { valido: true };
     }
+
+    
+
+static isValidPdfOrPngMime(file) {
+    const allowedMimeTypes = ['application/pdf', 'image/png'];
+    const allowedExtensions = ['.pdf', '.png'];
+    if (!file) return false;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mime = file.mimetype;
+    return allowedExtensions.includes(ext) && allowedMimeTypes.includes(mime);
+    }
 }
 
 
