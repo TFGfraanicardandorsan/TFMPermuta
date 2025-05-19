@@ -1,11 +1,11 @@
 import path from 'path';
-import { isValidPdfOrPngMime, isString } from '../utils/genericValidators.mjs';
+import GenericValidators from '../utils/genericValidators.mjs';
 
 const subirArchivo = (req, res) => {
     if (!req.file) {
         return res.status(400).send('No se ha subido ningún archivo');
     }
-    if (!isValidPdfOrPngMime(req.file)) {
+    if (!GenericValidators.isValidPdfOrPngMime(req.file)) {
         return res.status(400).send('Solo se permiten archivos PDF o PNG válidos');
     }
     return res.status(200).json({
@@ -21,7 +21,7 @@ const servirArchivo = (req, res) => {
     }
     let baseDir = tipo === "archivador" ? process.env.ARCHIVADOR : process.env.BUZON;
 
-    if (!isString(fileId, 50)) {
+    if (!GenericValidators.isString(fileId, 50)) {
         return res.status(400).send("Nombre de archivo no válido (debe ser PDF o PNG)");
     }
     const ext = path.extname(fileId).toLowerCase();
