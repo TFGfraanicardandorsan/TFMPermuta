@@ -1,4 +1,5 @@
 import usuarioService from "../services/usuarioService.mjs";
+import GenericValidators from "../utils/genericValidators.mjs";
 
 
 const obtenerDatosUsuario = async (req, res) => {
@@ -22,7 +23,12 @@ const actualizarEstudiosUsuario = async (req,res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.send({err:false, result:await usuarioService.actualizarEstudiosUsuario(uvus, req.body.estudio)})
+        const { estudio } = req.body;
+        const validEstudio = GenericValidators.isString(estudio, "Estudio", 100);
+        if (!validEstudio.valido) {
+            return res.status(400).json({ err: true, message: validEstudio.mensaje });
+        }
+        res.send({err:false, result:await usuarioService.actualizarEstudiosUsuario(uvus, estudio)})
         } catch (err){
             console.log('api actualizarEstudiosUsuario ha tenido una excepción')
             res.sendStatus(500)

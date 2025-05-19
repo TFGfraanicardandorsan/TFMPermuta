@@ -1,31 +1,45 @@
 import grupoService from "../services/grupoService.mjs";
-
+import GenericValidators from "../utils/genericValidators.mjs";
 
 const obtenerGruposPorAsignatura = async (req,res) => {
-    // TODO: INTEGER
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        res.send({err:false, result: await grupoService.obtenerGruposPorAsignatura(req.body.asignatura)})
-        } catch (err){
-            console.log('api obtenerGruposPorAsignatura ha tenido una excepción')
-            res.sendStatus(500)
+        const { asignatura } = req.body;
+        const validAsignatura = GenericValidators.isInteger(asignatura, "Asignatura");
+        if (!validAsignatura.valido) {
+            return res.status(400).json({ err: true, message: validAsignatura.mensaje });
         }
-}
-const insertarMisGrupos = async (req,res) => {
-    // TODO: INT, INT
-    try{
+        res.send({ err: false, result: await grupoService.obtenerGruposPorAsignatura(asignatura) });
+    } catch (err) {
+        console.log('api obtenerGruposPorAsignatura ha tenido una excepción');
+        res.sendStatus(500);
+    }
+};
+
+const insertarMisGrupos = async (req, res) => {
+    try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.send({err:false, result: await grupoService.insertarMisGrupos(uvus,req.body.num_grupo,req.body.codigo)})
-        } catch (err){
-            console.log('api insertarMisGrupos ha tenido una excepción')
-            res.sendStatus(500)
+        const { num_grupo, codigo } = req.body;
+        const validNumGrupo = GenericValidators.isInteger(num_grupo, "Número de grupo");
+        if (!validNumGrupo.valido) {
+            return res.status(400).json({ err: true, message: validNumGrupo.mensaje });
         }
-}
+        const validCodigo = GenericValidators.isInteger(codigo, "Código");
+        if (!validCodigo.valido) {
+            return res.status(400).json({ err: true, message: validCodigo.mensaje });
+        }
+        res.send({ err: false, result: await grupoService.insertarMisGrupos(uvus, num_grupo, codigo) });
+    } catch (err) {
+        console.log('api insertarMisGrupos ha tenido una excepción');
+        res.sendStatus(500);
+    }
+};
+
 const obtenerMiGrupoAsignatura = async (req,res) => {
     try{
         if (!req.session.user) {

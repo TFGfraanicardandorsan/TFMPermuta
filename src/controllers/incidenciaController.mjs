@@ -1,4 +1,5 @@
 import incidenciaService from "../services/incidenciaService.mjs";
+import GenericValidators from "../utils/genericValidators.mjs";
 
 const obtenerIncidencias = async (req, res) => {
     try {
@@ -64,14 +65,14 @@ const obtenerIncidenciasSinAsignar = async (req, res) => {
 
 const asignarmeIncidencia = async (req, res) => {
     try {
-        // TODO: INTEGER
-        const uvus = req.session.user.nombre_usuario;
+        const uvus = req.session.user?.nombre_usuario;
         const id_incidencia = req.body.id_incidencia;
         if (!req.session.user) {
-        return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        if (!id_incidencia) {
-        return res.status(400).json({ error: true, message: "Datos incompletos" });
+        const validId = GenericValidators.isInteger(id_incidencia, "ID Incidencia");
+        if (!validId.valido) {
+            return res.status(400).json({ error: true, message: validId.mensaje });
         }
         res.json({ error: false, result: await incidenciaService.asignarmeIncidencia(uvus, id_incidencia)});
     } catch (err) {
@@ -82,13 +83,13 @@ const asignarmeIncidencia = async (req, res) => {
 
 const obtenerIncidenciaPorId = async (req, res) => {
     try {
-        // TODO: INTEGER
         const id_incidencia = req.body.id_incidencia;
         if (!req.session.user) {
-        return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        if (!id_incidencia) {
-        return res.status(400).json({ error: true, message: "Datos incompletos" });
+        const validId = GenericValidators.isInteger(id_incidencia, "ID Incidencia");
+        if (!validId.valido) {
+            return res.status(400).json({ error: true, message: validId.mensaje });
         }
         res.json({ error: false, result: await incidenciaService.obtenerIncidenciaPorId(id_incidencia)});
     } catch (err) {
@@ -98,15 +99,15 @@ const obtenerIncidenciaPorId = async (req, res) => {
 };
 
 const solucionarIncidencia = async (req, res) => {
-    // TODO: INTEGER
     try {
-        const uvus = req.session.user.nombre_usuario;
+        const uvus = req.session.user?.nombre_usuario;
         const id_incidencia = req.body.id_incidencia;
         if (!req.session.user) {
-        return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        if (!id_incidencia) {
-        return res.status(400).json({ error: true, message: "Datos incompletos" });
+        const validId = GenericValidators.isInteger(id_incidencia, "ID Incidencia");
+        if (!validId.valido) {
+            return res.status(400).json({ error: true, message: validId.mensaje });
         }
         res.json({ error: false, result: await incidenciaService.solucionarIncidencia(uvus, id_incidencia) });
     } catch (err) {
@@ -116,14 +117,24 @@ const solucionarIncidencia = async (req, res) => {
 };
 
 const crearIncidencia = async (req, res) => {
-    // TODO: VARCHAR, VARCHAR, uuid.png o uuid.pdf,
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const { descripcion, tipo_incidencia, fileId } = req.body;
+        const validDesc = GenericValidators.isString(descripcion, "Descripción", 1000);
+        if (!validDesc.valido) {
+            return res.status(400).json({ error: true, message: validDesc.mensaje });
+        }
+        const validTipo = GenericValidators.isString(tipo_incidencia, "Tipo de incidencia", 20);
+        if (!validTipo.valido) {
+            return res.status(400).json({ error: true, message: validTipo.mensaje });
+        }
+        if (fileId) {
+            const validFile = GenericValidators.isFilePdfOrPng(fileId, "Archivo adjunto", 50);
+            if (!validFile.valido) {
+                return res.status(400).json({ error: true, message: validFile.mensaje });
             }
-        const { descripcion, tipo_incidencia,fileId } = req.body;
-        if (!descripcion || !tipo_incidencia) {
-            return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
         }
         const uvus = req.session.user.nombre_usuario;
         res.status(201).json({ error: false, result: await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, fileId, uvus) });

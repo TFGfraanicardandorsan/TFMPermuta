@@ -1,101 +1,148 @@
 import permutaService from "../services/permutaService.mjs";
+import GenericValidators from "../utils/genericValidators.mjs";
 
 const generarBorradorPermutas = async (req, res) => {
-    // todo: array de enteros
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
-            }
-        const IdsPermuta  = req.body.IdsPermuta;
-        if (!IdsPermuta) {
-            return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
+        }
+        const IdsPermuta = req.body.IdsPermuta;
+        if (!Array.isArray(IdsPermuta) || IdsPermuta.some(id => !GenericValidators.isInteger(id, "PermutaId").valido)) {
+            return res.status(400).json({ error: true, message: "IdsPermuta debe ser un array de enteros" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.status(209).json({ error: false, result: await permutaService.generarBorradorPermutas(IdsPermuta,uvus)});
+        res.status(209).json({ error: false, result: await permutaService.generarBorradorPermutas(IdsPermuta, uvus) });
     } catch (err) {
         console.error("Error en generarBorradorPermutas:", err);
         res.status(500).json({ error: true, message: "Error al crear la generarBorradorPermutas" });
     }
 };
+
 const listarPermutas = async (req, res) => {
-        // todo: array de enteros
     try {
-        const IdsPermuta  = req.body.IdsPermuta;
-        res.status(200).json({ error: false, result: await permutaService.listarPermutas(IdsPermuta)});
+        const IdsPermuta = req.body.IdsPermuta;
+        if (!Array.isArray(IdsPermuta) || IdsPermuta.some(id => !GenericValidators.isInteger(id, "PermutaId").valido)) {
+            return res.status(400).json({ error: true, message: "IdsPermuta debe ser un array de enteros" });
+        }
+        res.status(200).json({ error: false, result: await permutaService.listarPermutas(IdsPermuta) });
     } catch (err) {
         console.error("Error en listarPermutas:", err);
         res.status(500).json({ error: true, message: "Error al listarPermutas" });
     }
 };
+
 const firmarPermuta = async (req, res) => {
-    // todo: validar archivo que sea un pdf formato uuid.pdf, INT
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        const { archivo, permutaId } = req.body;        
+        const { archivo, permutaId } = req.body;
+        const validId = GenericValidators.isInteger(permutaId, "PermutaId");
+        if (!validId.valido) {
+            return res.status(400).json({ err: true, message: validId.mensaje });
+        }
+        const validArchivo = GenericValidators.isFilePdfOrPng(archivo, "Archivo", 50);
+        if (!validArchivo.valido || !/^[0-9a-fA-F-]{36}\.pdf$/.test(archivo)) {
+            return res.status(400).json({ err: true, message: "El archivo debe ser un PDF con nombre UUID.pdf" });
+        }
         res.send({
-            err: false, 
+            err: false,
             result: await permutaService.firmarPermuta(permutaId, archivo)
         });
     } catch (err) {
         console.error('api firmarPermuta ha tenido una excepción:', err);
-        res.status(500).json({ 
-            err: true, 
-            message: 'Error interno en firmarPermuta', 
-            details: err.message 
+        res.status(500).json({
+            err: true,
+            message: 'Error interno en firmarPermuta',
+            details: err.message
         });
     }
 };
+
 const aceptarPermuta = async (req, res) => {
-    // todo: validar archivo que sea un pdf formato uuid.pdf, INT
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const { archivo, permutaId } = req.body;
         const uvus = req.session.user.nombre_usuario;
+        const validId = GenericValidators.isInteger(permutaId, "PermutaId");
+        if (!validId.valido) {
+            return res.status(400).json({ err: true, message: validId.mensaje });
+        }
+        const validArchivo = GenericValidators.isFilePdfOrPng(archivo, "Archivo", 50);
+        if (!validArchivo.valido || !/^[0-9a-fA-F-]{36}\.pdf$/.test(archivo)) {
+            return res.status(400).json({ err: true, message: "El archivo debe ser un PDF con nombre UUID.pdf" });
+        }
         res.send({
             err: false,
             result: await permutaService.aceptarPermuta(permutaId, archivo, uvus)
         });
     } catch (err) {
         console.error('api aceptarPermuta ha tenido una excepción:', err);
-        res.status(500).json({ 
-            err: true, 
-            message: 'Error interno en aceptarPermuta', 
-            details: err.message 
+        res.status(500).json({
+            err: true,
+            message: 'Error interno en aceptarPermuta',
+            details: err.message
         });
     }
 };
 
 const validarPermuta = async (req, res) => {
-    // TODO: INTEGER
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        res.send({ err: false, result: await permutaService.validarPermuta(req.body.permutaId)
-        });
+        const { permutaId } = req.body;
+        const validId = GenericValidators.isInteger(permutaId, "PermutaId");
+        if (!validId.valido) {
+            return res.status(400).json({ err: true, message: validId.mensaje });
+        }
+        res.send({ err: false, result: await permutaService.validarPermuta(permutaId) });
     } catch (err) {
         console.error('api validarPermuta ha tenido una excepción:', err);
         res.status(500).json({ err: true, message: 'Error interno en validarPermuta', details: err.message });
     }
 };
 
-const rechazarSolicitudPermuta = async (req,res) => {
-    // TODO: INTEGER
-    try{
+const rechazarSolicitudPermuta = async (req, res) => {
+    try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.send({err:false, result:await permutaService.rechazarSolicitudPermuta(uvus, req.body.solicitud)})
-        } catch (err){
-            console.error('api rechazarSolicitudPermuta ha tenido una excepción:', err);
-            res.status(500).json({ err: true, message: 'Error interno en rechazarSolicitudPermuta', details: err.message });
+        const { solicitud } = req.body;
+        const validId = GenericValidators.isInteger(solicitud, "SolicitudId");
+        if (!validId.valido) {
+            return res.status(400).json({ err: true, message: validId.mensaje });
         }
+        res.send({ err: false, result: await permutaService.rechazarSolicitudPermuta(uvus, solicitud) });
+    } catch (err) {
+        console.error('api rechazarSolicitudPermuta ha tenido una excepción:', err);
+        res.status(500).json({ err: true, message: 'Error interno en rechazarSolicitudPermuta', details: err.message });
     }
+};
+
+const obtenerEstadoPermutaYUsuarios = async (req, res) => {
+    try {
+        const { permutaId } = req.body;
+        const validId = GenericValidators.isInteger(permutaId, "PermutaId");
+        if (!validId.valido) {
+            return res.status(400).json({ err: true, message: validId.mensaje });
+        }
+        const resultado = await permutaService.obtenerEstadoPermutaYUsuarios(permutaId);
+        res.status(200).json({
+            success: true,
+            data: resultado
+        });
+    } catch (error) {
+        console.error('Error en obtenerEstadoPermutaYUsuarios:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 
 const misPermutasPropuestas = async (req, res) => {
     try {
@@ -173,23 +220,6 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
       err: true,
       message: "Error interno en obtenerPermutasAgrupadasPorUsuario",
       details: err.message,
-    });
-  }
-};
-const obtenerEstadoPermutaYUsuarios = async (req, res) => {
-  try {
-        // TODO: INTEGER
-        const { permutaId } = req.body;
-        const resultado = await permutaService.obtenerEstadoPermutaYUsuarios(permutaId);
-    res.status(200).json({
-      success: true,
-      data: resultado
-    });
-  } catch (error) {
-    console.error('Error en obtenerEstadoPermutaYUsuarios:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
     });
   }
 };
