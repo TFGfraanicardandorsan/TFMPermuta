@@ -7,7 +7,9 @@ const solicitarPermuta = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const { asignatura, grupos_deseados } = req.body;
+        // Parseo explícito de asignatura a int
+        const asignatura = parseInt(req.body.asignatura);
+        const { grupos_deseados } = req.body;
 
         const validAsignatura = GenericValidators.isInteger(asignatura, "Asignatura");
         if (!validAsignatura.valido) {
