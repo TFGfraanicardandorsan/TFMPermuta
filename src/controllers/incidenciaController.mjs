@@ -83,7 +83,7 @@ const asignarmeIncidencia = async (req, res) => {
 
 const obtenerIncidenciaPorId = async (req, res) => {
     try {
-        const id_incidencia = req.body.id_incidencia;
+        const id_incidencia = parseInt(req.body.id_incidencia);
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
