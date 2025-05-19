@@ -16,7 +16,7 @@ class EstudiosService {
   async obtenerEstudios() {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `select e.nombre from estudios e`,
+      text: `select e.id, e.nombre from estudios e`,
     };
     const res = await conexion.query(query);
     await conexion.end();

@@ -4,7 +4,7 @@ import { verificarRol } from '../middleware/rolMiddleware.mjs';
 const router = Router()
 router
 .post('/obtenerMiEstudioUsuario', verificarRol('estudiante'), estudiosController.obtenerMiEstudioUsuario)
-.post('/obtenerEstudios', verificarRol('estudiante'), estudiosController.obtenerEstudios)
+.post('/obtenerEstudios', estudiosController.obtenerEstudios)
 .post('/crearEstudio', verificarRol('administrador'), estudiosController.insertarEstudio)
 
 export default router;
