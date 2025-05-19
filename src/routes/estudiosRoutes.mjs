@@ -5,5 +5,6 @@ const router = Router()
 router
 .post('/obtenerMiEstudioUsuario', verificarRol('estudiante'), estudiosController.obtenerMiEstudioUsuario)
 .post('/obtenerEstudios', verificarRol('estudiante'), estudiosController.obtenerEstudios)
+.post('/añadirEstudio', verificarRol('administrador'), estudiosController.añadirEstudio)
 
 export default router;

@@ -63,10 +63,26 @@ const obtenerAsignaturasNoMatriculadas = async (req, res) => {
     }
 };
 
+const crearAsignatura = async (req, res) => {
+    try {
+        // Puedes añadir validaciones aquí si lo deseas
+        const { nombre, siglas, curso, codigo } = req.body;
+        if (!nombre || !siglas || !curso || !codigo) {
+            return res.status(400).json({ err: true, message: "Faltan campos obligatorios" });
+        }
+        const nuevaAsignatura = await asignaturaService.crearAsignatura({ nombre, siglas, curso, codigo });
+        res.status(201).json({ err: false, result: nuevaAsignatura });
+    } catch (err) {
+        console.log('API crearAsignatura ha tenido una excepción:', err);
+        res.sendStatus(500);
+    }
+};
+
 export default {
     obtenerAsignaturasMiEstudioUsuario,
     asignaturaPermutable,
     asignaturaPermutableUsuario,
     obtenerTodosGruposMisAsignaturasSinGrupoUsuario,
-    obtenerAsignaturasNoMatriculadas
+    obtenerAsignaturasNoMatriculadas,
+    crearAsignatura
 }

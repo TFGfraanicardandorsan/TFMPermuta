@@ -100,6 +100,19 @@ async obtenerAsignaturasMiEstudioUsuario(uvus) {
   await conexion.end();
   return res.rows;
 }
+async crearAsignatura({ nombre, siglas, curso, codigo }) {
+  const conexion = await database.connectPostgreSQL();
+  const query = {
+    text: `INSERT INTO asignatura (nombre, siglas, curso, codigo) VALUES ($1, $2, $3, $4) RETURNING *`,
+    values: [nombre, siglas, curso, codigo],
+  };
+  try {
+    const res = await conexion.query(query);
+    return res.rows[0];
+  } finally {
+    await conexion.end();
+  }
+}
 }
 const asignaturaService = new AsignaturaService();
 export default asignaturaService;
