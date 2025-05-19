@@ -4,7 +4,7 @@ class UsuarioService{
 async obtenerDatosUsuario(uvus) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `SELECT u.nombre_completo, u.correo, u.imagen, e.nombre as titulacion, e.siglas  
+      text: `SELECT u.nombre_completo, u.correo, e.nombre as titulacion, e.siglas  
              FROM Usuario u  
              LEFT JOIN estudios e ON u.estudios_id_fk = e.id  
              WHERE u.nombre_usuario = ($1)`,
@@ -18,7 +18,7 @@ async obtenerDatosUsuario(uvus) {
   async obtenerDatosUsuarioAdmin(uvus) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `SELECT u.nombre_completo, u.correo, u.imagen  
+      text: `SELECT u.nombre_completo, u.correo
              FROM Usuario u 
              WHERE u.nombre_usuario = ($1)`,
              values: [uvus],
