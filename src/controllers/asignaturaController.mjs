@@ -65,6 +65,7 @@ const obtenerAsignaturasNoMatriculadas = async (req, res) => {
 
 const crearAsignatura = async (req, res) => {
     try {
+        // TODO: VALIDAR STRRING, STRING, INT, INT, INT
         const { nombre, siglas, curso, codigo, estudios_id } = req.body;
         if (!nombre || !siglas || !curso || !codigo || !estudios_id) {
             return res.status(400).json({ err: true, message: "Faltan campos obligatorios" });

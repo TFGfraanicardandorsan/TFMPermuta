@@ -2,6 +2,7 @@ import grupoService from "../services/grupoService.mjs";
 
 
 const obtenerGruposPorAsignatura = async (req,res) => {
+    // TODO: INTEGER
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -13,6 +14,7 @@ const obtenerGruposPorAsignatura = async (req,res) => {
         }
 }
 const insertarMisGrupos = async (req,res) => {
+    // TODO: INT, INT
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });

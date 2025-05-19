@@ -15,6 +15,7 @@ const getNotificacionesUsuario = async (req, res) => {
 
 const insertarNotificacion = async (req,res) => {
     try {
+        // STRING, STRING
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }

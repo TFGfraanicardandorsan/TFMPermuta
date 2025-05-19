@@ -1,21 +1,7 @@
 import permutaService from "../services/permutaService.mjs";
 
-//const crearListaPermutas = async (req, res) => {
-//    try {
-//        if (!req.session.user) {
-//            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
-//            }
-//        const { archivo, IdsPermuta } = req.body;
-//        if (!archivo || !IdsPermuta) {
-//            return res.status(400).json({ error: true, message: "Faltan datos obligatorios" });
-//       }
-//        res.status(209).json({ error: false, result: await permutaService.crearListaPermutas(archivo,IdsPermuta)});
-//    } catch (err) {
-//        console.error("Error en crearListaPermutas:", err);
-//        res.status(500).json({ error: true, message: "Error al crear la crearListaPermutas" });
-//    }
-//};
 const generarBorradorPermutas = async (req, res) => {
+    // todo: array de enteros
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -32,6 +18,7 @@ const generarBorradorPermutas = async (req, res) => {
     }
 };
 const listarPermutas = async (req, res) => {
+        // todo: array de enteros
     try {
         const IdsPermuta  = req.body.IdsPermuta;
         res.status(200).json({ error: false, result: await permutaService.listarPermutas(IdsPermuta)});
@@ -41,6 +28,7 @@ const listarPermutas = async (req, res) => {
     }
 };
 const firmarPermuta = async (req, res) => {
+    // todo: validar archivo que sea un pdf formato uuid.pdf, INT
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -60,6 +48,7 @@ const firmarPermuta = async (req, res) => {
     }
 };
 const aceptarPermuta = async (req, res) => {
+    // todo: validar archivo que sea un pdf formato uuid.pdf, INT
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -81,6 +70,7 @@ const aceptarPermuta = async (req, res) => {
 };
 
 const validarPermuta = async (req, res) => {
+    // TODO: INTEGER
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -94,6 +84,7 @@ const validarPermuta = async (req, res) => {
 };
 
 const rechazarSolicitudPermuta = async (req,res) => {
+    // TODO: INTEGER
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -187,6 +178,7 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
 };
 const obtenerEstadoPermutaYUsuarios = async (req, res) => {
   try {
+        // TODO: INTEGER
         const { permutaId } = req.body;
         const resultado = await permutaService.obtenerEstadoPermutaYUsuarios(permutaId);
     res.status(200).json({
@@ -203,7 +195,6 @@ const obtenerEstadoPermutaYUsuarios = async (req, res) => {
 };
 
 export default {
-//    crearListaPermutas,
     listarPermutas,
     aceptarPermuta,
     rechazarSolicitudPermuta,

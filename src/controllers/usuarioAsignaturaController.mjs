@@ -1,6 +1,7 @@
 import usuarioAsignaturaService from '../services/usuarioAsignaturaService.mjs';
 
 const actualizarAsignaturasUsuario = async (req, res) => {
+    // Integer
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -26,6 +27,7 @@ const obtenerAsignaturasUsuario = async (req, res) => {
 }
 
 const superarAsignaturasUsuario = async (req, res) => {
+        // Integer
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });

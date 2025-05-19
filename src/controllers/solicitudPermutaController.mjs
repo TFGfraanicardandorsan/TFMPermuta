@@ -2,6 +2,7 @@ import solicitudPermutaService from "../services/solicitudPermutaService.mjs";
 
 
 const solicitarPermuta = async (req,res) => {
+    // INTEGER, ARRAY DE ENTEROS
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -41,6 +42,7 @@ const getMisSolicitudesPermuta = async (req,res) => {
     }
 
 const aceptarSolicitudPermuta = async (req,res) => {
+    // INTEGER
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -55,6 +57,7 @@ const aceptarSolicitudPermuta = async (req,res) => {
 
 
     const validarSolicitudPermuta = async (req,res) => {
+        // INTEGER
         try{
             if (!req.session.user) {
                 return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -94,6 +97,7 @@ const aceptarSolicitudPermuta = async (req,res) => {
     }
 
 const aceptarPermutaPropuesta = async (req, res) => {
+    // INTEGER
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -116,6 +120,7 @@ const aceptarPermutaPropuesta = async (req, res) => {
 };
 
 const rechazarPermutaPropuesta = async (req, res) => {
+    // INTEGER
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });

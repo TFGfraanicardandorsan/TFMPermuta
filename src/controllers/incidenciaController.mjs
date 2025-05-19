@@ -64,6 +64,7 @@ const obtenerIncidenciasSinAsignar = async (req, res) => {
 
 const asignarmeIncidencia = async (req, res) => {
     try {
+        // TODO: INTEGER
         const uvus = req.session.user.nombre_usuario;
         const id_incidencia = req.body.id_incidencia;
         if (!req.session.user) {
@@ -81,6 +82,7 @@ const asignarmeIncidencia = async (req, res) => {
 
 const obtenerIncidenciaPorId = async (req, res) => {
     try {
+        // TODO: INTEGER
         const id_incidencia = req.body.id_incidencia;
         if (!req.session.user) {
         return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
@@ -96,6 +98,7 @@ const obtenerIncidenciaPorId = async (req, res) => {
 };
 
 const solucionarIncidencia = async (req, res) => {
+    // TODO: INTEGER
     try {
         const uvus = req.session.user.nombre_usuario;
         const id_incidencia = req.body.id_incidencia;
@@ -113,6 +116,7 @@ const solucionarIncidencia = async (req, res) => {
 };
 
 const crearIncidencia = async (req, res) => {
+    // TODO: VARCHAR, VARCHAR, uuid.png o uuid.pdf,
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });

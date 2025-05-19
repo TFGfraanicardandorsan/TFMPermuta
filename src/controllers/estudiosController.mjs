@@ -26,6 +26,7 @@ const obtenerEstudios = async (req,res) => {
 }
 
 const insertarEstudio = async (req,res) => {
+    // TODO: VALIDADOR STRING, STRING
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
