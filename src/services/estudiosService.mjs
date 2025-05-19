@@ -27,6 +27,12 @@ class EstudiosService{
           text: `insert into estudios (nombre, siglas) values ($1, $2) returning id`,
           values: [estudio, siglas],
         };
+        const res = await conexion.query(query);
+        await conexion.end();
+        if (res.rows.length === 0){
+          return false;
+        }
+        return res.rows;
       }  
 }
 const estudiosService = new EstudiosService();
