@@ -1,13 +1,10 @@
 import path from 'path';
-import GenericValidators from '../utils/genericValidators.mjs';
 
 const subirArchivo = (req, res) => {
     if (!req.file) {
         return res.status(400).send('No se ha subido ningún archivo');
     }
-    if (!GenericValidators.isString(req.file, 50)) {
-        return res.status(400).send("Nombre de archivo no válido (debe ser PDF o PNG)");
-    }
+
     return res.status(200).json({
         message: "Archivo subido correctamente",
         fileId: req.file.filename   
@@ -16,19 +13,14 @@ const subirArchivo = (req, res) => {
 
 const servirArchivo = (req, res) => {
     const { tipo, fileId } = req.params;
-    if (tipo !== "archivador" && tipo !== "buzon") {
-        return res.status(400).send("Tipo de carpeta no válido (debe ser 'archivador' o 'buzon')");
+    let baseDir;
+    if (tipo === "archivador") {
+        baseDir = process.env.ARCHIVADOR;
+    } else if (tipo === "buzon") {
+        baseDir = process.env.BUZON;
+    } else {
+        return res.status(400).send("Tipo de carpeta no válido");
     }
-    let baseDir = tipo === "archivador" ? process.env.ARCHIVADOR : process.env.BUZON;
-
-    if (!GenericValidators.isString(fileId, 50)) {
-        return res.status(400).send("Nombre de archivo no válido (debe ser PDF o PNG)");
-    }
-    const ext = path.extname(fileId).toLowerCase();
-    if (ext !== ".pdf" && ext !== ".png") {
-        return res.status(400).send("Solo se permiten archivos PDF o PNG");
-    }
-
     const filePath = path.join(baseDir, fileId);
     res.sendFile(filePath, (err) => {
         if (err) {
