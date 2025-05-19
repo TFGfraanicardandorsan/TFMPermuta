@@ -65,6 +65,7 @@ class IncidenciaService {
   async obtenerIncidenciaPorId(id_incidencia) {
     const conexion = await database.connectPostgreSQL();
     try {
+      console.log("ID de incidencia:", id_incidencia);
       const query = {
         text: `SELECT fecha_creacion, descripcion, tipo_incidencia, estado_incidencia, archivo
                FROM incidencia 
