@@ -5,7 +5,7 @@ const subirArchivo = (req, res) => {
     if (!req.file) {
         return res.status(400).send('No se ha subido ningún archivo');
     }
-    if (!isString(req.file, 50)) {
+    if (!GenericValidators.isString(req.file, 50)) {
         return res.status(400).send("Nombre de archivo no válido (debe ser PDF o PNG)");
     }
     return res.status(200).json({
