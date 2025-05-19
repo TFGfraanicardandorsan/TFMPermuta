@@ -21,19 +21,19 @@ class EstudiosService{
         await conexion.end();
         return res.rows;
       }
-      async añadirEstudio(estudio, siglas) {
-        const conexion = await database.connectPostgreSQL();
-        const query = {
-          text: `insert into estudios (nombre, siglas) values ($1, $2) returning id`,
-          values: [estudio, siglas],
-        };
-        const res = await conexion.query(query);
-        await conexion.end();
-        if (res.rows.length === 0){
-          return false;
-        }
-        return res.rows;
-      }  
+      // async añadirEstudio(estudio, siglas) {
+      //   const conexion = await database.connectPostgreSQL();
+      //   const query = {
+      //     text: `insert into estudios (nombre, siglas) values ($1, $2) returning id`,
+      //     values: [estudio, siglas],
+      //   };
+      //   const res = await conexion.query(query);
+      //   await conexion.end();
+      //   if (res.rows.length === 0){
+      //     return false;
+      //   }
+      //   return res.rows;
+      // }  
 }
 const estudiosService = new EstudiosService();
 export default estudiosService;
