@@ -62,6 +62,25 @@ class IncidenciaService {
     return res.rows;
   }
 
+  async obtenerIncidenciaPorId(id_incidencia) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `SELECT fecha_creacion, descripcion, tipo_incidencia, estado_incidencia, archivo
+               FROM incidencia 
+               WHERE id = $1`,
+        values: [id_incidencia],
+      };
+      const res = await conexion.query(query);
+      return res.rows[0]; 
+    } catch (error) {
+      console.error("Error al obtener la incidencia por ID:", error);
+      throw new Error("Error al obtener la incidencia por ID");
+    } finally {
+      await conexion.end();
+    }
+}
+
   async asignarmeIncidencia(uvus, id_incidencia) {
     const conexion = await database.connectPostgreSQL();
     try {
