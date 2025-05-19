@@ -183,7 +183,6 @@ async aceptarSolicitudPermuta(uvus, solicitud) {
       true)`,
     values: [uvus, solicitud],
   };
-  console.log(update);
   await conexion.query(update);
   await conexion.end();
   return 'Solicitud de permuta aceptada.';
