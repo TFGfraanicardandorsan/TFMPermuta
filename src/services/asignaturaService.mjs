@@ -100,15 +100,25 @@ async obtenerAsignaturasMiEstudioUsuario(uvus) {
   await conexion.end();
   return res.rows;
 }
-async crearAsignatura({ nombre, siglas, curso, codigo }) {
+async crearAsignatura({ nombre, siglas, curso, codigo, estudios_id }) {
   const conexion = await database.connectPostgreSQL();
-  const query = {
-    text: `INSERT INTO asignatura (nombre, siglas, curso, codigo) VALUES ($1, $2, $3, $4) RETURNING *`,
-    values: [nombre, siglas, curso, codigo],
-  };
   try {
-    const res = await conexion.query(query);
-    return res.rows[0];
+    // 1. Insertar la asignatura
+    const insertAsignatura = {
+      text: `INSERT INTO asignatura (nombre, siglas, curso, codigo) VALUES ($1, $2, $3, $4) RETURNING id, nombre, siglas, curso, codigo`,
+      values: [nombre, siglas, curso, codigo],
+    };
+    const resAsignatura = await conexion.query(insertAsignatura);
+    const asignatura = resAsignatura.rows[0];
+
+    // 2. Asociar a estudio
+    const insertRelacion = {
+      text: `INSERT INTO asignatura_estudios (asignatura_id, estudios_id) VALUES ($1, $2)`,
+      values: [asignatura.id, estudios_id],
+    };
+    await conexion.query(insertRelacion);
+
+    return asignatura;
   } finally {
     await conexion.end();
   }
