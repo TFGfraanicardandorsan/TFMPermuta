@@ -39,7 +39,7 @@ app.use(session({
         secure: true,
         httpOnly: true,
         sameSite: 'none',
-        maxAge: 86400000 
+        maxAge: 7200000 
       },
 }));
 // Inicializar Passport 

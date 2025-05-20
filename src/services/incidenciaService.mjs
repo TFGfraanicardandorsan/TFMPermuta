@@ -6,7 +6,7 @@ class IncidenciaService {
   async obtenerIncidencias() {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia from incidencia`,
+      text: `select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia from incidencia order by fecha_creacion asc`,
     };
     const res = await conexion.query(query);
     await conexion.end();
@@ -18,7 +18,8 @@ class IncidenciaService {
     const query = {
       text: ` SELECT id,fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
               FROM incidencia 
-              WHERE id in (select id from incidencia_usuario where usuario_id_fk = (select id from usuario where nombre_usuario = $1))`,
+              WHERE id in (select id from incidencia_usuario where usuario_id_fk = (select id from usuario where nombre_usuario = $1))
+              ORDER BY fecha_creacion DESC`,
       values: [uvus],
     };
     const res = await conexion.query(query);
@@ -31,7 +32,8 @@ class IncidenciaService {
     const query = {
       text: ` select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
-                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario IS NOT NULL))`,
+                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario IS NOT NULL))
+                  order by fecha_creacion asc`,
     };
     const res = await conexion.query(query);
     await conexion.end();
@@ -43,7 +45,8 @@ class IncidenciaService {
     const query = {
       text: ` select id,fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
-                  where estado_incidencia ='abierta' and id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario =( $1)))`,
+                  where estado_incidencia ='abierta' and id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario =( $1)))
+                  order by fecha_creacion asc`,
       values: [uvus],
     };
     const res = await conexion.query(query);
@@ -55,7 +58,8 @@ class IncidenciaService {
     const query = {
       text: ` select id, fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
-                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk IS NULL)`,
+                  where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk IS NULL)
+                  order by fecha_creacion asc`,
     };
     const res = await conexion.query(query);
     await conexion.end();
@@ -68,7 +72,8 @@ class IncidenciaService {
       const query = {
         text: `SELECT fecha_creacion, descripcion, tipo_incidencia, estado_incidencia, archivo
                FROM incidencia 
-               WHERE id = $1`,
+               WHERE id = $1
+               ORDER BY fecha_creacion ASC`,
         values: [id_incidencia],
       };
       const res = await conexion.query(query);
