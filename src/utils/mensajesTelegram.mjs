@@ -19,3 +19,9 @@ El cambio de los grupos de la documentación adjunta.
  
 Así quedaría presentada vuestra permuta. Si tenéis dudas la escuela dispone de la siguiente página para la presentación de solicitudes: https://www.informatica.us.es/index.php/secretaria/solicitudes
 `
+
+export const mensajeAceptadaPermuta = `La permuta ha sido aceptada correctamente. Uno de los dos estudiantes debe validar la permuta en la aplicación de Permutas ETSII.`
+
+export const mensajeFirmadaPermutaAlumno1 = (uvus) => `El documento de la permuta ha sido firmado correctamente. Cuando el estudiante ${uvus} firme el documento, la permuta será aceptada.`
+export const mensajeFirmadaPermutaAlumno2 = (uvus) => `El estudiante ${uvus} ha firmado el documento de la permuta. Es necesario que tú también lo firmes para que la permuta sea aceptada.`
+export const mensajeBorradorPermuta = `Se ha generado el borrador de la permuta. Debes rellenar el documento y firmarlo para que la permuta se pueda cumplimentar por el siguiente estudiante.`

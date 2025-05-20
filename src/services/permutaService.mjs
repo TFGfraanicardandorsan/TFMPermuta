@@ -1,7 +1,7 @@
 import database from "../config/database.mjs";
 import { sendMessage } from "./telegramService.mjs"
 import autorizacionService from "./autorizacionService.mjs";
-import { mensajeValidacionPermuta } from "../utils/mensajesTelegram.mjs";
+import { mensajeFirmadaPermutaAlumno1, mensajeFirmadaPermutaAlumno2, mensajeValidacionPermuta } from "../utils/mensajesTelegram.mjs";
 
 class PermutaService {
   async crearListaPermutas(archivo, IdsPermuta) {
@@ -59,6 +59,12 @@ class PermutaService {
         await conexion.query(queryPermutas_permuta);
       }
       await conexion.query("COMMIT");
+      try {
+        const chatIdEstudiante = await autorizacionService?.obtenerChatIdUsuario(uvus);
+        await sendMessage(chatIdEstudiante, mensajeBorradorPermuta);
+      } catch (msgError) {
+        console.error("Error enviando mensaje de validación:", msgError);
+      }
       return "Se ha creado la lista de permutas correctamente";
     } catch (error) {
       await conexion.query("ROLLBACK");
@@ -87,7 +93,7 @@ class PermutaService {
     }
   }
 
-  async firmarPermuta(permutaId, archivo) {
+  async firmarPermuta(permutaId, archivo,uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
@@ -98,7 +104,28 @@ class PermutaService {
       };
 
       await conexion.query(query);
-      await conexion.end();
+      const querySelect = {
+        text: ` SELECT LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
+                      GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
+                      (SELECT estado FROM permutas WHERE id = ( SELECT permutas_id_fk FROM permutas_permuta WHERE permuta_id_fk = p.id LIMIT 1)) AS estado_permuta_asociada
+                FROM permuta p
+                INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
+                INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
+                WHERE ( p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+                OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario =$1)) 
+                AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') AND p.aceptada_1 = true AND p.aceptada_2 = true;`,
+        values: [uvus],
+      };
+      const resultado = await conexion.query(querySelect);
+      const { usuario_primario, usuario_secundario } = resultado.rows[0];
+      try {
+        const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(usuario_primario);
+        const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(usuario_secundario);
+        await sendMessage(chatIdEstudiante1, mensajeFirmadaPermutaAlumno1(usuario_secundario));
+        await sendMessage(chatIdEstudiante2, mensajeFirmadaPermutaAlumno2(usuario_primario));
+      } catch (msgError) {
+        console.error("Error enviando mensaje de validación:", msgError);
+      }
       return "La permuta ha sido firmada correctamente";
     } catch (error) {
       console.error("Error al firmar la permuta:", error);
@@ -119,7 +146,20 @@ class PermutaService {
       };
 
       await conexion.query(query);
-      await conexion.end();
+      const querySelect = {
+        text: `SELECT estudiante_cumplimentado_1, estudiante_cumplimentado_2 FROM permutas WHERE id = $1`,
+        values: [permutaId],
+      };
+      const resultado = await conexion.query(querySelect);
+      const { estudiante_cumplimentado_1, estudiante_cumplimentado_2 } = resultado.rows[0];
+      try {
+        const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_1);
+        const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_2);
+        await sendMessage(chatIdEstudiante1, mensajeAceptadaPermuta);
+        await sendMessage(chatIdEstudiante2, mensajeAceptadaPermuta);
+      } catch (msgError) {
+        console.error("Error enviando mensaje de validación:", msgError);
+      }
       return "La permuta ha sido aceptada correctamente";
     } catch (error) {
       console.error("Error al aceptar la permuta:", error);
@@ -166,7 +206,7 @@ async validarPermuta(permutaId) {
     const conexion = await database.connectPostgreSQL();
     const update = {
       text: `update permuta set estado = 'RECHAZADA' where id = $1 and usuario_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
-      values: [`${solicitud}`, `${uvus}`],
+      values: [solicitud, uvus],
     };
     await conexion.query(update);
     await conexion.end();

@@ -39,6 +39,7 @@ const firmarPermuta = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
+        const uvus = req.session.user.nombre_usuario;
         const { archivo } = req.body;
         const validId = GenericValidators.isInteger(req.body.permutaId, "PermutaId");
         if (!validId.valido) {
@@ -49,7 +50,7 @@ const firmarPermuta = async (req, res) => {
         if (!validArchivo.valido || !/^[0-9a-fA-F-]{36}\.pdf$/.test(archivo)) {
             return res.status(400).json({ err: true, message: "El archivo debe ser un PDF con nombre UUID.pdf" });
         }
-        res.send({ err: false, result: await permutaService.firmarPermuta(permutaId, archivo) });
+        res.send({ err: false, result: await permutaService.firmarPermuta(permutaId, archivo,uvus) });
     } catch (err) {
         console.error('api firmarPermuta ha tenido una excepción:', err);
         res.status(500).json({ err: true, message: 'Error interno en firmarPermuta', details: err.message });
