@@ -83,14 +83,14 @@ const asignarmeIncidencia = async (req, res) => {
 
 const obtenerIncidenciaPorId = async (req, res) => {
     try {
-        const id_incidencia = parseInt(req.body.id_incidencia);
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        const validId = GenericValidators.isInteger(id_incidencia, "ID Incidencia");
+       const validId = GenericValidators.isInteger(req.body.id_incidencia, "ID Incidencia");
         if (!validId.valido) {
-            return res.status(400).json({ error: true, message: validId.mensaje });
-        }
+        return res.status(400).json({ error: true, message: validId.mensaje });
+    }
+        const id_incidencia = validId.valor;
         res.json({ error: false, result: await incidenciaService.obtenerIncidenciaPorId(id_incidencia)});
     } catch (err) {
         console.error("Error en obtenerIncidenciaPorId:", err);

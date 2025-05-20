@@ -37,14 +37,14 @@ const firmarPermuta = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const { archivo, permutaId } = req.body;
-        // const validId = GenericValidators.isInteger(permutaId, "PermutaId");
-        // if (!validId.valido) {
-        //     return res.status(400).json({ err: true, message: validId.mensaje });
-        // }
-        // const validArchivo = GenericValidators.isFilePdfOrPng(archivo, "Archivo", 50);
-        // if (!validArchivo.valido || !/^[0-9a-fA-F-]{36}\.pdf$/.test(archivo)) {
-        //     return res.status(400).json({ err: true, message: "El archivo debe ser un PDF con nombre UUID.pdf" });
-        // }
+        const validId = GenericValidators.isInteger(permutaId, "PermutaId");
+        if (!validId.valido) {
+            return res.status(400).json({ err: true, message: validId.mensaje });
+        }
+        const validArchivo = GenericValidators.isFilePdfOrPng(archivo, "Archivo", 50);
+        if (!validArchivo.valido || !/^[0-9a-fA-F-]{36}\.pdf$/.test(archivo)) {
+            return res.status(400).json({ err: true, message: "El archivo debe ser un PDF con nombre UUID.pdf" });
+        }
         res.send({
             err: false,
             result: await permutaService.firmarPermuta(permutaId, archivo)
@@ -66,14 +66,14 @@ const aceptarPermuta = async (req, res) => {
         }
         const { archivo, permutaId } = req.body;
         const uvus = req.session.user.nombre_usuario;
-        // const validId = GenericValidators.isInteger(permutaId, "PermutaId");
-        // if (!validId.valido) {
-        //     return res.status(400).json({ err: true, message: validId.mensaje });
-        // }
-        // const validArchivo = GenericValidators.isFilePdfOrPng(archivo, "Archivo", 50);
-        // if (!validArchivo.valido || !/^[0-9a-fA-F-]{36}\.pdf$/.test(archivo)) {
-        //     return res.status(400).json({ err: true, message: "El archivo debe ser un PDF con nombre UUID.pdf" });
-        // }
+        const validId = GenericValidators.isInteger(permutaId, "PermutaId");
+        if (!validId.valido) {
+            return res.status(400).json({ err: true, message: validId.mensaje });
+        }
+        const validArchivo = GenericValidators.isFilePdfOrPng(archivo, "Archivo", 50);
+        if (!validArchivo.valido || !/^[0-9a-fA-F-]{36}\.pdf$/.test(archivo)) {
+            return res.status(400).json({ err: true, message: "El archivo debe ser un PDF con nombre UUID.pdf" });
+        }
         res.send({
             err: false,
             result: await permutaService.aceptarPermuta(permutaId, archivo, uvus)
