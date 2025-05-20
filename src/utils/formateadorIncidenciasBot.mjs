@@ -10,8 +10,7 @@ export const avisoAdmin = (nombreCompleto, uvusEnviado, chatId) =>
 
 export const formatearIncidencias = (incidencias) => {
   return incidencias
-    .slice(-5) // solo las 5 últimas
-    .reverse() // invertir el orden para mostrar las más recientes primero
+    .slice(0,5) 
     .map((incidencia, index) => `
 ${emojisNumeros[index]} 
 📅 <i> ${formatearFecha(incidencia.fecha_creacion)}</i>
@@ -22,9 +21,10 @@ ${emojisNumeros[index]}
     .join('\n\n'); // separación entre incidencias
 };
 
+
 export const formatearNotificaciones = (notificaciones) => {
   return notificaciones
-    .slice(0, 5) // las 5 más recientes (ya vienen ordenadas por fecha desc)
+    .slice(0, 5)
     .map((notificacion, index) => `
 🔔 <b>Notificación ${emojisNumeros[index]} </b>
 📅 <i>${formatearFecha(notificacion.fecha_creacion)}</i>
