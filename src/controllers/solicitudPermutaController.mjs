@@ -7,19 +7,17 @@ const solicitarPermuta = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        // Parseo explícito de asignatura a int
-        const asignatura = parseInt(req.body.asignatura);
         const { grupos_deseados } = req.body;
 
-        const validAsignatura = GenericValidators.isInteger(asignatura, "Asignatura");
+        const validAsignatura = GenericValidators.isInteger(req.body.asignatura, "Asignatura");
         if (!validAsignatura.valido) {
             return res.status(400).json({ err: true, message: validAsignatura.mensaje });
         }
+        const asignatura = validAsignatura.valor;
         const validGrupos = GenericValidators.isArrayOfIntegers(grupos_deseados, "Grupos deseados");
         if (!validGrupos.valido) {
             return res.status(400).json({ err: true, message: validGrupos.mensaje });
         }
-
         res.send({ err: false, result: await solicitudPermutaService.solicitarPermuta(uvus, asignatura, grupos_deseados) });
     } catch (err) {
         console.error('api solicitarPermuta ha tenido una excepción:', err);
@@ -54,17 +52,16 @@ const getMisSolicitudesPermuta = async (req,res) => {
     }
 
 const aceptarSolicitudPermuta = async (req,res) => {
-    // INTEGER
-    try{
+    try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const { solicitud } = req.body;
-        const validSolicitud = GenericValidators.isInteger(solicitud, "Solicitud");
+        const validSolicitud = GenericValidators.isInteger(req.body.solicitud, "Solicitud");
         if (!validSolicitud.valido) {
             return res.status(400).json({ err: true, message: validSolicitud.mensaje });
         }
+        const solicitud = validSolicitud.valor;
         res.send({ err: false, result: await solicitudPermutaService.aceptarSolicitudPermuta(uvus, solicitud) });
     } catch (err){
         console.error('api aceptarSolicitudPermuta ha tenido una excepción:', err);
@@ -73,17 +70,16 @@ const aceptarSolicitudPermuta = async (req,res) => {
 }
 
 const validarSolicitudPermuta = async (req,res) => {
-    // INTEGER
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const { solicitud } = req.body;
-        const validSolicitud = GenericValidators.isInteger(solicitud, "Solicitud");
+        const validSolicitud = GenericValidators.isInteger(req.body.solicitud, "Solicitud");
         if (!validSolicitud.valido) {
             return res.status(400).json({ err: true, message: validSolicitud.mensaje });
         }
+        const solicitud = validSolicitud.valor;
         res.send({ err: false, result: await solicitudPermutaService.actualizarEstadoPermuta(solicitud, uvus) });
     } catch (err){
         console.error('api validarSolicitudPermuta ha tenido una excepción:', err);
@@ -117,69 +113,52 @@ const proponerPermutas = async (req, res) => {
 }
 
 const aceptarPermutaPropuesta = async (req, res) => {
-    // INTEGER
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const permutaId = parseInt(req.params.id);
-        const validPermutaId = GenericValidators.isInteger(permutaId, "PermutaId");
+        const validPermutaId = GenericValidators.isInteger(req.params.id, "PermutaId");
         if (!validPermutaId.valido) {
             return res.status(400).json({ err: true, message: validPermutaId.mensaje });
         }
-        res.send({
-            err: false,
-            result: await solicitudPermutaService.aceptarPermutaPropuesta(uvus, permutaId)
-        });
+        const permutaId = validPermutaId.valor;
+        res.send({ err: false, result: await solicitudPermutaService.aceptarPermutaPropuesta(uvus, permutaId) });
     } catch (err) {
         console.error('api aceptarPermutaPropuesta ha tenido una excepción:', err);
-        res.status(500).json({
-            err: true,
-            message: 'Error interno en aceptarPermutaPropuesta',
-            details: err.message
-        });
+        res.status(500).json({ err: true, message: 'Error interno en aceptarPermutaPropuesta', details: err.message });
     }
 };
 
 const rechazarPermutaPropuesta = async (req, res) => {
-    // INTEGER
     try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const permutaId = parseInt(req.params.id);
-        const validPermutaId = GenericValidators.isInteger(permutaId, "PermutaId");
+        const validPermutaId = GenericValidators.isInteger(req.params.id, "PermutaId");
         if (!validPermutaId.valido) {
             return res.status(400).json({ err: true, message: validPermutaId.mensaje });
         }
-        res.send({
-            err: false,
-            result: await solicitudPermutaService.rechazarPermutaPropuesta(uvus, permutaId)
-        });
+        const permutaId = validPermutaId.valor;
+        res.send({ err: false, result: await solicitudPermutaService.rechazarPermutaPropuesta(uvus, permutaId)});
     } catch (err) {
         console.error('api rechazarPermutaPropuesta ha tenido una excepción:', err);
-        res.status(500).json({
-            err: true,
-            message: 'Error interno en rechazarPermutaPropuesta',
-            details: err.message
-        });
+        res.status(500).json({ err: true, message: 'Error interno en rechazarPermutaPropuesta', details: err.message });
     }
 };
 
-    const getTodasSolicitudesPermuta = async (req,res) => {
-        try{
-            if (!req.session.user) {
-                return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
-            }
-            const uvus = req.session.user.nombre_usuario;
-            res.send({err:false, result:await solicitudPermutaService.getTodasSolicitudesPermuta()})
-            } catch (err){
-                console.error('api verListaPermutas ha tenido una excepción:', err);
-                res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
-            }
+const getTodasSolicitudesPermuta = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
+        res.send({err:false, result:await solicitudPermutaService.getTodasSolicitudesPermuta()})
+        } catch (err){
+            console.error('api verListaPermutas ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
+        }
+    }
 
 export default {
     solicitarPermuta,

@@ -13,11 +13,7 @@ router
 .post('/validarSolicitudPermuta',verificarRol('estudiante'), solicitudPermutaController.validarSolicitudPermuta)
 .post('/proponerPermutas',verificarRol('estudiante'), solicitudPermutaController.proponerPermutas)
 .post('/getTodasSolicitudesPermuta',verificarRol('administrador'), solicitudPermutaController.getTodasSolicitudesPermuta)
-.post('/permuta/:id/aceptar', 
-        verificarRol('estudiante'), 
-        solicitudPermutaController.aceptarPermutaPropuesta)
-    .post('/permuta/:id/rechazar', 
-        verificarRol('estudiante'), 
-        solicitudPermutaController.rechazarPermutaPropuesta)
+.post('/permuta/:id/aceptar', verificarRol('estudiante'), solicitudPermutaController.aceptarPermutaPropuesta)
+.post('/permuta/:id/rechazar', verificarRol('estudiante'), solicitudPermutaController.rechazarPermutaPropuesta)
 
 export default router;

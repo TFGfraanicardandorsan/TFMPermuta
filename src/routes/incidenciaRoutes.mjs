@@ -4,13 +4,14 @@ import { verificarRol } from '../middleware/rolMiddleware.mjs';
 
 const router = express.Router();
 
-router.post("/obtenerIncidencias", verificarRol('administrador'), incidenciaController.obtenerIncidencias);
-router.post("/obtenerIncidenciasAsignadasUsuario", verificarRol('estudiante'), incidenciaController.obtenerIncidenciasAsignadasUsuario);
-router.post("/obtenerIncidenciasAsignadas",verificarRol('administrador'), incidenciaController.obtenerIncidenciasAsignadas);
-router.post("/obtenerIncidenciasSinAsignar",verificarRol('administrador'),incidenciaController.obtenerIncidenciasSinAsignar);
-router.post("/asignarmeIncidencia",verificarRol('administrador'), incidenciaController.asignarmeIncidencia);
-router.post("/solucionarIncidencia",verificarRol('administrador'), incidenciaController.solucionarIncidencia);
-router.post("/crearIncidencia",verificarRol('estudiante'), incidenciaController.crearIncidencia);
-router.post("/obtenerIncidenciasAsignadasAdmin",verificarRol('administrador'), incidenciaController.obtenerIncidenciasAsignadasAdmin);
-router.post("/obtenerIncidenciaPorId",verificarRol('administrador'), incidenciaController.obtenerIncidenciaPorId);
+router
+.post("/obtenerIncidencias", verificarRol('administrador'), incidenciaController.obtenerIncidencias)
+.post("/obtenerIncidenciasAsignadasUsuario", verificarRol('estudiante'), incidenciaController.obtenerIncidenciasAsignadasUsuario)
+.post("/obtenerIncidenciasAsignadas",verificarRol('administrador'), incidenciaController.obtenerIncidenciasAsignadas)
+.post("/obtenerIncidenciasSinAsignar",verificarRol('administrador'),incidenciaController.obtenerIncidenciasSinAsignar)
+.post("/asignarmeIncidencia",verificarRol('administrador'), incidenciaController.asignarmeIncidencia)
+.post("/solucionarIncidencia",verificarRol('administrador'), incidenciaController.solucionarIncidencia)
+.post("/crearIncidencia",verificarRol('estudiante'), incidenciaController.crearIncidencia)
+.post("/obtenerIncidenciasAsignadasAdmin",verificarRol('administrador'), incidenciaController.obtenerIncidenciasAsignadasAdmin)
+.post("/obtenerIncidenciaPorId",verificarRol('administrador'), incidenciaController.obtenerIncidenciaPorId)
 export default router;

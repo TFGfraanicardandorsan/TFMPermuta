@@ -31,7 +31,6 @@ const insertarNotificacion = async (req,res) => {
         if (!validReceptor.valido) {
             return res.status(400).json({ err: true, message: validReceptor.mensaje });
         }
-
         res.send({err:false, result: await notificacionService.crearNotificacionesUsuario(uvus, contenido, receptor)});
     } catch (err){
         console.log('api insertarNotificacion ha tenido una excepción');

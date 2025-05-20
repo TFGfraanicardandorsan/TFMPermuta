@@ -65,15 +65,15 @@ const obtenerIncidenciasSinAsignar = async (req, res) => {
 
 const asignarmeIncidencia = async (req, res) => {
     try {
-        const uvus = req.session.user?.nombre_usuario;
-        const id_incidencia = req.body.id_incidencia;
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        const validId = GenericValidators.isInteger(id_incidencia, "ID Incidencia");
+        const uvus = req.session.user.nombre_usuario;
+        const validId = GenericValidators.isInteger(req.body.id_incidencia, "ID Incidencia");
         if (!validId.valido) {
             return res.status(400).json({ error: true, message: validId.mensaje });
         }
+        const id_incidencia = validId.valor;
         res.json({ error: false, result: await incidenciaService.asignarmeIncidencia(uvus, id_incidencia)});
     } catch (err) {
         console.error("Error en asignarmeIncidencia:", err);
@@ -86,7 +86,7 @@ const obtenerIncidenciaPorId = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-       const validId = GenericValidators.isInteger(req.body.id_incidencia, "ID Incidencia");
+        const validId = GenericValidators.isInteger(req.body.id_incidencia, "ID Incidencia");
         if (!validId.valido) {
         return res.status(400).json({ error: true, message: validId.mensaje });
     }
@@ -100,15 +100,15 @@ const obtenerIncidenciaPorId = async (req, res) => {
 
 const solucionarIncidencia = async (req, res) => {
     try {
-        const uvus = req.session.user?.nombre_usuario;
-        const id_incidencia = req.body.id_incidencia;
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        const validId = GenericValidators.isInteger(id_incidencia, "ID Incidencia");
+        const uvus = req.session.user.nombre_usuario;
+        const validId = GenericValidators.isInteger(req.body.id_incidencia, "ID Incidencia");
         if (!validId.valido) {
             return res.status(400).json({ error: true, message: validId.mensaje });
         }
+        const id_incidencia = validId.valor;
         res.json({ error: false, result: await incidenciaService.solucionarIncidencia(uvus, id_incidencia) });
     } catch (err) {
         console.error("Error en solucionarIncidencia:", err);
@@ -121,6 +121,7 @@ const crearIncidencia = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
+        const uvus = req.session.user.nombre_usuario;
         const { descripcion, tipo_incidencia, fileId } = req.body;
         const validDesc = GenericValidators.isString(descripcion, "Descripción", 1000);
         if (!validDesc.valido) {
@@ -136,7 +137,6 @@ const crearIncidencia = async (req, res) => {
                 return res.status(400).json({ error: true, message: validFile.mensaje });
             }
         }
-        const uvus = req.session.user.nombre_usuario;
         res.status(201).json({ error: false, result: await incidenciaService.crearIncidencia(descripcion, tipo_incidencia, fileId, uvus) });
     } catch (err) {
         console.error("Error en crearIncidencia:", err);

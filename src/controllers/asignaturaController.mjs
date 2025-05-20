@@ -2,7 +2,7 @@ import asignaturaService from "../services/asignaturaService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 
 const obtenerAsignaturasMiEstudioUsuario = async (req,res) => {
-    try{
+    try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
@@ -14,7 +14,7 @@ const obtenerAsignaturasMiEstudioUsuario = async (req,res) => {
         }
 }
 const asignaturaPermutable = async (req,res) => {
-    try{
+    try {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
@@ -66,10 +66,11 @@ const obtenerAsignaturasNoMatriculadas = async (req, res) => {
 
 const crearAsignatura = async (req, res) => {
     try {
-        // TODO: VALIDAR STRRING, STRING, INT, INT, INT
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
         const { nombre, siglas, curso, codigo, estudios_id } = req.body;
 
-        // Ajusta los valores máximos según tu modelo de base de datos
         const validNombre = GenericValidators.isString(nombre, "Nombre", 100);
         if (!validNombre.valido) return res.status(400).json({ err: true, message: validNombre.mensaje });
 
@@ -83,11 +84,13 @@ const crearAsignatura = async (req, res) => {
 
         const validCodigo = GenericValidators.isInteger(codigo, "Código");
         if (!validCodigo.valido) return res.status(400).json({ err: true, message: validCodigo.mensaje });
+        const codigoValido = validCodigo.valor;
 
         const validEstudiosId = GenericValidators.isInteger(estudios_id, "Estudios ID");
         if (!validEstudiosId.valido) return res.status(400).json({ err: true, message: validEstudiosId.mensaje });
+        const estudiosIdValido = validEstudiosId.valor;
 
-        const nuevaAsignatura = await asignaturaService.crearAsignatura({ nombre, siglas, curso, codigo, estudios_id });
+        const nuevaAsignatura = await asignaturaService.crearAsignatura({ nombre, siglas, curso, codigo:codigoValido, estudios_id:estudiosIdValido });
         res.status(201).json({ err: false, result: nuevaAsignatura });
     } catch (err) {
         console.log('API crearAsignatura ha tenido una excepción:', err);

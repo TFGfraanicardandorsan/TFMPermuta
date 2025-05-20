@@ -10,4 +10,5 @@ router
 .post('/obtenerTodosGruposMisAsignaturasUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasUsuario)
 .post('/obtenerTodosGruposMisAsignaturasSinGrupoUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasSinGrupoUsuario)
 .post('/obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario',verificarRol('estudiante'),grupoController.obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario);
+
 export default router;

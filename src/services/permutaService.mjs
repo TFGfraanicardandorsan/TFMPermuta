@@ -364,61 +364,6 @@ SELECT
       await conexion.end();
     }
   }
-
-
-  async obtenerEstadoPermutaYUsuarios(permutasId) {
-    const conexion = await database.connectPostgreSQL();
-    try {
-      const query = {
-        text: `
-          SELECT 
-            per.estado,
-            per.archivo,
-            u1.nombre_usuario as usuario_1,
-            u2.nombre_usuario as usuario_2,
-            p.id as permuta_id,
-            a.codigo as codigo_asignatura,
-            g1.nombre as grupo_1,
-            g2.nombre as grupo_2
-          FROM permutas per
-          INNER JOIN permutas_permuta pp ON per.id = pp.permutas_id_fk
-          INNER JOIN permuta p ON pp.permuta_id_fk = p.id
-          INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
-          INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
-          INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
-          INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
-          INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
-          WHERE per.id = $1
-        `,
-        values: [permutasId],
-      };
-
-      const resultado = await conexion.query(query);
-      await conexion.end();
-
-      if (resultado.rows.length === 0) {
-        throw new Error("No se encontró la permuta especificada");
-      }
-
-      return {
-        estado: resultado.rows[0].estado,
-        archivo: resultado.rows[0].archivo,
-        permutas: resultado.rows.map((row) => ({
-          permuta_id: row.permuta_id,
-          usuario_1: row.usuario_1,
-          usuario_2: row.usuario_2,
-          codigo_asignatura: row.codigo_asignatura,
-          grupo_1: row.grupo_1,
-          grupo_2: row.grupo_2,
-        })),
-      };
-    } catch (error) {
-      console.error("Error al obtener estado de permuta y usuarios:", error);
-      throw new Error("Error al obtener estado de permuta y usuarios");
-    } finally {
-      await conexion.end();
-    }
-  }
 }
 
 const permutaService = new PermutaService();

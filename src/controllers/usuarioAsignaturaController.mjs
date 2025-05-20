@@ -7,11 +7,11 @@ const actualizarAsignaturasUsuario = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const { asignatura } = req.body;
-        const validAsignatura = GenericValidators.isInteger(asignatura, "Asignatura");
+        const validAsignatura = GenericValidators.isInteger(req.body.asignatura, "Asignatura");
         if (!validAsignatura.valido) {
             return res.status(400).json({ err: true, message: validAsignatura.mensaje });
         }
+        const asignatura = validAsignatura.valor;
         res.send({ err: false, result: await usuarioAsignaturaService.actualizarAsignaturasUsuario(uvus, asignatura) })
     } catch (err) {
         console.log('api actualizarAsignaturasUsuario ha tenido una excepción')
@@ -38,11 +38,11 @@ const superarAsignaturasUsuario = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const { asignatura } = req.body;
-        const validAsignatura = GenericValidators.isInteger(asignatura, "Asignatura");
+        const validAsignatura = GenericValidators.isInteger(req.body.asignatura, "Asignatura");
         if (!validAsignatura.valido) {
             return res.status(400).json({ err: true, message: validAsignatura.mensaje });
         }
+        const asignatura = validAsignatura.valor;
         res.send({ err: false, result: await usuarioAsignaturaService.superarAsignaturasUsuario(uvus, asignatura) })
     } catch (err) {
         console.log('api superarAsignaturasUsuario ha tenido una excepción')

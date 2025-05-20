@@ -14,6 +14,5 @@ router
 .post('/misPermutasPropuestasPorMi', verificarRol('estudiante'), permutasController.misPermutasPropuestasPorMi)
 .post('/obtenerPermutasValidadasPorUsuario', verificarRol('estudiante'), permutasController.obtenerPermutasValidadasPorUsuario)
 .post('/obtenerPermutasAgrupadasPorUsuario', verificarRol('estudiante'), permutasController.obtenerPermutasAgrupadasPorUsuario)
-.get('/permutasEstado', permutasController.obtenerEstadoPermutaYUsuarios);
 
 export default router;

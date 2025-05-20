@@ -17,7 +17,6 @@ const obtenerDatosUsuario = async (req, res) => {
 
 
 const actualizarEstudiosUsuario = async (req,res) => {
-    // string
     try{
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
