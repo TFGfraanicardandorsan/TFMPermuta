@@ -32,3 +32,12 @@ export const formatearNotificaciones = (notificaciones) => {
     `.trim())
     .join('\n\n');
 };
+
+export const formatearNuevaIncidencia = (descripcion, tipo_incidencia, fecha_creacion) => {
+  return (
+    `<b>🆕 Nueva incidencia registrada en la aplicación de permutas</b>\n\n` +
+    `📄 <b>Descripción:</b> ${descripcion}\n` +
+    `🔖 <b>Tipo de incidencia:</b> ${tipo_incidencia}\n` +
+    `🕒 <i>Fecha de creación: ${formatearFecha(fecha_creacion)}</i>`
+  );
+};

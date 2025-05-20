@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import { formatearNuevaIncidencia } from "../utils/formateadorIncidenciasBot.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import { sendMessage } from "./telegramService.mjs";
 
@@ -147,11 +148,12 @@ class IncidenciaService {
       const queryIncidencia = {
         text: ` INSERT INTO incidencia (fecha_creacion, descripcion,tipo_incidencia,estado_incidencia,archivo) 
                 VALUES (NOW(),$1,$2,'abierta',$3)
-                RETURNING id`,
+                RETURNING id, fecha_creacion`,
         values: [descripcion, tipo_incidencia, fileId],
       };
       const resultado = await conexion.query(queryIncidencia);
       const incidenciaId = resultado.rows[0].id;
+      const fecha_creacion = resultado.rows[0].fecha_creacion;
       const incidenciaUsuario = {
         text: ` INSERT INTO incidencia_usuario (id, usuario_id_fk) 
                 VALUES ($1,(select id from usuario where nombre_usuario=$2))`,
@@ -161,7 +163,7 @@ class IncidenciaService {
       await conexion.query('COMMIT');
       try {
         const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
-        await sendMessage(chatIdUsuario, `Se ha creado una nueva incidencia en la aplicación de permutas. \n\nDescripción: ${descripcion} \nTipo de incidencia: ${tipo_incidencia}`);
+        await sendMessage(chatIdUsuario, formatearNuevaIncidencia(descripcion,tipo_incidencia,fecha_creacion), "HTML");
       } catch(error){
         console.error("Error al enviar el mensaje de incidencia creada:", error);
       }
