@@ -1,7 +1,7 @@
 import database from "../config/database.mjs";
 import { sendMessage } from "./telegramService.mjs"
 import autorizacionService from "./autorizacionService.mjs";
-import { mensajeFirmadaPermutaAlumno1, mensajeFirmadaPermutaAlumno2, mensajeValidacionPermuta,mensajeBorradorPermuta } from "../utils/mensajesTelegram.mjs";
+import { mensajeFirmadaPermutaAlumno1, mensajeFirmadaPermutaAlumno2,mensajeAceptadaPermuta, mensajeValidacionPermuta,mensajeBorradorPermuta } from "../utils/mensajesTelegram.mjs";
 
 class PermutaService {
   async crearListaPermutas(archivo, IdsPermuta) {
