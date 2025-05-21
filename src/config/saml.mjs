@@ -11,7 +11,7 @@ const certPathIDP = path.resolve(__dirname, 'certsSAML', 'idpCertificate.pem');
 const keyPath = path.resolve(__dirname, 'certsSAML', 'privateKey.pem');
 
 export const samlConfig = {
-    entryPoint: 'https://ssopre.us.es/SAML2/SSOService.php',
+    entryPoint: 'https://sso.us.es/SAML2/SSOService.php',
     issuer: 'https://permutas.eii.us.es/simplesaml/',        
     callbackUrl: 'https://permutas.eii.us.es/simplesaml/module.php/saml/sp/saml2-acs.php/default-sp', 
     cert: fs.readFileSync(certPathIDP, 'utf-8'),   
