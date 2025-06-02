@@ -29,7 +29,7 @@ class NotificacionService {
       await conexion.query(query);
       try {
         const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
-        await sendMessage(chatIdUsuario, `Se ha creado una nueva notificación: ${contenido}. \n\n Se han mandado a todos los usuarios con el rol ${receptor}`);
+        await sendMessage(chatIdUsuario, `Se ha creado una nueva notificación: ${contenido}.\n Se han mandado a todos los usuarios con el rol ${receptor}`);
       } catch (error) {
         console.error("Error al enviar el mensaje de solucionar incidencia:", error);
       }

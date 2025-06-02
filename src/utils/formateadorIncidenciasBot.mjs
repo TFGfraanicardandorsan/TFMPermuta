@@ -41,3 +41,28 @@ export const formatearNuevaIncidencia = (descripcion, tipo_incidencia, fecha_cre
     `🕒 <i>Fecha de creación: ${formatearFecha(fecha_creacion)}</i>`
   );
 };
+
+export const formatearPerfilAdmin = ({ nombre_completo, correo }) => `
+👑 <b>Perfil de Administrador</b>
+👤 <b>Nombre completo:</b> ${nombre_completo}
+✉️ <b>Correo:</b> ${correo}
+`.trim();
+
+export const formatearPerfilEstudiante = ({ nombre_completo, correo, titulacion, siglas }) => `
+🎓 <b>Perfil de Estudiante</b>
+
+👤 <b>Nombre completo:</b> ${nombre_completo}
+✉️ <b>Correo:</b> ${correo}
+🏫 <b>Titulación:</b> ${titulacion ?? "No asignada"}
+🔤 <b>Siglas:</b> ${siglas ?? "No asignadas"}
+`.trim();
+
+export const formatearAyuda = () => `
+🤖 *Ayuda del Bot de Permutas ETSII*
+
+🚀 /start: Iniciar el bot y registrarte.
+ℹ️ /misincidencias: Ver tus incidencias registradas.
+🔔 /vernotificaciones: Ver tus notificaciones pendientes.
+👤 /perfil: Ver tu perfil de usuario.
+❓ /ayuda: Mostrar este mensaje de ayuda.
+`.trim();

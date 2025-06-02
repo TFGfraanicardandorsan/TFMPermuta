@@ -2,6 +2,7 @@ import database from "../config/database.mjs";
 import { formatearNuevaIncidencia } from "../utils/formateadorIncidenciasBot.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import { sendMessage } from "./telegramService.mjs";
+import { formatearFecha } from "../utils/formateadorFechas.mjs";
 
 class IncidenciaService {
   async obtenerIncidencias() {
@@ -126,10 +127,24 @@ class IncidenciaService {
       values: [id_incidencia, uvus],
     };
     await conexion.query(query);
+    const queryIncidenciaUsuario = {
+      text: `select nombre_usuario from usuario where id = (select usuario_id_fk from incidencia_usuario where id = $1)`,
+      values: [id_incidencia],
+    };
+    const resQueryIncidencia = await conexion.query(queryIncidenciaUsuario)
+    const uvusUsuario = resQueryIncidencia.rows[0].nombre_usuario;
+
+    const queryFechaCreacion = {
+      text: `SELECT fecha_creacion FROM incidencia WHERE id = $1`,
+      values: [id_incidencia],
+    };
+    const resFechaCreacion = await conexion.query(queryFechaCreacion);
+    const fechaCreacionIncidencia = resFechaCreacion.rows[0].fecha_creacion;
     try {
-      const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
-      await sendMessage(chatIdUsuario,`La incidencia ${id_incidencia} ha sido solucionada correctamente.`);
-    } catch (error) {
+      const chatIdAdmin = await autorizacionService.obtenerChatIdUsuario(uvus);
+      const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvusUsuario);
+      await sendMessage(chatIdAdmin,`🎉 La incidencia ${id_incidencia} ha sido solucionada correctamente.`);
+      await sendMessage(chatIdUsuario,`🎉 La incidencia que fue creada <i>${formatearFecha(fechaCreacionIncidencia)}</i> ha sido solucionada.`,"HTML");    } catch (error) {
       console.error("Error al enviar el mensaje de solucionar incidencia:", error);
     }
     return `La incidencia ${id_incidencia} ha sido solucionada correctamente.`;

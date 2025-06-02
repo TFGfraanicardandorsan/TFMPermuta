@@ -4,7 +4,6 @@ import passport from '../src/middleware/passport.mjs';
 import dotenv from 'dotenv'
 import cors from 'cors'
 import https from 'https'
-import http from 'http'
 import fs from 'fs'
 import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
@@ -25,10 +24,8 @@ dotenv.config();
 const app = express();
 
 await setBotCommands(); // Establecer los comandos del bot de Telegram
-// Middleware nativo para JSON
-app.use(express.json());
-// Middleware nativo para formularios URL encoded
-app.use(express.urlencoded({extended:true}))
+app.use(express.json()); // Middleware nativo para JSON
+app.use(express.urlencoded({extended:true})) // Middleware nativo para formularios URL encoded
 
 // Middleware 
 app.use(session({
@@ -76,8 +73,7 @@ const options = {
     cert: fs.readFileSync(certPath),
     passphrase: process.env.SSL_PASSPHRASE
 };
-// const server = http.createServer(app)
-// const port = 3000;
+
 const server = https.createServer(options, app);
 const port = process.env.PORT || 3000;
 server.listen(port, () => {

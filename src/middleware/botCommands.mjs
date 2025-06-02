@@ -9,6 +9,7 @@ export const setBotCommands = async () => {
           { command: 'start', description: 'Iniciar el bot' },
           { command: 'misincidencias', description: 'Ver mis incidencias' },
           { command: 'vernotificaciones', description: 'Ver notificaciones' },
+          { command: 'perfil', description: 'Mi Perfil' },
           { command: 'ayuda', description: 'Mostrar ayuda' }
         ]
       }),

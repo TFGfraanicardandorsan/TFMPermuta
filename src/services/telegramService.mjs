@@ -1,9 +1,10 @@
 import fetch from "node-fetch";
 import incidenciaService from "./incidenciaService.mjs";
-import { formatearIncidencias, avisoAdmin, formatearNotificaciones } from "../utils/formateadorIncidenciasBot.mjs";
+import { formatearIncidencias, avisoAdmin, formatearNotificaciones, formatearPerfilAdmin, formatearPerfilEstudiante, formatearAyuda } from "../utils/formateadorIncidenciasBot.mjs";
 import { markupAceptarRechazarUsuario } from "../utils/markupBot.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import notificacionService from "./notificacionService.mjs";
+import usuarioService from "./usuarioService.mjs";
 export const getTelegramApiUrl = () => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 
 const estadosRegistro = {}; // userId => 'esperando_datos' Variables auxiliares para gestionar "estado" de usuarios en registro
@@ -36,27 +37,9 @@ export const handleIncomingMessage = async (message) => {
         await sendMessage(chatId, bienvenida, "Markdown");
         estadosRegistro[userId] = "esperando_datos";
       }
-    } else if (text === "/misincidencias") {
-      if (!usuarioExistente) {
-        await sendMessage(chatId, "Debes estar registrado para ver tus incidencias. Usa /start primero.");
-        return;
-      }
-      if (usuarioExistente.rol === "administrador") {
-        const incidendiasAdmin = await incidenciaService.obtenerIncidenciasAsignadasAdmin(uvus);
-        if (incidendiasAdmin.length === 0) {
-          await sendMessage(chatId, "No tienes incidencias asignadas como administrador 📭");
-        } else {
-          await sendMessage(chatId, formatearIncidencias(incidendiasAdmin), "HTML");
-        }
-      } else {
-      const incidenciasData = (await incidenciaService.obtenerIncidenciasAsignadasUsuario(uvus)) ?? [];
-        if (incidenciasData.length === 0) {
-          await sendMessage(chatId, "No tienes incidencias registradas 📭");
-        } else {
-        await sendMessage(chatId, formatearIncidencias(incidenciasData), "HTML");
-       }
-      }
-    } else if (estadosRegistro[userId] === "esperando_datos") {
+    } 
+    // 👇 Mueve este bloque aquí, justo después de /start
+    else if (estadosRegistro[userId] === "esperando_datos") {
       const partes = text.trim().split(" ");
       const uvusEnviado = partes.shift();
       const nombreCompleto = partes.join(" ");
@@ -71,8 +54,30 @@ export const handleIncomingMessage = async (message) => {
       await sendMessage(process.env.ADMIN_CHAT_ID, avisoAdmin(nombreCompleto,uvusEnviado,chatId), "Markdown", markupAceptarRechazarUsuario(uvusEnviado));
       // Eliminar el estado de registro del usuario, ya que la solicitud fue procesada
       delete estadosRegistro[userId];
+    }
+    // Solo se procesa el registro si está esperando datos
+    else if (text === "/misincidencias") {
+      if (!usuarioExistente) {
+        await sendMessage(chatId, "Debes estar registrado para ver tus incidencias. Usa /start primero.");
+        return;
+      }
+      if (usuarioExistente.rol === "administrador") {
+        const incidendiasAdmin = await incidenciaService.obtenerIncidenciasAsignadasAdmin(uvus);
+        if (incidendiasAdmin.length === 0) {
+          await sendMessage(chatId, "No tienes incidencias asignadas como administrador 📭");
+        } else {
+          await sendMessage(chatId, formatearIncidencias(incidendiasAdmin), "HTML");
+        }
+      } else {
+        const incidenciasData = (await incidenciaService.obtenerIncidenciasAsignadasUsuario(uvus)) ?? [];
+        if (incidenciasData.length === 0) {
+          await sendMessage(chatId, "No tienes incidencias registradas 📭");
+        } else {
+          await sendMessage(chatId, formatearIncidencias(incidenciasData), "HTML");
+        }
+      }
     } else if (text === "/vernotificaciones") {
-     if (!usuarioExistente) {
+      if (!usuarioExistente) {
         await sendMessage(chatId, "Debes estar registrado para ver las notificaciones. Usa /start primero.");
         return;
       }
@@ -82,8 +87,22 @@ export const handleIncomingMessage = async (message) => {
       } else {
         await sendMessage(chatId, formatearNotificaciones(notificaciones), "HTML");
       }
-    }
-     else {
+    } else if (text === "/perfil") {
+      if (!usuarioExistente) {
+        await sendMessage(chatId, "Debes estar registrado para ver tu perfil. Usa /start primero.");
+        return;
+      }
+      if (usuarioExistente.rol === "administrador") {
+        const perfilAdmin = await usuarioService.obtenerDatosUsuarioAdmin(uvus);
+        await sendMessage(chatId, formatearPerfilAdmin(perfilAdmin), "HTML");
+        }
+       else {
+        const perfilEstudiante = usuarioService.obtenerDatosUsuario(uvus);
+        await sendMessage(chatId, formatearPerfilEstudiante(perfilEstudiante), "HTML");
+        }
+      } else if (text === "/ayuda") {
+        await sendMessage(chatId, formatearAyuda(), "Markdown");
+      } else {
       await sendMessage(chatId, "No entiendo ese mensaje. Usa el menú 👇");
     }
   } catch (error) {
