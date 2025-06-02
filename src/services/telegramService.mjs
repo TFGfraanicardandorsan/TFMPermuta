@@ -98,7 +98,7 @@ export const handleIncomingMessage = async (message) => {
         await sendMessage(chatId, formatearPerfilAdmin(perfilAdmin), "HTML");
         }
        else {
-        const perfilEstudiante = usuarioService.obtenerDatosUsuario(uvus);
+        const perfilEstudiante = await usuarioService.obtenerDatosUsuario(uvus);
         await sendMessage(chatId, formatearPerfilEstudiante(perfilEstudiante), "HTML");
         }
       } else if (text === "/ayuda") {
