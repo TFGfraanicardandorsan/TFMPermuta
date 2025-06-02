@@ -18,6 +18,7 @@ export const handleIncomingMessage = async (message) => {
     uvus = await autorizacionService?.verificarSiExisteUsuarioEnTelegram(userId, chatId);
     if (uvus) {
       usuarioExistente = await autorizacionService?.verificarSiExisteUsuario(uvus);
+      delete estadosRegistro[userId];
     }
   } catch (error) {
     console.error("Error al verificar si existe el usuario en Telegram:", error);
