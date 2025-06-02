@@ -44,6 +44,7 @@ export const formatearNuevaIncidencia = (descripcion, tipo_incidencia, fecha_cre
 
 export const formatearPerfilAdmin = ({ nombre_completo, correo }) => `
 👑 <b>Perfil de Administrador</b>
+
 👤 <b>Nombre completo:</b> ${nombre_completo}
 ✉️ <b>Correo:</b> ${correo}
 `.trim();
@@ -54,7 +55,7 @@ export const formatearPerfilEstudiante = ({ nombre_completo, correo, titulacion,
 👤 <b>Nombre completo:</b> ${nombre_completo}
 ✉️ <b>Correo:</b> ${correo}
 🏫 <b>Titulación:</b> ${titulacion ?? "No asignada"}
-🔤 <b>Siglas:</b> ${siglas ?? "No asignadas"}
+🔤 <b>Siglas:</b> ${siglas ?? "No asignada"}
 `.trim();
 
 export const formatearAyuda = () => `
