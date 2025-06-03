@@ -1,10 +1,10 @@
 export const mensajeValidacionPermuta = `
-La permuta ha sido validada correctamente. Recuerda que ahora debes presentar el documento firmado en el Registro Electrónico de la Universidad para completar el proceso. Este proceso debe seguir los siguientes pasos:
- 
+🎉 La permuta ha sido confirmada por todas las partes involucradas en la solicitud de permuta, por lo que ya está listo el documento de solicitud que debes presentar firmado por Registro Electrónico de la Universidad de Sevilla. Recuerda que sin este último paso de presentación de la documentación por Registro Electrónico, la solicitud de permuta no se tramita y no es recibida por la Escuela. Por tanto, ahora debéis seguir los siguientes pasos:
+
 1. Vais al registro general con este enlace (https://reg.redsara.es/).
 2. Creáis un nuevo registro.
 3. Cumplimentáis la información referente a la persona que lo presenta (dirección, nombre)
-4.  Cuando llegáis a solicitud buscáis con el asistente de búsqueda Universidad de Sevilla poniendo en asunto el nombre del centro "Para E.T.S. de Ingeniería Informática" y cumplimentáis el expone solicita con algo parecido a lo siguiente:
+4. Cuando llegáis a solicitud buscáis con el asistente de búsqueda Universidad de Sevilla poniendo en asunto el nombre del centro "Para E.T.S. de Ingeniería Informática" y cumplimentáis el expone solicita con algo parecido a lo siguiente:
  
 Expone:
  
