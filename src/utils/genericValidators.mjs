@@ -92,6 +92,19 @@ class GenericValidators {
     return { valido: true };
   }
 
+  /**
+   * Valida que un valor sea una fecha válida.
+   * @param {any} valor - El valor a validar.
+   * @param {string} nombreCampo - El nombre del campo para el mensaje de error.
+   * @returns {{ valido: boolean, mensaje?: string }}
+   */
+  static isDate(valor, nombreCampo = "El campo") {
+    if (!valor || isNaN(Date.parse(valor))) {
+      return { valido: false, mensaje: `${nombreCampo} debe ser una fecha válida` };
+    }
+    return { valido: true };
+  }
+
   static isValidPdfOrPngMime(file) {
     const allowedMimeTypes = ["application/pdf", "image/png"];
     const allowedExtensions = [".pdf", ".png"];
