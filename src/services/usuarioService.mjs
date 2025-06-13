@@ -1,4 +1,6 @@
 import database from "../config/database.mjs";
+import { mensajeGradoSeleccionado } from "../utils/mensajesTelegram.mjs";
+import { sendMessage } from "./telegramService.mjs";
 class UsuarioService{
 
 async obtenerDatosUsuario(uvus) {
@@ -28,22 +30,30 @@ async obtenerDatosUsuario(uvus) {
     return res.rows[0];
   }
 
-  async actualizarEstudiosUsuario(uvus,estudio){
+  async actualizarEstudiosUsuario(uvus, estudio) {
     const conexion = await database.connectPostgreSQL();
     const queryUsuario = {
       text: `select estudios_id_fk from usuario u where u.nombre_usuario =$1`,
       values: [uvus],
     };
     const resQueryUsuario = await conexion.query(queryUsuario);
-    if (resQueryUsuario.rows[0].estudios_id_fk === null){
+    if (resQueryUsuario.rows[0].estudios_id_fk === null) {
       const query = {
         text: `Update usuario u set estudios_id_fk =(select id from estudios where nombre = $1) where u.nombre_usuario =$2`,
         values: [estudio, uvus],
       };
       await conexion.query(query);
       await conexion.end();
+      // Enviar mensaje por Telegram
+      try {
+        const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
+        await sendMessage(chatIdUsuario, mensajeGradoSeleccionado(estudio));
+      } catch (error) {
+        console.error("Error al enviar el mensaje de selección de estudio:", error);
+      }
       return 'Estudios seleccionados';
     }
+    await conexion.end();
     return 'Ya tienes estudios seleccionados. Ponte en contacto con el administrador si deseas cambiarlos';
   }
 }
