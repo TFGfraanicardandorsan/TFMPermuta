@@ -26,3 +26,12 @@ export const mensajeFirmadaPermutaAlumno1 = (uvus) => `El documento de la permut
 export const mensajeFirmadaPermutaAlumno2 = (uvus) => `El estudiante ${uvus} ha firmado el documento de la permuta. Es necesario que tú también lo firmes para que la permuta sea aceptada.`
 export const mensajeBorradorPermuta = `Se ha generado el borrador de la permuta. Debes rellenar el documento y firmarlo para que la permuta se pueda cumplimentar por el siguiente estudiante.`
 export const mensajeGradoSeleccionado= (estudio) => `Has seleccionado el estudio de ${estudio}. Ahora deberás seleccionar las asignaturas y grupos en los que estás matriculado en tu perfil.`
+
+export const mensajeGruposSeleccionados = (lista) => {
+  if (!lista.length) return "No tienes grupos seleccionados.";
+  let texto = "Has seleccionado los siguientes grupos:\n";
+  lista.forEach(item => {
+    texto += `• ${item.nombreAsignatura || item.asignatura}: Grupo ${item.numGrupo}\n`;
+  });
+  return texto;
+};
