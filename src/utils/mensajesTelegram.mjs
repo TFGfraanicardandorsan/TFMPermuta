@@ -35,3 +35,10 @@ export const mensajeGruposSeleccionados = (lista) => {
   });
   return texto;
 };
+
+export const mensajeSolicitudPermuta = (asignatura, grupoSolicitante, gruposDeseados) => {
+  let texto = `📄 Has solicitado una permuta para la asignatura <b>${asignatura}</b>.\n`;
+  texto += `Tu grupo actual: <b>${grupoSolicitante}</b>\n`;
+  texto += `Grupos deseados: <b>${gruposDeseados.join(', ')}</b>`;
+  return texto;
+};

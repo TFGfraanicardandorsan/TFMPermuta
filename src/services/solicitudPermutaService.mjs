@@ -1,8 +1,11 @@
 import database from "../config/database.mjs";
 import PermutaMatching from "../algorithm/AlgoritmoCruzadoSolicitudes.mjs";
+import { mensajeSolicitudPermuta } from "../utils/mensajesTelegram.mjs";
+import { sendMessage } from "./telegramService.mjs";
+import autorizacionService from "./autorizacionService.mjs";
 
 class SolicitudPermutaService {
-     async solicitarPermuta(uvus,asignatura,grupos_deseados) {
+     async solicitarPermuta(uvus, asignatura, grupos_deseados) {
         const conexion = await database.connectPostgreSQL();
 
         // Verificar si ya existe una solicitud activa para esta asignatura y usuario
@@ -47,6 +50,34 @@ class SolicitudPermutaService {
                 values: [asignatura, grupo, id],
             };
             await conexion.query(insertGrupoDeseado);
+        }
+
+        // Obtener datos para el mensaje
+        const datosQuery = {
+          text: `
+            SELECT 
+              a.nombre AS asignatura,
+              g.nombre AS grupo_solicitante
+            FROM solicitud_permuta sp
+            INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
+            INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
+            WHERE sp.id = $1
+          `,
+          values: [id],
+        };
+        const datosRes = await conexion.query(datosQuery);
+        const { asignatura: nombreAsignatura, grupo_solicitante } = datosRes.rows[0];
+
+        // Enviar mensaje por Telegram
+        try {
+          const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
+          await sendMessage(
+            chatIdUsuario,
+            mensajeSolicitudPermuta(nombreAsignatura, grupo_solicitante, grupos_deseados),
+            "HTML"
+          );
+        } catch (error) {
+          console.error("Error al enviar el mensaje de solicitud de permuta:", error);
         }
 
         await conexion.end();
