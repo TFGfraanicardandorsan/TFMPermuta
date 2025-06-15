@@ -124,7 +124,7 @@ and g.id not in(select g.id from grupo g left join asignatura a on a.id = g.asig
   async actualizarProyectoDocente(grupoId, pdfPath) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `UPDATE grupo SET proyectoDocente = $1 WHERE id = $2`,
+      text: `UPDATE grupo SET proyecto_docente = $1 WHERE id = $2`,
       values: [pdfPath, grupoId],
     };
     await conexion.query(query);
