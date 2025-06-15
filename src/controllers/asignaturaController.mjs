@@ -98,11 +98,32 @@ const crearAsignatura = async (req, res) => {
     }
 };
 
+const verAsignatura = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const { codigo } = req.body;
+    if (!codigo) {
+      return res.status(400).json({ err: true, message: "Falta el codigo de la asignatura" });
+    }
+    const asignatura = await asignaturaService.verAsignatura(codigo);
+    if (!asignatura) {
+      return res.status(404).json({ err: true, message: "Asignatura no encontrada" });
+    }
+    res.json({ err: false, result: asignatura });
+  } catch (err) {
+    console.log('API verAsignatura ha tenido una excepción:', err);
+    res.sendStatus(500);
+  }
+};
+
 export default {
     obtenerAsignaturasMiEstudioUsuario,
     asignaturaPermutable,
     asignaturaPermutableUsuario,
     obtenerTodosGruposMisAsignaturasSinGrupoUsuario,
     obtenerAsignaturasNoMatriculadas,
-    crearAsignatura
+    crearAsignatura,
+    verAsignatura
 }

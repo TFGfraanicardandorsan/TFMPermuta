@@ -123,6 +123,26 @@ async crearAsignatura({ nombre, siglas, curso, codigo, estudios_id }) {
     await conexion.end();
   }
 }
+async verAsignatura(codigo) {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    const query = {
+      text: `
+        SELECT 
+          a.id, a.nombre, a.siglas, a.codigo, a.curso, e.nombre AS grado
+        FROM asignatura a
+        JOIN asignatura_estudios ae ON a.id = ae.asignatura_id
+        JOIN estudios e ON ae.estudios_id = e.id
+        WHERE a.codigo = $1
+      `,
+      values: [codigo],
+    };
+    const res = await conexion.query(query);
+    return res.rows[0] || null;
+  } finally {
+    await conexion.end();
+  }
+}
 }
 const asignaturaService = new AsignaturaService();
 export default asignaturaService;
