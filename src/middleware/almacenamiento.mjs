@@ -10,7 +10,9 @@ const storage = multer.diskStorage({
       uploadPath = process.env.BUZON;
     } else if (tipo === "archivador") {
       uploadPath = process.env.ARCHIVADOR;
-    } else {
+    } else if (tipo === "proyectoDocente"){
+      uploadPath = process.env.PROYECTO_DOCENTE;
+    }else {
       return cb(new Error("Tipo de carpeta no válido"));
     }
     cb(null, uploadPath);

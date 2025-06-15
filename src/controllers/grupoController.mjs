@@ -93,11 +93,32 @@ const obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario = async (req, res) =>
     }
 };
 
+const actualizarProyectoDocente = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: true, message: "No hay usuario en la sesión" });
+        }
+            const { grupoId,fileId } = req.body;
+
+        if (fileId) {
+            const validFile = GenericValidators.isFilePdfOrPng(fileId, "Archivo adjunto", 50);
+            if (!validFile.valido) {
+                return res.status(400).json({ error: true, message: validFile.mensaje });
+            }
+        }
+        res.status(201).json({ error: false, result: await grupoService.actualizarProyectoDocente(grupoId, fileId) });
+    } catch (err) {
+        console.error("Error en crearIncidencia:", err);
+        res.status(500).json({ error: true, message: "Error al crear la incidencia" });
+    }
+};
+
 export default {
     obtenerGruposPorAsignatura,
     insertarMisGrupos,
     obtenerMiGrupoAsignatura,
     obtenerTodosGruposMisAsignaturasUsuario,
     obtenerTodosGruposMisAsignaturasSinGrupoUsuario,
-    obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario
+    obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario,
+    actualizarProyectoDocente
 }

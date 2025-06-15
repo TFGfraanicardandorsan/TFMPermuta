@@ -120,6 +120,16 @@ and g.id not in(select g.id from grupo g left join asignatura a on a.id = g.asig
     await conexion.end();
     return res.rows;
   }
+  
+  async actualizarProyectoDocente(grupoId, pdfPath) {
+    const conexion = await database.connectPostgreSQL();
+    const query = {
+      text: `UPDATE grupo SET proyectoDocente = $1 WHERE id = $2`,
+      values: [pdfPath, grupoId],
+    };
+    await conexion.query(query);
+    await conexion.end();
+  }
 }
 const grupoService = new GrupoService();
 export default grupoService;
