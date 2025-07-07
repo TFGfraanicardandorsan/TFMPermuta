@@ -42,3 +42,6 @@ export const mensajeSolicitudPermuta = (asignatura, grupoSolicitante, gruposDese
   texto += `Grupos deseados: <b>${gruposDeseados.join(', ')}</b>`;
   return texto;
 };
+
+export const mensajeCorreoActualizado = (correo) =>
+  `✅ Tu correo electrónico ha sido actualizado correctamente a: <b>${correo}</b>.`;

@@ -149,6 +149,17 @@ class AutorizacionService{
       return { err: true, errmsg: 'Error al eliminar el alta de usuario' };
     }
   }
+
+  async obtenerUvusPorChatId(chatId) {
+    const conexion = await database.connectPostgreSQL();
+    const query = {
+      text: `SELECT nombre_usuario FROM usuario WHERE chat_id = $1`,
+      values: [chatId],
+    };
+    const res = await conexion.query(query);
+    await conexion.end();
+    return res.rows[0]?.nombre_usuario || null;
+  }
 }
 const autorizacionService = new AutorizacionService();
 export default autorizacionService;

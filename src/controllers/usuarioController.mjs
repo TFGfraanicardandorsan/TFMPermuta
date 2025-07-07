@@ -1,5 +1,7 @@
 import usuarioService from "../services/usuarioService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
+import { mensajeCorreoActualizado } from "../utils/mensajesTelegram.mjs";
+import { sendMessage } from "../services/telegramService.mjs";
 
 
 const obtenerDatosUsuario = async (req, res) => {
@@ -46,8 +48,38 @@ const actualizarEstudiosUsuario = async (req,res) => {
         res.sendStatus(500);
     }
 };
+
+const actualizarCorreoUsuario = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const uvus = req.session.user.nombre_usuario;
+    const { correo } = req.body;
+    const validCorreo = GenericValidators.isString(correo, "Correo", 100);
+    if (!validCorreo.valido) {
+      return res.status(400).json({ err: true, message: validCorreo.mensaje });
+    }
+    await usuarioService.actualizarCorreoUsuario(uvus, correo);
+
+    // Obtener chatId y enviar mensaje por Telegram
+    try {
+      const chatId = await autorizacionService.obtenerChatIdUsuario(uvus);
+      await sendMessage(chatId, mensajeCorreoActualizado(correo), "HTML");
+    } catch (error) {
+      console.error("Error enviando mensaje de correo actualizado por Telegram:", error);
+    }
+
+    res.send({ err: false, result: "Correo actualizado correctamente" });
+  } catch (err) {
+    console.log('api actualizarCorreoUsuario ha tenido una excepción');
+    res.sendStatus(500);
+  }
+};
+
 export default {
     obtenerDatosUsuario,
     actualizarEstudiosUsuario,
-    obtenerDatosUsuarioAdmin
+    obtenerDatosUsuarioAdmin,
+    actualizarCorreoUsuario
 }

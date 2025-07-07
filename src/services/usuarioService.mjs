@@ -56,6 +56,20 @@ async obtenerDatosUsuario(uvus) {
     await conexion.end();
     return 'Ya tienes estudios seleccionados. Ponte en contacto con el administrador si deseas cambiarlos';
   }
+
+  async actualizarCorreoUsuario(uvus, nuevoCorreo) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `UPDATE usuario SET correo = $1 WHERE nombre_usuario = $2`,
+        values: [nuevoCorreo, uvus],
+      };
+      await conexion.query(query);
+      return 'Correo actualizado correctamente';
+    } finally {
+      await conexion.end();
+    }
+  }
 }
 const usuarioService = new UsuarioService();
 export default usuarioService;
