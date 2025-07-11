@@ -57,23 +57,34 @@ export const handleIncomingMessage = async (message) => {
       await sendMessage(process.env.ADMIN_CHAT_ID, avisoAdmin(nombreCompleto,uvusEnviado,chatId), "Markdown", markupAceptarRechazarUsuario(uvusEnviado));
       // Eliminar el estado de registro del usuario, ya que la solicitud fue procesada
       delete estadosRegistro[userId];
-    }
+    } 
+    // Si el usuario está esperando introducir el nuevo correo
     else if (estadosRegistro[userId] === "esperando_correo") {
-  const nuevoCorreo = text && text.trim();
-  if (!nuevoCorreo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
-    await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
-    return;
-  }
-  if (!usuarioExistente) {
-    await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
-    delete estadosRegistro[userId];
-    return;
-  }
-  await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
-  await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
-  delete estadosRegistro[userId];
-  return;
-}
+      const nuevoCorreo = text && text.trim();
+      if (!nuevoCorreo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
+        await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
+        return;
+      }
+      if (!usuarioExistente) {
+        await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
+        delete estadosRegistro[userId];
+        return;
+      }
+      await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
+      await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
+      delete estadosRegistro[userId];
+      return;
+    } 
+    // Comando para iniciar la actualización del correo
+    else if (text === "/actualizarcorreo") {
+      if (!usuarioExistente) {
+        await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
+        return;
+      }
+      estadosRegistro[userId] = "esperando_correo";
+      await sendMessage(chatId, "Por favor, escribe tu nuevo correo electrónico:");
+      return;
+    }
     // Solo se procesa el registro si está esperando datos
     else if (text === "/misincidencias") {
       if (!usuarioExistente) {
@@ -122,15 +133,6 @@ export const handleIncomingMessage = async (message) => {
       } else if (text === "/ayuda") {
         await sendMessage(chatId, formatearAyuda(), "Markdown");
       } 
-      else if (text === "/actualizarcorreo") {
-        if (!usuarioExistente) {
-          await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
-          return;
-        }
-        estadosRegistro[userId] = "esperando_correo";
-        await sendMessage(chatId, "Por favor, envía tu nuevo correo electrónico:");
-        return;
-      }
       else {
       await sendMessage(chatId, "No entiendo ese mensaje. Usa el menú 👇");
     }
