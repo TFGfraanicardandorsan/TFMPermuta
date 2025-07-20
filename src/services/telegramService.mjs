@@ -20,7 +20,6 @@ export const handleIncomingMessage = async (message) => {
     uvus = await autorizacionService?.verificarSiExisteUsuarioEnTelegram(userId, chatId);
     if (uvus) {
       usuarioExistente = await autorizacionService?.verificarSiExisteUsuario(uvus);
-      delete estadosRegistro[userId];
     }
   } catch (error) {
     console.error("Error al verificar si existe el usuario en Telegram:", error);
@@ -73,16 +72,26 @@ export const handleIncomingMessage = async (message) => {
       await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
       await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
       delete estadosRegistro[userId];
-      return;
+      return; // <-- Este return es necesario para evitar el mensaje de menú
     } 
     // Comando para iniciar la actualización del correo
-    else if (text === "/actualizarcorreo") {
+    else if (text.startsWith("/actualizarcorreo")) {
       if (!usuarioExistente) {
         await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
         return;
       }
-      estadosRegistro[userId] = "esperando_correo";
-      await sendMessage(chatId, "Por favor, escribe tu nuevo correo electrónico:");
+      const partes = text.split(" ");
+      if (partes.length !== 2) {
+        await sendMessage(chatId, "Formato incorrecto. Usa:\n/actualizarcorreo tu_correo@ejemplo.com");
+        return;
+      }
+      const nuevoCorreo = partes[1].trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
+        await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
+        return;
+      }
+      await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
+      await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
       return;
     }
     // Solo se procesa el registro si está esperando datos
