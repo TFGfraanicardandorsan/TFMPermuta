@@ -38,19 +38,6 @@ const asignaturaPermutableUsuario = async (req,res) => {
         }
 }
 
-const obtenerTodosGruposMisAsignaturasSinGrupoUsuario = async (req,res) => {
-    try{
-        if (!req.session.user) {
-            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
-        }
-        const uvus = req.session.user.nombre_usuario;
-        res.send({err:false, result:await asignaturaService.obtenerTodosGruposMisAsignaturasSinGrupoUsuario(uvus)})
-        } catch (err){
-            console.log('api asignaturasPermutables ha tenido una excepción')
-            res.sendStatus(500)
-        }
-}
-
 const obtenerAsignaturasNoMatriculadas = async (req, res) => {
     try {
         if (!req.session.user) {
