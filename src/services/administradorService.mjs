@@ -141,6 +141,45 @@ class AdministradorService {
       await conexion.end();
     }
   }
+  async obtenerEstadisticasUsuarios() {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const usuariosPorRol = {
+        text: `
+          SELECT rol, COUNT(*) as cantidad
+          FROM usuario
+          GROUP BY rol
+          ORDER BY cantidad DESC;
+        `
+      };
+
+      const usuariosPorEstudio = {
+        text: `
+          SELECT e.nombre, e.siglas, COUNT(*) as cantidad
+          FROM usuario u
+          JOIN estudios e ON u.estudios_id_fk = e.id
+          GROUP BY e.nombre, e.siglas
+          ORDER BY cantidad DESC;
+        `
+      };
+
+      const [rolesRes, estudiosRes] = await Promise.all([
+        conexion.query(usuariosPorRol),
+        conexion.query(usuariosPorEstudio)
+      ]);
+
+      return {
+        usuariosPorRol: rolesRes.rows,
+        usuariosPorEstudio: estudiosRes.rows
+      };
+
+    } catch (error) {
+      console.error("Error al obtener estadísticas de usuarios:", error);
+      throw new Error("Error al obtener estadísticas de usuarios");
+    } finally {
+      await conexion.end();
+    }
+  }
 }
 
 const administradorService = new AdministradorService();

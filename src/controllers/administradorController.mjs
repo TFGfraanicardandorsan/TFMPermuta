@@ -37,8 +37,22 @@ const obtenerEstadisticasIncidencias = async (req, res) => {
   }
 };
 
+const obtenerEstadisticasUsuarios = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const estadisticas = await administradorService.obtenerEstadisticasUsuarios();
+    res.json({ error: false, result: estadisticas });
+  } catch (err) {
+    console.error("Error en obtenerEstadisticasUsuarios:", err);
+    res.status(500).json({ error: true, message: "Error al obtener estadísticas de usuarios" });
+  }
+};
+
 export default {
   obtenerEstadisticasIncidencias,
   obtenerEstadisticasPermutas,
-  obtenerEstadisticasSolicitudes
+  obtenerEstadisticasSolicitudes,
+  obtenerEstadisticasUsuarios
 };
