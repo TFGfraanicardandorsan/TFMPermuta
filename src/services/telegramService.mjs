@@ -175,7 +175,7 @@ export const handleCallbackQuery = async (callbackQuery) => {
         await sendMessage(chatId, "No se encontró ninguna solicitud con ese UVUS.");
         return;
       }
-      await sendMessage(solicitud.chat_id, `🎉 ¡Felicidades! Has sido aceptado en el sistema de Permutas ETSII. Bienvenido.`);
+      await sendMessage(solicitud.chat_id, `🎉 ¡Felicidades! Has sido aceptado en el sistema de Permutas ETSII. Bienvenido.\n Recuerda que debes completar los datos de tu perfil:\n 1. Marcar qué estudios estás cursando.\n2. Una vez que has puesto el estudio añadir las asignaturas.\n3. Añadir los grupos EN LOS QUE ESTÁS MATRICULADO de las asignaturas marcadas (se te redirigirá después de marcar las asignaturas).\nSi no haces todo esto NO podrás solicitar ni aceptar las permutas.\nRecuerda que el enlace de tu perfil es: https://permutas.eii.us.es/miPerfil`);
       // Eliminar la solicitud de la lista de pendientes
       await autorizacionService?.insertarUsuario(solicitud.uvus, solicitud.nombre_completo, solicitud.correo, solicitud.chat_id,);
       // Notificar al administrador que la solicitud fue aceptada
