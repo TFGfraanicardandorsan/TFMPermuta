@@ -66,4 +66,5 @@ export const formatearAyuda = () => `
 🔔 /vernotificaciones: Ver tus notificaciones pendientes.
 👤 /perfil: Ver tu perfil de usuario.
 ❓ /ayuda: Mostrar este mensaje de ayuda.
+✉️ /actualizarcorreo [tu_correo@ejemplo.com] - Actualizar tu correo electrónico.
 `.trim();
