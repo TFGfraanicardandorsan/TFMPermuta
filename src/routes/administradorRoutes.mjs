@@ -7,5 +7,6 @@ router
 .post('/permutas', verificarRol('administrador'), administradorController.obtenerEstadisticasPermutas)
 .post('/solicitudes', verificarRol('administrador'), administradorController.obtenerEstadisticasSolicitudes)
 .post('/obtenerEstadisticasIncidencias',verificarRol('administrador'),administradorController.obtenerEstadisticasIncidencias)
+.post('/estadisticasUsuarios', verificarRol('administrador'), administradorController.obtenerEstadisticasUsuarios)
 .post('/importar-asignaturas', verificarRol('administrador'), importDatosController.importarAsignaturasDesdeCSVHandler)
 export default router;
