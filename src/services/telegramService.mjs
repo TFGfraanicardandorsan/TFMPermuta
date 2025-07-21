@@ -47,7 +47,7 @@ export const handleIncomingMessage = async (message) => {
       const nombreCompleto = partes.join(" ");
 
       if (!uvusEnviado || !nombreCompleto) {
-        const aviso = `Formato incorrecto. Por favor envía: UVUS seguido de tu Nombre y Apellidos.\nEjemplo:\n\`juapergar Juan Pérez García\``;
+        const aviso = `Formato incorrecto. Por favor envía: UVUS seguido de tu Nombre y Apellidos.\nEjemplo 1:\n\`juapergar Juan Pérez García\`\nEjemplo 2:\n\`XVD1234 Juan Pérez García\``;
         await sendMessage(chatId, aviso,"Markdown");
         return;
       }
