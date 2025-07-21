@@ -334,35 +334,41 @@ async validarPermuta(permutaId) {
       const query = {
         text: `
 SELECT 
-              p.id AS permuta_id,
-              a.nombre AS nombre_asignatura,
-              a.codigo AS codigo_asignatura,
-              g1.nombre AS grupo_1,
-              g2.nombre AS grupo_2,
-              p.estado AS estado,
-              LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
-              GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
-              (SELECT estado 
-               FROM permutas 
-               WHERE id = (
-                 SELECT permutas_id_fk 
-                 FROM permutas_permuta 
-                 WHERE permuta_id_fk = p.id
-                 LIMIT 1
-               )
-              ) AS estado_permuta_asociada
-          FROM permuta p
-          INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
-          INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
-          INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
-          INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
-          INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
-          WHERE (
-              p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-              OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario =$1)
-          ) AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') 
-            AND p.aceptada_1 = true
-            AND p.aceptada_2 = true
+    p.id AS permuta_id,
+    a.nombre AS nombre_asignatura,
+    a.codigo AS codigo_asignatura,
+    CASE 
+        WHEN u1.nombre_usuario <= u2.nombre_usuario THEN g1.nombre
+        ELSE g2.nombre
+    END AS grupo_primario,
+    CASE 
+        WHEN u1.nombre_usuario > u2.nombre_usuario THEN g1.nombre
+        ELSE g2.nombre
+    END AS grupo_secundario,
+    p.estado AS estado,
+    LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
+    GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
+    (SELECT estado 
+     FROM permutas 
+     WHERE id = (
+       SELECT permutas_id_fk 
+       FROM permutas_permuta 
+       WHERE permuta_id_fk = p.id
+       LIMIT 1
+     )
+    ) AS estado_permuta_asociada
+FROM permuta p
+INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
+INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
+INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
+INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
+INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
+WHERE (
+    p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+    OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+) AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') 
+  AND p.aceptada_1 = true
+  AND p.aceptada_2 = true
         `,
         values: [uvus],
       };
