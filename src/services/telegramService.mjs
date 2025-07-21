@@ -120,7 +120,7 @@ export const handleIncomingMessage = async (message) => {
         await sendMessage(chatId, "Debes estar registrado para ver las notificaciones. Usa /start primero.");
         return;
       }
-      const notificaciones = await notificacionService.getNotificacionesUsuario(uvus);
+      const notificaciones = await notificacionService.getNotificacionesUsuarioTelegram(uvus);
       if (notificaciones.length === 0) {
         await sendMessage(chatId, "No tienes notificaciones pendientes 📭");
       } else {

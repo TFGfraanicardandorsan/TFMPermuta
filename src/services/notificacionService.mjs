@@ -18,6 +18,21 @@ class NotificacionService {
     } finally {
       await conexion.end();
     }
+  }  async getNotificacionesUsuarioTelegram(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `select id,contenido,fecha_creacion from notificacion n where (receptor = (select rol  from roles r where usuario_id_fk = (select id from usuario u where u.nombre_usuario =$1) ) or receptor = 'all') AND (fecha_expiracion IS NULL OR fecha_expiracion >= NOW()) order by fecha_creacion asc`,
+        values: [uvus],
+      };
+      const res = await conexion.query(query);
+      return res.rows;
+    } catch (error) {
+      console.error("Error al obtener las notificaciones:", error);
+      throw new Error("Error al obtener las notificaciones");
+    } finally {
+      await conexion.end();
+    }
   }
   async crearNotificacionesUsuario(uvus, contenido, receptor) {
     const conexion = await database.connectPostgreSQL();
