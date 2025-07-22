@@ -73,12 +73,26 @@ class AdministradorService {
         `
       };
 
-      const [estadosRes, ratioRes] = await Promise.all([
+      // Nueva estadística: solicitudes por grado
+      const solicitudesPorGrado = {
+        text: `
+          SELECT e.nombre AS grado, e.siglas, COUNT(*) AS cantidad
+          FROM solicitud_permuta sp
+          JOIN usuario u ON sp.usuario_id_fk = u.id
+          JOIN estudios e ON u.estudios_id_fk = e.id
+          GROUP BY e.nombre, e.siglas
+          ORDER BY cantidad DESC
+        `
+      };
+
+      const [estadosRes, gradosRes] = await Promise.all([
         conexion.query(solicitudesPorEstado),
+        conexion.query(solicitudesPorGrado)
       ]);
 
       return {
         solicitudesPorEstado: estadosRes.rows,
+        solicitudesPorGrado: gradosRes.rows
       };
 
     } catch (error) {
