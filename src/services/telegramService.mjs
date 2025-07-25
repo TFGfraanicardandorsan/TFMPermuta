@@ -40,13 +40,13 @@ export const handleIncomingMessage = async (message) => {
         estadosRegistro[userId] = "esperando_datos";
       }
     } 
-    // 👇 Mueve este bloque aquí, justo después de /start
+    
     else if (estadosRegistro[userId] === "esperando_datos") {
       const partes = text.trim().split(" ");
       let uvusEnviado = partes.shift();
       const nombreCompleto = partes.join(" ");
 
-      // Validación y transformación del UVUS (ignora mayúsculas/minúsculas)
+      // Validación y transformación del UVUS
       if (/^[a-zA-Z]{9}\d*$/.test(uvusEnviado)) {
         uvusEnviado = uvusEnviado.toLowerCase();
       } else if (/^[a-zA-Z]{3}\d{4}$/.test(uvusEnviado)) {
