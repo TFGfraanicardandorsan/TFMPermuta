@@ -46,11 +46,11 @@ export const handleIncomingMessage = async (message) => {
       let uvusEnviado = partes.shift();
       const nombreCompleto = partes.join(" ");
 
-      // Validación y transformación del UVUS
-      if (/^[a-z]{9}\d*$/.test(uvusEnviado)) {
+      // Validación y transformación del UVUS (ignora mayúsculas/minúsculas)
+      if (/^[a-zA-Z]{9}\d*$/.test(uvusEnviado)) {
         uvusEnviado = uvusEnviado.toLowerCase();
-      } else if (/^[A-Z]{3}\d{4}$/.test(uvusEnviado)) {
-        uvusEnviado = uvusEnviado.toUpperCase();
+      } else if (/^[a-zA-Z]{3}\d{4}$/.test(uvusEnviado)) {
+        uvusEnviado = uvusEnviado.slice(0, 3).toUpperCase() + uvusEnviado.slice(3);
       } else {
         const aviso = `Formato de UVUS incorrecto. Debe ser:\n- 9 letras minúsculas seguidas opcionalmente de números (ej: juapergar, juapergar1)\n- o 3 letras mayúsculas seguidas de 4 números (ej: ABC1234)\n\nPor favor, revisa el formato e inténtalo de nuevo. Recuerda que el UVUS es aquello que introduces en el SSO de la US y no tiene por qué coincidir con la primera parte de tu correo electrónico.`;
         await sendMessage(chatId, aviso, "Markdown");
@@ -59,7 +59,7 @@ export const handleIncomingMessage = async (message) => {
 
       if (!uvusEnviado || !nombreCompleto) {
         const aviso = `Formato incorrecto. Por favor envía: UVUS seguido de tu Nombre y Apellidos.\nEjemplo 1:\n\`juapergar Juan Pérez García\`\nEjemplo 2:\n\`ABC1234 Juan Pérez García\``;
-        await sendMessage(chatId, avsiso, "Markdown");
+        await sendMessage(chatId, aviso, "Markdown");
         return;
       }
       await autorizacionService?.insertarSolicitudAltaUsuario(uvusEnviado, nombreCompleto, chatId);
