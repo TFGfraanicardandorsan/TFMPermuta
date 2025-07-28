@@ -37,7 +37,21 @@ export const handleIncomingMessage = async (message) => {
           await sendMessage(chatId, bienvenida);
         }
       } else {
-        const bienvenida = `¡Hola ${message.from.first_name}! 🤖\n\nHas solicitado acceso a la aplicación de Permutas ETSII.\n\nPara completar tu solicitud, por favor escribe:\n\n*UVUS* seguido de tu *Nombre y Apellidos* en un solo mensaje.\n\nEjemplo 1:\n\`juapergar Juan Pérez García\`\n\nEjemplo 2:\n\`ABC1234 Juan Pérez García\n\nEs muy importante que las mayúsculas y minúsculas sean las mismas que tu uvus en caso contrario no podrás iniciar sesión en el sistema aunque te aceptemos.`;
+        const bienvenida = `¡Hola ${message.from.first_name}! 🤖
+
+Has solicitado acceso a la aplicación de Permutas ETSII.
+
+Para completar tu solicitud, por favor escribe:
+
+*UVUS* seguido de tu *Nombre y Apellidos* en un solo mensaje.
+
+Ejemplo 1:
+\`juapergar Juan Pérez García\`
+
+Ejemplo 2:
+\`ABC1234 Juan Pérez García\`
+
+Es muy importante que las mayúsculas y minúsculas sean las mismas que tu uvus, en caso contrario no podrás iniciar sesión en el sistema aunque te aceptemos.`;
         await sendMessage(chatId, bienvenida, "Markdown");
         estadosRegistro[userId] = "esperando_datos";
       }
