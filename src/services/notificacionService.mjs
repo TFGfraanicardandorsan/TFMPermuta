@@ -66,7 +66,6 @@ class NotificacionService {
       };
     }
       const usuariosRes = await conexion.query(usuariosQuery);
-      print(`Usuarios con rol ${receptor}:`, usuariosRes.rows);
       // Enviar el mensaje a cada usuario con ese rol
       for (const usuario of usuariosRes.rows) {
         try {
