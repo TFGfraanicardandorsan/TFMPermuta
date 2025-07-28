@@ -17,7 +17,6 @@ export const handleIncomingMessage = async (message) => {
   let usuarioExistente = null;
   let uvus = null;
   try {
-    delete estadosRegistro[userId];
     uvus = await autorizacionService?.verificarSiExisteUsuarioEnTelegram(userId, chatId);
     delete estadosRegistro[userId];
     if (uvus) {
