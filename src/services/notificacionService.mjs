@@ -48,7 +48,34 @@ class NotificacionService {
       } catch (error) {
         console.error("Error al enviar el mensaje de solucionar incidencia:", error);
       }
-      return "Se ha creado la notificación correctamente";
+      var usuariosQuery;
+      if (receptor === 'all') {
+        usuariosQuery = {
+          text: `SELECT u.nombre_usuario, u.chatid 
+                 FROM usuario u
+                 WHERE u.chatid IS NOT NULL`,
+        };
+      } 
+      else{
+      usuariosQuery = {
+        text: `SELECT u.nombre_usuario, u.chatid 
+               FROM usuario u
+               INNER JOIN roles r ON u.id = r.usuario_id_fk
+               WHERE r.rol = $1 AND u.chatid IS NOT NULL`,
+        values: [receptor],
+      };
+    }
+      const usuariosRes = await conexion.query(usuariosQuery);
+
+      // Enviar el mensaje a cada usuario con ese rol
+      for (const usuario of usuariosRes.rows) {
+        try {
+          await sendMessage(usuario.chat_id, `Nueva notificación:\n ${contenido}`);
+        } catch (error) {
+          console.error(`Error enviando mensaje a ${usuario.nombre_usuario}:`, error);
+        }
+      }
+      return "Se ha creado la notificación y enviado por Telegram correctamente";
     } catch (error) {
       console.error("Error al crear la notificación:", error);
       throw new Error("Error al crear la notificación");
