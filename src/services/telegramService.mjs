@@ -28,7 +28,7 @@ export const handleIncomingMessage = async (message) => {
   }
   try {
     if (text === "/start") {
-      if (!usuarioExistente) {
+      if (usuarioExistente) {
         if (usuarioExistente.rol === "administrador") {
           const bienvenidaAdmin = `👑 ¡Hola Administrador ${uvus}! Bienvenido de nuevo al bot de Permutas ETSII. ¿Qué deseas gestionar hoy?`;
           await sendMessage(chatId, bienvenidaAdmin);
