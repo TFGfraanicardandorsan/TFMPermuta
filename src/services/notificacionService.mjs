@@ -70,7 +70,7 @@ class NotificacionService {
       // Enviar el mensaje a cada usuario con ese rol
       for (const usuario of usuariosRes.rows) {
         try {
-          await sendMessage(usuario.chat_id, `Nueva notificación:\n ${contenido}`);
+          await sendMessage(usuario.chatid, `Nueva notificación:\n ${contenido}`);
         } catch (error) {
           console.error(`Error enviando mensaje a ${usuario.nombre_usuario}:`, error);
         }
