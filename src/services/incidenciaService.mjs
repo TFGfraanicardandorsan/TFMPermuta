@@ -100,7 +100,7 @@ class IncidenciaService {
       // Actualizar el estado de la incidencia a 'ASIGNADA'
       try {
       const queryActualizacionIncidencia = {
-        text: `update incidencia set estado = 'ASIGNADA' where id = $1`,
+        text: `update incidencia set estado_incidencia = 'ASIGNADA' where id = $1`,
         values: [id_incidencia],
       };
       await conexion.query(queryActualizacionIncidencia);
