@@ -128,7 +128,7 @@ class IncidenciaService {
           const chatIdCreador = await autorizacionService.obtenerChatIdUsuario(uvusCreador);
           await sendMessage(
             chatIdCreador,
-            `Tu incidencia ${id_incidencia} ha sido asignada a un responsable y se solventará a la mayor brevedad posible.`
+            `Tu incidencia ${id_incidencia} ha sido asignada a un responsable y se solventará a la mayor brevedad posible.\n\nPuedes consultar el estado de la incidencia en la aplicación.\n\nEste atento porque podrá recibir información del estado de la incidencia por correo.\n\nAdemás le llegará un mensaje por Telegram cuando la incidencia sea solucionada.`,
           );
         }
       } catch (error) {
