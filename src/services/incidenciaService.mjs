@@ -92,11 +92,22 @@ class IncidenciaService {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
-        text: `update incidencia_usuario set usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario = $1), estado = 'ASIGNADA' where id = $2`,
+        text: `update incidencia_usuario set usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario = $1) where id = $2`,
         values: [uvus, id_incidencia],
       };
       await conexion.query(query);
 
+      // Actualizar el estado de la incidencia a 'ASIGNADA'
+      try {
+      const queryActualizacionIncidencia = {
+        text: `update incidencia set estado = 'ASIGNADA' where id = $1`,
+        values: [id_incidencia],
+      };
+      await conexion.query(queryActualizacionIncidencia);
+    } catch (error) {
+      console.error("Error al actualizar el estado de la incidencia:", error);
+      throw new Error("Error al actualizar el estado de la incidencia");
+    }
       // Mensaje al usuario que se asigna la incidencia
       try {
         const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
