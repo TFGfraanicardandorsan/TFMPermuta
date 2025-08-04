@@ -91,24 +91,46 @@ class IncidenciaService {
   async asignarmeIncidencia(uvus, id_incidencia) {
     const conexion = await database.connectPostgreSQL();
     try {
-    const query = {
-      text: `update incidencia_usuario set usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario = $1) where id = $2`,
-      values: [uvus, id_incidencia],
-    };
-    await conexion.query(query);
-     try {
+      const query = {
+        text: `update incidencia_usuario set usuario_id_mantenimiento_fk = (select id from usuario where nombre_usuario = $1), estado = 'ASIGNADA' where id = $2`,
+        values: [uvus, id_incidencia],
+      };
+      await conexion.query(query);
+
+      // Mensaje al usuario que se asigna la incidencia
+      try {
         const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
-        await sendMessage(chatIdUsuario,`Se te ha asignado la incidencia ${id_incidencia} para su gestión.`);
+        await sendMessage(chatIdUsuario, `Se te ha asignado la incidencia ${id_incidencia} para su gestión.`);
       } catch (error) {
         console.error("Error al enviar el mensaje de asignación de incidencia:", error);
       }
-    return `Ha sido asignada la incidencia ${id_incidencia} correctamente`;
-  } catch (error) {
-    console.error("Error al asignar la incidencia:", error);
-    throw new Error("Error al asignar la incidencia");
-  } finally {
-    await conexion.end();
-  }
+
+      // Mensaje al usuario que abrió la incidencia
+      try {
+        const queryUsuarioCreador = {
+          text: `SELECT u.nombre_usuario FROM usuario u WHERE u.id = (SELECT usuario_id_fk FROM incidencia_usuario WHERE id = $1)`,
+          values: [id_incidencia],
+        };
+        const resUsuarioCreador = await conexion.query(queryUsuarioCreador);
+        const uvusCreador = resUsuarioCreador.rows[0]?.nombre_usuario;
+        if (uvusCreador) {
+          const chatIdCreador = await autorizacionService.obtenerChatIdUsuario(uvusCreador);
+          await sendMessage(
+            chatIdCreador,
+            `Tu incidencia ${id_incidencia} ha sido asignada a un responsable y se solventará a la mayor brevedad posible.`
+          );
+        }
+      } catch (error) {
+        console.error("Error al enviar el mensaje al usuario creador de la incidencia:", error);
+      }
+
+      return `Ha sido asignada la incidencia ${id_incidencia} correctamente`;
+    } catch (error) {
+      console.error("Error al asignar la incidencia:", error);
+      throw new Error("Error al asignar la incidencia");
+    } finally {
+      await conexion.end();
+    }
 }
 
   async solucionarIncidencia(uvus, id_incidencia) {
