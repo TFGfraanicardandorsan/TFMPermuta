@@ -47,7 +47,7 @@ class IncidenciaService {
     const query = {
       text: ` select id,fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
-                  where estado_incidencia ='abierta' and id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario =( $1)))
+                  where estado_incidencia ='asignada' and id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario =( $1)))
                   order by fecha_creacion asc`,
       values: [uvus],
     };
@@ -100,7 +100,7 @@ class IncidenciaService {
       // Actualizar el estado de la incidencia a 'ASIGNADA'
       try {
       const queryActualizacionIncidencia = {
-        text: `update incidencia set estado_incidencia = 'ASIGNADA' where id = $1`,
+        text: `update incidencia set estado_incidencia = 'asignada' where id = $1`,
         values: [id_incidencia],
       };
       await conexion.query(queryActualizacionIncidencia);
