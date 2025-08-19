@@ -23,6 +23,57 @@ const actualizarRolUsuario = async (req, res) => {
   }
 }
 
+const obtenerTodosUsuarios = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const usuarios = await gestionUsuariosService.obtenerTodosUsuarios();
+    res.send({ err: false, result: usuarios });
+  } catch (err) {
+    console.log('api obtenerTodosUsuarios ha tenido una excepción');
+    res.sendStatus(500);
+  }
+}
+
+const desactivarUsuario = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const uvus = req.session.user.nombre_usuario;
+    const validUvUs = GenericValidators.isString(uvus, "UVUS");
+    if (!validUvUs.valido) {
+      return res.status(400).json({ err: true, message: validUvUs.mensaje });
+    }
+    res.send({ err: false, result: await gestionUsuariosService.desactivarUsuario(uvus) });
+  } catch (err) {
+    console.log('api desactivarUsuario ha tenido una excepción');
+    res.sendStatus(500);
+  }
+}
+
+const obtenerDatosUsuario = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const uvus = req.session.user.nombre_usuario;
+    const validUvUs = GenericValidators.isString(uvus, "UVUS");
+    if (!validUvUs.valido) {
+      return res.status(400).json({ err: true, message: validUvUs.mensaje });
+    }
+    const datosUsuario = await gestionUsuariosService.obtenerDatosUsuario(uvus);
+    res.send({ err: false, result: datosUsuario });
+  } catch (err) {
+    console.log('api obtenerDatosUsuario ha tenido una excepción');
+    res.sendStatus(500);
+  }
+}
+
 export default {
-  actualizarRolUsuario
+  actualizarRolUsuario,
+  obtenerTodosUsuarios,
+  desactivarUsuario,
+  obtenerDatosUsuario
 };
