@@ -259,8 +259,8 @@ async validarPermuta(permutaId) {
             p.id AS permuta_id,
             a.nombre AS nombre_asignatura,
             a.codigo AS codigo_asignatura,
-            g1.nombre AS grupo_solicitante,
-            g2.nombre AS grupo_solicitado,
+            g1.nombre AS grupo_solicitado,
+            g2.nombre AS grupo_solicitante,
             p.estado AS estado
           FROM permuta p
           INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
