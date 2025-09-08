@@ -1,6 +1,7 @@
 import database from "../config/database.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import { sendMessage } from "./telegramService.mjs";
+import notificacionService from "./notificacionService.mjs";
 
 class NotificacionService {
   async getNotificacionesUsuario(uvus) {
@@ -83,5 +84,47 @@ class NotificacionService {
     }
   }
 }
+
+// ...dentro de handleIncomingMessage...
+
+if (text && text.startsWith("/notificar")) {
+  if (!usuarioExistente || usuarioExistente.rol !== "administrador") {
+    await sendMessage(chatId, "Solo los administradores pueden enviar notificaciones.");
+    return;
+  }
+
+  // Sintaxis: /notificar receptor mensaje
+  const partes = text.split(" ");
+  if (partes.length < 3) {
+    await sendMessage(chatId, "Uso: /notificar [estudiante|administrador|all] [mensaje]");
+    return;
+  }
+  const receptor = partes[1].toLowerCase();
+  let receptorDb;
+  if (receptor === "estudiante") receptorDb = "estudiante";
+  else if (receptor === "administrador") receptorDb = "administrador";
+  else if (receptor === "all" || receptor === "todos") receptorDb = "all";
+  else {
+    await sendMessage(chatId, "Receptor no válido. Usa estudiante, administrador o all.");
+    return;
+  }
+  const contenido = text.split(" ").slice(2).join(" ");
+  if (!contenido) {
+    await sendMessage(chatId, "Debes escribir un mensaje para la notificación.");
+    return;
+  }
+  try {
+    await notificacionService.crearNotificacionesUsuario(
+      usuarioExistente.uvus,
+      contenido,
+      receptorDb
+    );
+    await sendMessage(chatId, `✅ Notificación enviada a ${receptorDb}.`);
+  } catch (error) {
+    await sendMessage(chatId, "❌ Error al enviar la notificación.");
+  }
+  return;
+}
+
 const notificacionService = new NotificacionService();
 export default notificacionService;
