@@ -7,5 +7,7 @@ router
 .post('/actualizarEstudiosUsuario',verificarRol('estudiante'),usuarioController.actualizarEstudiosUsuario)
 .post('/actualizarCorreoUsuario', verificarRol('estudiante'), usuarioController.actualizarCorreoUsuario)
 .post('/obtenerDatosUsuarioAdmin',verificarRol('administrador'), usuarioController.obtenerDatosUsuarioAdmin)
+.post('/obtenerTodosUsuarios', verificarRol('administrador'), usuarioController.obtenerTodosUsuarios)
+.post('/actualizarUsuario', verificarRol('administrador'), usuarioController.actualizarUsuario)
 
 export default router;

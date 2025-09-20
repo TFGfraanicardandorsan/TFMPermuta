@@ -70,6 +70,40 @@ async obtenerDatosUsuario(uvus) {
       await conexion.end();
     }
   }
+
+  async obtenerTodosUsuarios() {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const query = {
+        text: `SELECT u.nombre_usuario as uvus, u.nombre_completo, u.correo, r.rol
+               FROM usuario u
+               LEFT JOIN roles r ON r.usuario_id_fk = u.id`,
+      };
+      const res = await conexion.query(query);
+      return res.rows;
+    } finally {
+      await conexion.end();
+    }
+  }
+
+  async actualizarUsuario(uvus, { nombre_completo, correo, rol }) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      // Actualiza datos básicos
+      await conexion.query({
+        text: `UPDATE usuario SET nombre_completo = $1, correo = $2 WHERE nombre_usuario = $3`,
+        values: [nombre_completo, correo, uvus],
+      });
+      // Actualiza rol
+      await conexion.query({
+        text: `UPDATE roles SET rol = $1 WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)`,
+        values: [rol, uvus],
+      });
+      return "Usuario actualizado correctamente";
+    } finally {
+      await conexion.end();
+    }
+  }
 }
 const usuarioService = new UsuarioService();
 export default usuarioService;
