@@ -568,6 +568,47 @@ async getTodasSolicitudesPermuta() {
     throw new Error('Error al obtener las solicitudes de permuta: ' + error.message);
   }
 }
+
+async cancelarSolicitudPermuta(uvus, solicitudId, esAdmin = false) {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    // Verifica si el usuario es el creador o es admin
+    const query = {
+      text: `
+        SELECT usuario_id_fk FROM solicitud_permuta WHERE id = $1
+      `,
+      values: [solicitudId],
+    };
+    const res = await conexion.query(query);
+    if (res.rows.length === 0) {
+      throw new Error("Solicitud de permuta no encontrada");
+    }
+    const usuarioCreadorId = res.rows[0].usuario_id_fk;
+
+    if (!esAdmin) {
+      const queryUsuario = {
+        text: `SELECT id FROM usuario WHERE nombre_usuario = $1`,
+        values: [uvus],
+      };
+      const resUsuario = await conexion.query(queryUsuario);
+      if (resUsuario.rows.length === 0 || resUsuario.rows[0].id !== usuarioCreadorId) {
+        throw new Error("No tienes permisos para cancelar esta solicitud");
+      }
+    }
+
+    // Cancela la solicitud
+    await conexion.query({
+      text: `UPDATE solicitud_permuta SET estado = 'CANCELADA' WHERE id = $1`,
+      values: [solicitudId],
+    });
+
+    await conexion.end();
+    return "Solicitud de permuta cancelada correctamente";
+  } catch (error) {
+    await conexion.end();
+    throw error;
+  }
+}
 }
 
 const solicitudPermutaService = new SolicitudPermutaService();
