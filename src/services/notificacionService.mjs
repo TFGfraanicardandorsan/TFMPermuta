@@ -86,6 +86,7 @@ class NotificacionService {
 
   async notificarCierreIncidencia(incidenciaId, contenido) {
     const conexion = await database.connectPostgreSQL();
+    console.log("Notificando cierre de incidencia:", incidenciaId, contenido);
     try {
       // Obtener el usuario que abrió la incidencia
       const queryUsuario = {
