@@ -43,17 +43,17 @@ const notificarCierreIncidencia = async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        const { incidenciaId, contenido } = req.body;
+        const { idIncidencia, contenido } = req.body;
 
         const validContenido = GenericValidators.isString(contenido, "Contenido", 1000);
         if (!validContenido.valido) {
             return res.status(400).json({ err: true, message: validContenido.mensaje });
         }
-        if (!incidenciaId) {
+        if (!idIncidencia) {
             return res.status(400).json({ err: true, message: "Falta el ID de la incidencia" });
         }
 
-        await notificacionService.notificarCierreIncidencia(incidenciaId, contenido);
+        await notificacionService.notificarCierreIncidencia(idIncidencia, contenido);
         res.send({ err: false, result: "Notificación de cierre de incidencia enviada correctamente" });
     } catch (err) {
         console.log('api notificarCierreIncidencia ha tenido una excepción');

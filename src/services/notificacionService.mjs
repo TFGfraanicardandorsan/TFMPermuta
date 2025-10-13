@@ -84,9 +84,8 @@ class NotificacionService {
     }
   }
 
-  async notificarCierreIncidencia(incidenciaId, contenido) {
+  async notificarCierreIncidencia(idIncidencia, contenido) {
     const conexion = await database.connectPostgreSQL();
-    console.log("Notificando cierre de incidencia:", incidenciaId, contenido);
     try {
       // Obtener el usuario que abrió la incidencia
       const queryUsuario = {
@@ -94,14 +93,14 @@ class NotificacionService {
                FROM usuario u
                INNER JOIN incidencia_usuario iu ON iu.usuario_id_fk = u.id
                WHERE iu.id = $1 AND u.chatid IS NOT NULL`,
-        values: [incidenciaId],
+        values: [idIncidencia],
       };
       const resUsuario = await conexion.query(queryUsuario);
       if (resUsuario.rows.length > 0) {
         const { nombre_usuario, chatid } = resUsuario.rows[0];
         // Enviar el mensaje por Telegram
         try {
-          await sendMessage(chatid, `🔔 Incidencia ${incidenciaId} cerrada:\n${contenido}`);
+          await sendMessage(chatid, `🔔 Incidencia ${idIncidencia} cerrada:\n${contenido}`);
         } catch (error) {
           console.error("Error enviando mensaje de cierre de incidencia por Telegram:", error);
         }
