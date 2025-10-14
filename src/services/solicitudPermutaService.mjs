@@ -98,7 +98,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
         FROM usuario_asignatura 
         WHERE usuario_id_fk = (
           SELECT id FROM usuario WHERE nombre_usuario = $1
-        )
+        ) AND vigente = true
       )
     `,
     values: [uvus],
@@ -167,7 +167,7 @@ async getMisSolicitudesPermuta(uvus) {
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.usuario_id_fk = (
         SELECT id FROM usuario WHERE nombre_usuario = $1
-      )
+      ) and vigente = true
       ORDER BY sp.id, g_deseado.nombre
     `,
     values: [uvus],
@@ -277,7 +277,7 @@ async verListaPermutas(uvus) {
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
       WHERE (p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
          OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)) 
-        AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
+        AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') and p.vigente = true
       ORDER BY usuario_1_uvus, usuario_2_uvus, p.id
     `,
     values: [uvus],
@@ -333,7 +333,7 @@ async proponerPermutas() {
       INNER JOIN usuario u ON sp.usuario_id_fk = u.id
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
       INNER JOIN grupo g ON gd.grupo_id_fk = g.id
-      WHERE sp.estado = 'SOLICITADA'
+      WHERE sp.estado = 'SOLICITADA' and sp.vigente = true
     `
   };
 
@@ -418,7 +418,7 @@ async aceptarPermutaPropuesta(uvus, permutaId) {
           aceptada_1,
           aceptada_2
         FROM permuta
-        WHERE id = $2 AND estado = 'PROPUESTA'
+        WHERE id = $2 AND estado = 'PROPUESTA' and vigente = true
       `,
       values: [uvus, permutaId]
     };
@@ -475,7 +475,7 @@ async rechazarPermutaPropuesta(uvus, permutaId) {
         AND (
           usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)
           OR usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)
-        )
+        ) and vigente = true
       `,
       values: [permutaId, uvus]
     };

@@ -81,7 +81,7 @@ class PermutaService {
       const query = {
         text: ` SELECT id, estado, archivo
               FROM permutas 
-              WHERE id in (SELECT permutas_id_fk  FROM permutas_permuta WHERE permuta_id_fk = ANY($1))`,
+              WHERE id in (SELECT permutas_id_fk  FROM permutas_permuta WHERE permuta_id_fk = ANY($1)) AND vigente = true`,
         values: [IdsPermuta],
       };
       const resultado = await conexion.query(query);
@@ -99,7 +99,7 @@ class PermutaService {
       const query = {
         text: `UPDATE permutas 
                SET estado = 'FIRMADA', archivo = $2
-               WHERE id = $1`,
+               WHERE id = $1 AND vigente = true`,
         values: [permutaId, archivo],
       };
 
@@ -113,7 +113,7 @@ class PermutaService {
                 INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
                 WHERE ( p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
                 OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario =$1)) 
-                AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') AND p.aceptada_1 = true AND p.aceptada_2 = true;`,
+                AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') AND p.aceptada_1 = true AND p.aceptada_2 = true AND p.vigente = true;`,
         values: [uvus],
       };
       const resultado = await conexion.query(querySelect);
@@ -141,7 +141,8 @@ class PermutaService {
       const query = {
         text: `UPDATE permutas 
                SET estado = 'ACEPTADA', archivo = $2, estudiante_cumplimentado_2 = $3
-               WHERE id = $1`,
+               WHERE id = $1
+               AND vigente = true`,
         values: [permutaId, archivo, uvus],
       };
 
@@ -235,6 +236,7 @@ async validarPermuta(permutaId) {
           and p.aceptada_2 = true
           AND p.aceptada_1 = false
           AND p.estado = 'ACEPTADA'
+          AND p.vigente = true
         `,
         values: [uvus],
       };
@@ -272,6 +274,7 @@ async validarPermuta(permutaId) {
           AND p.aceptada_1 = false
           AND p.aceptada_2 = true
           AND p.estado = 'ACEPTADA'
+          AND p.vigente = true
         `,
         values: [uvus],
       };
@@ -310,6 +313,7 @@ async validarPermuta(permutaId) {
               p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
               OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
             )
+            AND p.vigente = true
         `,
         values: [uvus],
       };
@@ -364,6 +368,7 @@ async validarPermuta(permutaId) {
     AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
     AND p.aceptada_1 = true
     AND p.aceptada_2 = true
+    AND p.vigente = true
         `,
         values: [uvus],
       };
