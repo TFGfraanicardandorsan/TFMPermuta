@@ -168,6 +168,20 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
   }
 };
 
+const actualizarVigenciaPermutas = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.status(200).json({ err: false, result: await permutaService.actualizarLaVigenciaPermuta() });
+        res.status(200).json({ err: false, result: await permutaService.actualizarLaVigenciaPermutas() });
+    } catch (err) {
+    console.error("api actualizarVigenciaPermutasYSolicitudes ha tenido una excepción:", err);
+    res.status(500).json({ err: true, message: "Error interno en actualizarVigenciaPermutasYSolicitudes", details: err.message });
+  }
+};
+
 export default {
     listarPermutas,
     aceptarPermuta,
@@ -178,5 +192,6 @@ export default {
     obtenerPermutasAgrupadasPorUsuario,
     generarBorradorPermutas,
     firmarPermuta,
-    validarPermuta
+    validarPermuta,
+    actualizarVigenciaPermutas
 }

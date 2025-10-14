@@ -405,6 +405,38 @@ async validarPermuta(permutaId) {
       await conexion.end();
     }
   }
+async actualizarLaVigenciaPermuta() {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    const updateQuery = {
+      text: `UPDATE permuta SET vigente = false WHERE vigente = true`,
+    };
+    const res = await conexion.query(updateQuery);
+    return { updated: res.rowCount };
+  } catch (error) {
+    console.error("Error al actualizar la vigencia de las permutas:", error);
+    throw new Error("Error al actualizar la vigencia de las permutas");
+  } finally {
+    await conexion.end();
+  }
+}
+
+async actualizarLaVigenciaPermutas() {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    const updateQuery = {
+      text: `UPDATE permutas SET vigente = false WHERE vigente = true`,
+    };
+    const res = await conexion.query(updateQuery);
+    return { updated: res.rowCount };
+  } catch (error) {
+    console.error("Error al actualizar la vigencia de las permutas agrupadas:", error);
+    throw new Error("Error al actualizar la vigencia de las permutas agrupadas");
+  } finally {
+    await conexion.end();
+  }
+}
+
 }
 
 const permutaService = new PermutaService();

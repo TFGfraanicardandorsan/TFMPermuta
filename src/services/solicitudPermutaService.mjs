@@ -568,6 +568,22 @@ async getTodasSolicitudesPermuta() {
     throw new Error('Error al obtener las solicitudes de permuta: ' + error.message);
   }
 }
+
+async actualizarLaVigenciaSolicitud() {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    const updateQuery = {
+      text: `UPDATE solicitud_permuta SET vigente = false WHERE vigente = true`,
+    };
+    const res = await conexion.query(updateQuery);
+    return { updated: res.rowCount };
+  } catch (error) {
+    console.error("Error al actualizar la vigencia de las solicitudes:", error);
+    throw new Error("Error al actualizar la vigencia de las solicitudes");
+  } finally {
+    await conexion.end();
+  }
+}
 }
 
 const solicitudPermutaService = new SolicitudPermutaService();
