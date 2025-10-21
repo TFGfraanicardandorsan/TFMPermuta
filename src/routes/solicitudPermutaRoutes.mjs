@@ -15,6 +15,8 @@ router
 .post('/getTodasSolicitudesPermuta',verificarRol('administrador'), solicitudPermutaController.getTodasSolicitudesPermuta)
 .post('/permuta/:id/aceptar', verificarRol('estudiante'), solicitudPermutaController.aceptarPermutaPropuesta)
 .post('/permuta/:id/rechazar', verificarRol('estudiante'), solicitudPermutaController.rechazarPermutaPropuesta)
+.post('/cancelarSolicitudPermuta', verificarRol('estudiante'), solicitudPermutaController.cancelarSolicitudPermuta)
+.post('/adminCancelarSolicitudPermuta', verificarRol('administrador'), solicitudPermutaController.cancelarSolicitudPermuta)
 .post('/actualizarLaVigenciaSolicitud', verificarRol('administrador'), solicitudPermutaController.actualizarLaVigenciaSolicitud)
 
 export default router;

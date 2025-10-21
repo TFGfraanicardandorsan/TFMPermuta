@@ -173,6 +173,26 @@ const actualizarLaVigenciaSolicitud = async (req,res) => {
             
 };
 
+const cancelarSolicitudPermuta = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        const { solicitud } = req.body;
+        const validSolicitud = GenericValidators.isInteger(solicitud, "Solicitud");
+        if (!validSolicitud.valido) {
+            return res.status(400).json({ err: true, message: validSolicitud.mensaje });
+        }
+        const esAdmin = req.session.user.rol === "administrador";
+        const result = await solicitudPermutaService.cancelarSolicitudPermuta(uvus, validSolicitud.valor, esAdmin);
+        res.send({ err: false, result });
+    } catch (err) {
+        console.error('api cancelarSolicitudPermuta ha tenido una excepción:', err);
+        res.status(500).json({ err: true, message: 'Error interno en cancelarSolicitudPermuta', details: err.message });
+    }
+};
+
 export default {
     solicitarPermuta,
     getSolicitudesPermutaInteresantes,
@@ -184,5 +204,6 @@ export default {
     aceptarPermutaPropuesta,
     rechazarPermutaPropuesta,
     getTodasSolicitudesPermuta,
+    cancelarSolicitudPermuta,
     actualizarLaVigenciaSolicitud
 }
