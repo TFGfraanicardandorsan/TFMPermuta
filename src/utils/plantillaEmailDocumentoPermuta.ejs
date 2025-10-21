@@ -19,8 +19,9 @@
 </head>
 <body>
     <h1>Solicitud de Permuta</h1>
-    <p>Estimado/a <%= nombre_completo %>,</p>
-
+    <% estudiantes.forEach(est => { %>
+        <p>Estimado/a <%= nombre_completo %>,</p>
+    <% }); %>
     <p>Se ha generado el borrador de la permuta. Debes rellenar el documento y firmarlo para que la permuta se pueda cumplimentar por el siguiente estudiante.</p>
     
     <p>Atentamente,</p>

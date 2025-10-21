@@ -47,7 +47,7 @@ class Email {
             to = estudiantes.correo;
         }
         const htmlTemplatePath = path.join(this.templatesFolder, htmlTemplate);
-        const html = await ejs.renderFile(htmlTemplatePath, { estudiantes });
+        const html = await ejs.renderFile(htmlTemplatePath, { estudiantes:Array.isArray(estudiantes) ? estudiantes : [estudiantes] });
         const attachments = pdfUUID ? [
             {
                 filename: 'SolicitudPermuta.pdf',
