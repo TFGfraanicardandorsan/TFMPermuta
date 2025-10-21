@@ -127,6 +127,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
       INNER JOIN grupo gd_grupo ON gd.grupo_id_fk = gd_grupo.id
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.id_asignatura_fk = ANY($1)
+      AND vigente = true
       AND gd.grupo_id_fk IN (
         SELECT grupo_id_fk
         FROM usuario_grupo
@@ -167,7 +168,7 @@ async getMisSolicitudesPermuta(uvus) {
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.usuario_id_fk = (
         SELECT id FROM usuario WHERE nombre_usuario = $1
-      )
+      ) and vigente = true
       ORDER BY sp.id, g_deseado.nombre
     `,
     values: [uvus],
@@ -277,7 +278,7 @@ async verListaPermutas(uvus) {
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
       WHERE (p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
          OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)) 
-        AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
+        AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') and p.vigente = true
       ORDER BY usuario_1_uvus, usuario_2_uvus, p.id
     `,
     values: [uvus],
@@ -333,7 +334,7 @@ async proponerPermutas() {
       INNER JOIN usuario u ON sp.usuario_id_fk = u.id
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
       INNER JOIN grupo g ON gd.grupo_id_fk = g.id
-      WHERE sp.estado = 'SOLICITADA'
+      WHERE sp.estado = 'SOLICITADA' and sp.vigente = true
     `
   };
 
@@ -418,7 +419,7 @@ async aceptarPermutaPropuesta(uvus, permutaId) {
           aceptada_1,
           aceptada_2
         FROM permuta
-        WHERE id = $2 AND estado = 'PROPUESTA'
+        WHERE id = $2 AND estado = 'PROPUESTA' and vigente = true
       `,
       values: [uvus, permutaId]
     };
@@ -475,7 +476,7 @@ async rechazarPermutaPropuesta(uvus, permutaId) {
         AND (
           usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)
           OR usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)
-        )
+        ) and vigente = true
       `,
       values: [permutaId, uvus]
     };
@@ -566,6 +567,63 @@ async getTodasSolicitudesPermuta() {
   } catch (error) {
     await conexion.end();
     throw new Error('Error al obtener las solicitudes de permuta: ' + error.message);
+  }
+}
+
+async cancelarSolicitudPermuta(uvus, solicitudId, esAdmin = false) {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    // Verifica si el usuario es el creador o es admin
+    const query = {
+      text: `
+        SELECT usuario_id_fk FROM solicitud_permuta WHERE id = $1
+      `,
+      values: [solicitudId],
+    };
+    const res = await conexion.query(query);
+    if (res.rows.length === 0) {
+      throw new Error("Solicitud de permuta no encontrada");
+    }
+    const usuarioCreadorId = res.rows[0].usuario_id_fk;
+
+    if (!esAdmin) {
+      const queryUsuario = {
+        text: `SELECT id FROM usuario WHERE nombre_usuario = $1`,
+        values: [uvus],
+      };
+      const resUsuario = await conexion.query(queryUsuario);
+      if (resUsuario.rows.length === 0 || resUsuario.rows[0].id !== usuarioCreadorId) {
+        throw new Error("No tienes permisos para cancelar esta solicitud");
+      }
+    }
+
+    // Cancela la solicitud
+    await conexion.query({
+      text: `UPDATE solicitud_permuta SET estado = 'CANCELADA' WHERE id = $1`,
+      values: [solicitudId],
+    });
+
+    await conexion.end();
+    return "Solicitud de permuta cancelada correctamente";
+  } catch (error) {
+    await conexion.end();
+    throw error;
+
+  }
+}
+async actualizarLaVigenciaSolicitud() {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    const updateQuery = {
+      text: `UPDATE solicitud_permuta SET vigente = false WHERE vigente = true`,
+    };
+    const res = await conexion.query(updateQuery);
+    return { updated: res.rowCount };
+  } catch (error) {
+    console.error("Error al actualizar la vigencia de las solicitudes:", error);
+    throw new Error("Error al actualizar la vigencia de las solicitudes");
+  } finally {
+    await conexion.end();
   }
 }
 }

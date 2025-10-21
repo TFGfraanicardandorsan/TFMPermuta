@@ -77,9 +77,42 @@ const actualizarCorreoUsuario = async (req, res) => {
   }
 };
 
+const obtenerTodosUsuarios = async (req, res) => {
+  try {
+    // Solo admin
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    res.json({ err: false, result: await usuarioService.obtenerTodosUsuarios() });
+  } catch (err) {
+    console.error("API obtenerTodosUsuarios ha tenido una excepción", err);
+    res.sendStatus(500);
+  }
+};
+
+const actualizarUsuario = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const { uvus, nombre_completo, correo, rol } = req.body;
+    if (!uvus) {
+      return res.status(400).json({ err: true, message: "Falta el uvus del usuario" });
+    }
+    // Puedes añadir validaciones aquí si lo deseas
+    const result = await usuarioService.actualizarUsuario(uvus, { nombre_completo, correo, rol });
+    res.json({ err: false, result });
+  } catch (err) {
+    console.error("API actualizarUsuario ha tenido una excepción", err);
+    res.sendStatus(500);
+  }
+};
+
 export default {
     obtenerDatosUsuario,
     actualizarEstudiosUsuario,
     obtenerDatosUsuarioAdmin,
-    actualizarCorreoUsuario
+    actualizarCorreoUsuario,
+    obtenerTodosUsuarios,
+    actualizarUsuario
 }

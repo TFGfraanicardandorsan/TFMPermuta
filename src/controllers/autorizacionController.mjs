@@ -34,9 +34,10 @@ export const verificarSesionUsuario = async (req, res) => {
     const user = await autorizacionService.verificarSiExisteUsuario(uvus);
 
     if (!user) {
-      return res
+      res
         .status(404)
         .json({ message: "Usuario no encontrado en la base de datos" });
+      res.redirect(`https://permutas.eii.us.es/noRegistrado`);
     }
     // Guardar la información del usuario en la sesión (para la sesion en Express)
     req.session.user = user;
