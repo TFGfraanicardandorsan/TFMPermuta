@@ -14,12 +14,13 @@ class Email {
             secure: false,
             auth: {
                 user: process.env.EMAIL_USERNAME,
-                pass: process.env.EMAIL_PASSWORD
+                pass: process.env.EMAIL_PASSWORD,
             },
-            tls: { rejectUnauthorized: false } // false para desarrollo en producción debería ser true
+            tls: { rejectUnauthorized: true } // false para desarrollo en producción debería ser true
         });
         this.pdfFolder = process.env.PDF_FOLDER
         this.templatesFolder = path.join(__dirname);
+        console.log("USERNAME", process.env.EMAIL_USERNAME);
     }
 
     async sendEmail(to, subject, html,attachments = []) {
