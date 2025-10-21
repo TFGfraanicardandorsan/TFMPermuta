@@ -607,6 +607,9 @@ async cancelarSolicitudPermuta(uvus, solicitudId, esAdmin = false) {
   } catch (error) {
     await conexion.end();
     throw error;
+
+  }
+}
 async actualizarLaVigenciaSolicitud() {
   const conexion = await database.connectPostgreSQL();
   try {
