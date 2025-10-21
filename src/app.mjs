@@ -42,15 +42,15 @@ app.use(session({
 }));
 
 // CSRF protection middleware
-import csurf from 'csurf';
-const csrfProtection = csurf({ cookie: false });
-app.use(csrfProtection);
+//import csurf from 'csurf';
+//const csrfProtection = csurf({ cookie: false });
+//app.use(csrfProtection);
 
 // Optional: expose CSRF token to clients (for forms, etc.)
-app.use((req, res, next) => {
-    res.locals.csrfToken = req.csrfToken();
-    next();
-});
+//app.use((req, res, next) => {
+//    res.locals.csrfToken = req.csrfToken();
+//    next();
+//});
 // Inicializar Passport 
 app.use(passport.initialize());
 app.use(passport.session());
