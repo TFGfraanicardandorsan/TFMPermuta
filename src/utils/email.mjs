@@ -10,7 +10,7 @@ class Email {
     constructor(){
         const userName = process.env.EMAIL_USERNAME;
         const passWord = process.env.EMAIL_PASSWORD;
-        console.log("userName", user)
+        console.log("userName", userName)
         this.transporter = nodemailer.createTransport({
             host: 'smtp.office365.com',
             port: 587,
