@@ -35,7 +35,12 @@ class Email {
     async sendEmailToStudentsDocumentoPermuta(estudiantes, subject, htmlTemplate, pdfUUID){
         console.log("PDFUUID comprobar que viene con extensión", pdfUUID);
         // Lista de correos de los estudiantes para el campo "to"
-        const to = estudiantes.map(est => est.correo);
+        let to;
+        if (Array.isArray(estudiantes)) {
+            to = estudiantes.map(est => est.correo).join(',');
+        } else {
+            to = estudiantes.correo;
+        }
         const html = await ejs.renderFile(htmlTemplate, { estudiantes });
         const attachments = pdfUUID ? [
             {
