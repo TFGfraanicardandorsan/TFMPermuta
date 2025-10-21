@@ -8,19 +8,18 @@ const __dirname = path.dirname(__filename);
 
 class Email {
     constructor(){
-        if (!process.env.EMAIL_USERNAME || !process.env.EMAIL_PASSWORD) {
-            throw new Error('EMAIL_USERNAME and EMAIL_PASSWORD environment variables must be set');
-        }
-        console.log("USERNAME", process.env.EMAIL_USERNAME);
+        const userName = process.env.EMAIL_USERNAME;
+        const passWord = process.env.EMAIL_PASSWORD;
+        console.log("userName", user)
         this.transporter = nodemailer.createTransport({
             host: 'smtp.office365.com',
             port: 587,
             secure: false,
             auth: {
-                user: process.env.EMAIL_USERNAME,
-                pass: process.env.EMAIL_PASSWORD,
+                user: userName,
+                pass: passWord,
             },
-            tls: { rejectUnauthorized: true } // false para desarrollo en producción debería ser true
+            tls: { rejectUnauthorized: true } // false para desarrollo en producción debería ser true para verificar certificados
         });
         this.pdfFolder = process.env.PDF_FOLDER
         this.templatesFolder = path.join(__dirname);
