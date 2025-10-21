@@ -20,7 +20,6 @@ import telegramRouter from './routes/telegramRoutes.mjs'
 import permutaRouter from './routes/permutasRoutes.mjs'
 import administradorRouter from './routes/administradorRoutes.mjs'
 import { setBotCommands } from './middleware/botCommands.mjs';
-import email from './utils/email.mjs';
 
 dotenv.config();
 const app = express();
