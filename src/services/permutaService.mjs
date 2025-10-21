@@ -71,8 +71,7 @@ class PermutaService {
       try{
         const usuarioDatos = await usuarioService.obtenerDatosUsuario(uvus);
         console.log("Datos usuario para email de borrador de permuta:", usuarioDatos);
-        const htmlTemplate = '../utils/plantillaEmailDocumentoPermuta.ejs'
-        await email.sendEmailToStudentsDocumentoPermuta(usuarioDatos, 'Borrador de Permuta Generado', htmlTemplate);
+        await email.sendEmailToStudentsDocumentoPermuta(usuarioDatos, 'Borrador de Permuta Generado', "plantillaEmailDocumentoPermuta.ejs");
       }catch(msgError){
         console.error("Error enviando email de borrador de permuta:", msgError);
       }
