@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class Email {
     constructor(){
@@ -15,6 +19,7 @@ class Email {
             tls: { rejectUnauthorized: false } // false para desarrollo en producción debería ser true
         });
         this.pdfFolder = process.env.PDF_FOLDER
+        this.templatesFolder = path.join(__dirname);
     }
 
     async sendEmail(to, subject, html,attachments = []) {
@@ -41,7 +46,8 @@ class Email {
         } else {
             to = estudiantes.correo;
         }
-        const html = await ejs.renderFile(htmlTemplate, { estudiantes });
+        const htmlTemplatePath = path.join(this.templatesFolder, htmlTemplate);
+        const html = await ejs.renderFile(htmlTemplatePath, { estudiantes });
         const attachments = pdfUUID ? [
             {
                 filename: 'SolicitudPermuta.pdf',
