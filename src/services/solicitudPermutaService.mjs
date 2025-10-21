@@ -98,7 +98,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
         FROM usuario_asignatura 
         WHERE usuario_id_fk = (
           SELECT id FROM usuario WHERE nombre_usuario = $1
-        ) AND vigente = true
+        )
       )
     `,
     values: [uvus],
@@ -127,6 +127,7 @@ async getSolicitudesPermutaInteresantes(uvus) {
       INNER JOIN grupo gd_grupo ON gd.grupo_id_fk = gd_grupo.id
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.id_asignatura_fk = ANY($1)
+      AND vigente = true
       AND gd.grupo_id_fk IN (
         SELECT grupo_id_fk
         FROM usuario_grupo
