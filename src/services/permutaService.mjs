@@ -2,7 +2,8 @@ import database from "../config/database.mjs";
 import { sendMessage } from "./telegramService.mjs"
 import autorizacionService from "./autorizacionService.mjs";
 import { mensajeFirmadaPermutaAlumno1, mensajeFirmadaPermutaAlumno2,mensajeAceptadaPermuta, mensajeValidacionPermuta,mensajeBorradorPermuta } from "../utils/mensajesTelegram.mjs";
-
+import email from "../utils/email.mjs";
+import usuarioService from "./usuarioService.mjs";
 class PermutaService {
   async crearListaPermutas(archivo, IdsPermuta) {
     const conexion = await database.connectPostgreSQL();
@@ -59,11 +60,21 @@ class PermutaService {
         await conexion.query(queryPermutas_permuta);
       }
       await conexion.query("COMMIT");
+      // Enviar mensaje por Telegram
       try {
         const chatIdEstudiante = await autorizacionService?.obtenerChatIdUsuario(uvus);
         await sendMessage(chatIdEstudiante, mensajeBorradorPermuta);
       } catch (msgError) {
         console.error("Error enviando mensaje de validación:", msgError);
+      }
+      // Enviar mensaje por email
+      try{
+        const usuarioDatos = await usuarioService.obtenerDatosUsuario(uvus);
+        console.log("Datos usuario para email de borrador de permuta:", usuarioDatos);
+        const htmlTemplate = '../utils/plantillaEmailDocumentoPermuta.ejs'
+        await email.sendEmailToStudentsDocumentoPermuta(usuarioDatos, 'Borrador de Permuta Generado', htmlTemplate);
+      }catch(msgError){
+        console.error("Error enviando email de borrador de permuta:", msgError);
       }
       return "Se ha creado la lista de permutas correctamente";
     } catch (error) {
