@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 
 class Email {
     constructor(){
+        console.log("USERNAME", process.env.EMAIL_USERNAME);
         this.transporter = nodemailer.createTransport({
             host: 'smtp.office365.com',
             port: 587,
@@ -20,7 +21,6 @@ class Email {
         });
         this.pdfFolder = process.env.PDF_FOLDER
         this.templatesFolder = path.join(__dirname);
-        console.log("USERNAME", process.env.EMAIL_USERNAME);
     }
 
     async sendEmail(to, subject, html,attachments = []) {
