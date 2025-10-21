@@ -158,7 +158,39 @@ const getTodasSolicitudesPermuta = async (req,res) => {
             console.error('api verListaPermutas ha tenido una excepción:', err);
             res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
         }
+    };
+const actualizarLaVigenciaSolicitud = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        res.send({err:false, result:await solicitudPermutaService.actualizarLaVigenciaSolicitud()})
+        } catch (err){
+            console.error('api actualizarLaVigenciaSolicitud ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en actualizarLaVigenciaSolicitud', details: err.message });
+        }
+            
+};
+
+const cancelarSolicitudPermuta = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        const { solicitud } = req.body;
+        const validSolicitud = GenericValidators.isInteger(solicitud, "Solicitud");
+        if (!validSolicitud.valido) {
+            return res.status(400).json({ err: true, message: validSolicitud.mensaje });
+        }
+        const esAdmin = req.session.user.rol === "administrador";
+        const result = await solicitudPermutaService.cancelarSolicitudPermuta(uvus, validSolicitud.valor, esAdmin);
+        res.send({ err: false, result });
+    } catch (err) {
+        console.error('api cancelarSolicitudPermuta ha tenido una excepción:', err);
+        res.status(500).json({ err: true, message: 'Error interno en cancelarSolicitudPermuta', details: err.message });
     }
+};
 
 export default {
     solicitarPermuta,
@@ -170,5 +202,7 @@ export default {
     validarSolicitudPermuta,
     aceptarPermutaPropuesta,
     rechazarPermutaPropuesta,
-    getTodasSolicitudesPermuta
+    getTodasSolicitudesPermuta,
+    cancelarSolicitudPermuta,
+    actualizarLaVigenciaSolicitud
 }

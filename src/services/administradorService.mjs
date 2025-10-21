@@ -161,9 +161,9 @@ class AdministradorService {
       const usuariosPorRol = {
         text: `
           SELECT rol, COUNT(*) as cantidad
-          FROM usuario
+          FROM usuario join roles r on usuario.id = r.usuario_id_fk
           GROUP BY rol
-          ORDER BY cantidad DESC;
+          ORDER BY cantidad DESC
         `
       };
 
