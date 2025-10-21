@@ -5,11 +5,10 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
+const userName = process.env.EMAIL_USERNAME;
+const passWord = process.env.EMAIL_PASSWORD;
 class Email {
     constructor(){
-        const userName = process.env.EMAIL_USERNAME;
-        const passWord = process.env.EMAIL_PASSWORD;
         console.log("userName", userName)
         this.transporter = nodemailer.createTransport({
             host: 'smtp.office365.com',
@@ -26,9 +25,10 @@ class Email {
     }
 
     async sendEmail(to, subject, html,attachments = []) {
+        console.log("userName", userName)
         try {
             const mailOptions = {
-                from: process.env.EMAIL_USERNAME,
+                from: userName,
                 to,
                 subject,
                 html,
