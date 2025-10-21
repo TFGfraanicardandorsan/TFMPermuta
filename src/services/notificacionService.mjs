@@ -34,6 +34,7 @@ class NotificacionService {
       await conexion.end();
     }
   }
+
   async crearNotificacionesUsuario(uvus, contenido, receptor) {
     const conexion = await database.connectPostgreSQL();
     try {
@@ -48,7 +49,33 @@ class NotificacionService {
       } catch (error) {
         console.error("Error al enviar el mensaje de solucionar incidencia:", error);
       }
-      return "Se ha creado la notificación correctamente";
+      var usuariosQuery;
+      if (receptor === 'all') {
+        usuariosQuery = {
+          text: `SELECT u.nombre_usuario, u.chatid 
+                 FROM usuario u
+                 WHERE u.chatid IS NOT NULL`,
+        };
+      } 
+      else{
+      usuariosQuery = {
+        text: `SELECT u.nombre_usuario, u.chatid 
+               FROM usuario u
+               INNER JOIN roles r ON u.id = r.usuario_id_fk
+               WHERE r.rol = $1 AND u.chatid IS NOT NULL`,
+        values: [receptor],
+      };
+    }
+      const usuariosRes = await conexion.query(usuariosQuery);
+      // Enviar el mensaje a cada usuario con ese rol
+      for (const usuario of usuariosRes.rows) {
+        try {
+          await sendMessage(usuario.chatid, `Nueva notificación:\n ${contenido}`);
+        } catch (error) {
+          console.error(`Error enviando mensaje a ${usuario.nombre_usuario}:`, error);
+        }
+      }
+      return "Se ha creado la notificación y enviado por Telegram correctamente";
     } catch (error) {
       console.error("Error al crear la notificación:", error);
       throw new Error("Error al crear la notificación");
@@ -56,6 +83,36 @@ class NotificacionService {
       await conexion.end();
     }
   }
+
+  async notificarCierreIncidencia(idIncidencia, contenido) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      // Obtener el usuario que abrió la incidencia
+      const queryUsuario = {
+        text: `SELECT u.nombre_usuario, u.chatid
+               FROM usuario u
+               INNER JOIN incidencia_usuario iu ON iu.usuario_id_fk = u.id
+               WHERE iu.id = $1 AND u.chatid IS NOT NULL`,
+        values: [idIncidencia],
+      };
+      const resUsuario = await conexion.query(queryUsuario);
+      if (resUsuario.rows.length > 0) {
+        const { nombre_usuario, chatid } = resUsuario.rows[0];
+        // Enviar el mensaje por Telegram
+        try {
+          await sendMessage(chatid, `🔔 Incidencia ${idIncidencia} cerrada:\n${contenido}`);
+        } catch (error) {
+          console.error("Error enviando mensaje de cierre de incidencia por Telegram:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Error al notificar cierre de incidencia:", error);
+      throw new Error("Error al notificar cierre de incidencia");
+    } finally {
+      await conexion.end();
+    }
+  }
 }
+
 const notificacionService = new NotificacionService();
 export default notificacionService;

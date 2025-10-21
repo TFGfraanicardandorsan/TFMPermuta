@@ -18,8 +18,10 @@ export const handleIncomingMessage = async (message) => {
   let uvus = null;
   try {
     uvus = await autorizacionService?.verificarSiExisteUsuarioEnTelegram(userId, chatId);
+   
     if (uvus) {
       usuarioExistente = await autorizacionService?.verificarSiExisteUsuario(uvus);
+      delete estadosRegistro[userId];
     }
   } catch (error) {
     console.error("Error al verificar si existe el usuario en Telegram:", error);
@@ -35,7 +37,21 @@ export const handleIncomingMessage = async (message) => {
           await sendMessage(chatId, bienvenida);
         }
       } else {
-        const bienvenida = `¡Hola ${message.from.first_name}! 🤖\n\nHas solicitado acceso a la aplicación de Permutas ETSII.\n\nPara completar tu solicitud, por favor escribe:\n\n*UVUS* seguido de tu *Nombre y Apellidos* en un solo mensaje.\n\nEjemplo 1:\n\`juapergar Juan Pérez García\`\n\nEjemplo 2:\n\`ABC1234 Juan Pérez García\n\nEs muy importante que las mayúsculas y minúsculas sean las mismas que tu uvus en caso contrario no podrás iniciar sesión en el sistema aunque te aceptemos.`;
+        const bienvenida = `¡Hola ${message.from.first_name}! 🤖
+
+Has solicitado acceso a la aplicación de Permutas ETSII.
+
+Para completar tu solicitud, por favor escribe:
+
+*UVUS* seguido de tu *Nombre y Apellidos* en un solo mensaje.
+
+Ejemplo 1:
+\`juapergar Juan Pérez García\`
+
+Ejemplo 2:
+\`ABC1234 Juan Pérez García\`
+
+Es muy importante que las mayúsculas y minúsculas sean las mismas que tu uvus, en caso contrario no podrás iniciar sesión en el sistema aunque te aceptemos.`;
         await sendMessage(chatId, bienvenida, "Markdown");
         estadosRegistro[userId] = "esperando_datos";
       }
@@ -153,7 +169,44 @@ export const handleIncomingMessage = async (message) => {
       } else if (text === "/ayuda") {
         await sendMessage(chatId, formatearAyuda(), "Markdown");
       } 
+    else if (text && text.startsWith("/notificar")) {
+      if (!usuarioExistente || usuarioExistente.rol !== "administrador") {
+        await sendMessage(chatId, "Solo los administradores pueden enviar notificaciones.");
+        return;
+      }
+
+      // Sintaxis: /notificar receptor mensaje
+      const partes = text.split(" ");
+      if (partes.length < 3) {
+        await sendMessage(chatId, "Uso: /notificar [estudiante|administrador|all] [mensaje]");
+        return;
+      }
+      const receptor = partes[1].toLowerCase();
+      let receptorDb;
+      if (receptor === "estudiante") receptorDb = "estudiante";
+      else if (receptor === "administrador") receptorDb = "administrador";
+      else if (receptor === "all" || receptor === "todos") receptorDb = "all";
       else {
+        await sendMessage(chatId, "Receptor no válido. Usa estudiante, administrador o all.");
+        return;
+      }
+      const contenido = text.split(" ").slice(2).join(" ");
+      if (!contenido) {
+        await sendMessage(chatId, "Debes escribir un mensaje para la notificación.");
+        return;
+      }
+      try {
+        await notificacionService.crearNotificacionesUsuario(
+          usuarioExistente.uvus,
+          contenido,
+          receptorDb
+        );
+        await sendMessage(chatId, `✅ Notificación enviada a ${receptorDb}.`);
+      } catch (error) {
+        await sendMessage(chatId, "❌ Error al enviar la notificación.");
+      }
+      return;
+    } else {
       await sendMessage(chatId, "No entiendo ese mensaje. Usa el menú 👇");
     }
   } catch (error) {

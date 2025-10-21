@@ -1,3 +1,4 @@
+import { act } from "react";
 import solicitudPermutaService from "../services/solicitudPermutaService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 
@@ -158,7 +159,19 @@ const getTodasSolicitudesPermuta = async (req,res) => {
             console.error('api verListaPermutas ha tenido una excepción:', err);
             res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
         }
-    }
+    };
+const actualizarLaVigenciaSolicitud = async (req,res) => {
+    try{
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        res.send({err:false, result:await solicitudPermutaService.actualizarLaVigenciaSolicitud()})
+        } catch (err){
+            console.error('api actualizarLaVigenciaSolicitud ha tenido una excepción:', err);
+            res.status(500).json({ err: true, message: 'Error interno en actualizarLaVigenciaSolicitud', details: err.message });
+        }
+            
+};
 
 const cancelarSolicitudPermuta = async (req, res) => {
     try {
@@ -191,5 +204,6 @@ export default {
     aceptarPermutaPropuesta,
     rechazarPermutaPropuesta,
     getTodasSolicitudesPermuta,
-    cancelarSolicitudPermuta
+    cancelarSolicitudPermuta,
+    actualizarLaVigenciaSolicitud
 }

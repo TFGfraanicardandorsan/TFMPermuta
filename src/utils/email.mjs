@@ -1,0 +1,51 @@
+import nodemailer from 'nodemailer';
+import ejs from 'ejs';
+import path from 'path';
+
+class Email {
+    constructor(){
+        this.transporter = nodemailer.createTransport({
+            host: 'smtp.office365.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASSWORD
+            },
+            tls: { rejectUnauthorized: false } // false para desarrollo en producción debería ser true
+        });
+        this.pdfFolder = process.env.PDF_FOLDER
+    }
+
+    async sendEmail(to, subject, html,attachments = []) {
+        try {
+            const mailOptions = {
+                from: process.env.EMAIL_USERNAME,
+                to,
+                subject,
+                html,
+                attachments
+            };
+            const info = await this.transporter.sendMail(mailOptions);
+            console.log('Correo enviado a', to, "respuesta:" ,info.response);
+        } catch (error) {
+            console.error('Error al enviar el correo:', error);
+        }
+    }
+    async sendEmailToStudentsDocumentoPermuta(estudiantes, subject, htmlTemplate, pdfUUID){
+        console.log("PDFUUID comprobar que viene con extensión", pdfUUID);
+        // Lista de correos de los estudiantes para el campo "to"
+        const to = estudiantes.map(est => est.correo);
+        const html = await ejs.renderFile(htmlTemplate, { estudiantes });
+        const attachments = pdfUUID ? [
+            {
+                filename: 'SolicitudPermuta.pdf',
+                path: path.join(this.pdfFolder, pdfUUID),
+                contentType: 'application/pdf'
+            }
+        ] : [];
+        await this.sendEmail(to,subject,html, attachments);
+    }
+}
+const email = new Email();
+export default email;

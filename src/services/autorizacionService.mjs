@@ -8,7 +8,7 @@ class AutorizacionService{
         text: ` SELECT u.nombre_completo, u.nombre_usuario, r.rol
                 FROM usuario u
                 LEFT JOIN roles r ON u.id = r.usuario_id_fk
-                WHERE u.nombre_usuario = $1`,
+                WHERE u.nombre_usuario = $1 and activo = true`,
                 values: [uvus],
       };
       const res = await conexion.query(query);
