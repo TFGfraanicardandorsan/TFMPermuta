@@ -115,38 +115,14 @@ Ejemplo 2:
     // Si el usuario está esperando introducir el nuevo correo
     else if (estadosRegistro[userId] === "esperando_correo") {
       const nuevoCorreo = text && text.trim();
-      if (!nuevoCorreo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
-        await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
-        return;
-      }
-      if (!usuarioExistente) {
-        await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
-        delete estadosRegistro[userId];
-        return;
-      }
-      await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
-      await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
-      delete estadosRegistro[userId];
+      await handleEmailUpdate(chatId, userId, uvus, usuarioExistente, nuevoCorreo);
       return; // <-- Este return es necesario para evitar el mensaje de menú
     } 
     // Comando para iniciar la actualización del correo
     else if (text.startsWith("/actualizarcorreo")) {
-      if (!usuarioExistente) {
-        await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
-        return;
-      }
       const partes = text.split(" ");
-      if (partes.length !== 2) {
-        await sendMessage(chatId, "Formato incorrecto. Usa:\n/actualizarcorreo tu_correo@ejemplo.com");
-        return;
-      }
-      const nuevoCorreo = partes[1].trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
-        await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
-        return;
-      }
-      await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
-      await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
+      const nuevoCorreo = partes[1]?.trim();
+      await handleEmailUpdate(chatId, userId, uvus, usuarioExistente, nuevoCorreo);
       return;
     }
     // Solo se procesa el registro si está esperando datos
@@ -299,3 +275,19 @@ export const handleCallbackQuery = async (callbackQuery) => {
     console.error("Error procesando callback:", error);
   }
 };
+
+async function handleEmailUpdate(chatId, userId, uvus, usuarioExistente, nuevoCorreo) {
+  if (!nuevoCorreo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
+    await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
+    return false;
+  }
+  if (!usuarioExistente) {
+    await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
+    delete estadosRegistro[userId];
+    return false;
+  }
+  await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
+  await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
+  delete estadosRegistro[userId];
+  return true;
+}
