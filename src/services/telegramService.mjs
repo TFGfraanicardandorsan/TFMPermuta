@@ -43,13 +43,15 @@ Has solicitado acceso a la aplicación de Permutas ETSII.
 
 Para completar tu solicitud, por favor escribe:
 
-*UVUS* seguido de tu *Nombre y Apellidos* en un solo mensaje.
+*UVUS* seguido de tu *Nombre y Apellidos* en un solo mensaje en el caso de que tu uvus y tu correo coincidan.
 
 Ejemplo 1:
 \`juapergar Juan Pérez García\`
 
+En el caso de que no coincidan tu uvus y tu correo, escribe tu *UVUS* (3 letras mayúsculas seguidas de 4 números), tu *Correo* y tu *Nombre y Apellidos*.
+
 Ejemplo 2:
-\`ABC1234 Juan Pérez García\`
+\`ABC1234 juanpergar@alum.us.es Juan Pérez García\`
 
 Es muy importante que las mayúsculas y minúsculas sean las mismas que tu uvus, en caso contrario no podrás iniciar sesión en el sistema aunque te aceptemos.`;
         await sendMessage(chatId, bienvenida, "Markdown");
@@ -60,65 +62,67 @@ Es muy importante que las mayúsculas y minúsculas sean las mismas que tu uvus,
     else if (estadosRegistro[userId] === "esperando_datos") {
       const partes = text.trim().split(" ");
       let uvusEnviado = partes.shift();
-      const nombreCompleto = partes.join(" ");
+      let correo = null;
+      let nombreCompleto = null;
 
-      // Validación y transformación del UVUS
-      if (/^[a-zA-Z]{9}\d*$/.test(uvusEnviado)) {
-        uvusEnviado = uvusEnviado.toLowerCase();
-      } else if (/^[a-zA-Z]{3}\d{4}$/.test(uvusEnviado)) {
-        uvusEnviado = uvusEnviado.slice(0, 3).toUpperCase() + uvusEnviado.slice(3);
+      // Caso 1: UVUS y Nombre y Apellidos (ejemplo 1)
+      if (
+        /^[a-z]{9}\d*$/.test(uvusEnviado) && // 9 letras minúsculas (opcionalmente seguido de números)
+        partes.length >= 2
+      ) {
+        nombreCompleto = partes.join(" ");
+      }
+      // Caso 2: UVUS, correo y Nombre y Apellidos (ejemplo 2)
+      else if (
+        /^[A-Z]{3}\d{4}$/.test(uvusEnviado) && // 3 mayúsculas y 4 números
+        partes.length >= 3 &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partes[0])
+      ) {
+        correo = partes.shift();
+        nombreCompleto = partes.join(" ");
       } else {
-        const aviso = `Formato de UVUS incorrecto. Debe ser:\n- 9 letras minúsculas seguidas opcionalmente de números (ej: juapergar, juapergar1)\n- o 3 letras mayúsculas seguidas de 4 números (ej: ABC1234)\n\nPor favor, revisa el formato e inténtalo de nuevo. Recuerda que el UVUS es aquello que introduces en el SSO de la US y no tiene por qué coincidir con la primera parte de tu correo electrónico.`;
+        const aviso = `Formato incorrecto. 
+Para completar tu solicitud, por favor escribe:
+
+*UVUS* seguido de tu *Nombre y Apellidos* en un solo mensaje en el caso de que tu uvus y tu correo coincidan.
+
+Ejemplo 1:
+\`juapergar Juan Pérez García\`
+
+En el caso de que no coincidan tu uvus y tu correo, escribe tu *UVUS* (3 letras mayúsculas seguidas de 4 números), tu *Correo* y tu *Nombre y Apellidos*.
+
+Ejemplo 2:
+\`ABC1234 juanpergar@alum.us.es Juan Pérez García\``;
         await sendMessage(chatId, aviso, "Markdown");
         return;
       }
 
       if (!uvusEnviado || !nombreCompleto) {
-        const aviso = `Formato incorrecto. Por favor envía: UVUS seguido de tu Nombre y Apellidos.\nEjemplo 1:\n\`juapergar Juan Pérez García\`\nEjemplo 2:\n\`ABC1234 Juan Pérez García\``;
-        await sendMessage(chatId, aviso, "Markdown");
+        await sendMessage(chatId, "Por favor, revisa el formato e inténtalo de nuevo.", "Markdown");
         return;
       }
-      await autorizacionService?.insertarSolicitudAltaUsuario(uvusEnviado, nombreCompleto, chatId);
+
+      await autorizacionService?.insertarSolicitudAltaUsuario(uvusEnviado, nombreCompleto, chatId, correo);
       await sendMessage(chatId, "✅ ¡Gracias! Tu solicitud ha sido enviada a los administradores. Pronto te darán acceso.");
-      await sendMessage(process.env.ADMIN_CHAT_ID, avisoAdmin(nombreCompleto, uvusEnviado, chatId), "Markdown", markupAceptarRechazarUsuario(uvusEnviado));
-      // Eliminar el estado de registro del usuario, ya que la solicitud fue procesada
+      await sendMessage(
+        process.env.ADMIN_CHAT_ID,
+        avisoAdmin(nombreCompleto, uvusEnviado, chatId),
+        "Markdown",
+        markupAceptarRechazarUsuario(uvusEnviado)
+      );
       delete estadosRegistro[userId];
     } 
     // Si el usuario está esperando introducir el nuevo correo
     else if (estadosRegistro[userId] === "esperando_correo") {
       const nuevoCorreo = text && text.trim();
-      if (!nuevoCorreo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
-        await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
-        return;
-      }
-      if (!usuarioExistente) {
-        await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
-        delete estadosRegistro[userId];
-        return;
-      }
-      await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
-      await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
-      delete estadosRegistro[userId];
+      await handleEmailUpdate(chatId, userId, uvus, usuarioExistente, nuevoCorreo);
       return; // <-- Este return es necesario para evitar el mensaje de menú
     } 
     // Comando para iniciar la actualización del correo
     else if (text.startsWith("/actualizarcorreo")) {
-      if (!usuarioExistente) {
-        await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
-        return;
-      }
       const partes = text.split(" ");
-      if (partes.length !== 2) {
-        await sendMessage(chatId, "Formato incorrecto. Usa:\n/actualizarcorreo tu_correo@ejemplo.com");
-        return;
-      }
-      const nuevoCorreo = partes[1].trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
-        await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
-        return;
-      }
-      await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
-      await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
+      const nuevoCorreo = partes[1]?.trim();
+      await handleEmailUpdate(chatId, userId, uvus, usuarioExistente, nuevoCorreo);
       return;
     }
     // Solo se procesa el registro si está esperando datos
@@ -271,3 +275,19 @@ export const handleCallbackQuery = async (callbackQuery) => {
     console.error("Error procesando callback:", error);
   }
 };
+
+async function handleEmailUpdate(chatId, userId, uvus, usuarioExistente, nuevoCorreo) {
+  if (!nuevoCorreo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
+    await sendMessage(chatId, "Por favor, introduce un correo electrónico válido.");
+    return false;
+  }
+  if (!usuarioExistente) {
+    await sendMessage(chatId, "Debes estar registrado para actualizar tu correo. Usa /start primero.");
+    delete estadosRegistro[userId];
+    return false;
+  }
+  await usuarioService.actualizarCorreoUsuario(uvus, nuevoCorreo);
+  await sendMessage(chatId, mensajeCorreoActualizado(nuevoCorreo), "HTML");
+  delete estadosRegistro[userId];
+  return true;
+}
