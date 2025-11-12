@@ -1,0 +1,299 @@
+openapi: 3.0.1
+info:
+  title: TFMPermuta API
+  description: |-
+    API para la aplicación TFMPermuta, diseñada para gestionar permutas de grupos y asignaturas en un entorno académico.
+    Permite a los estudiantes solicitar, aceptar y gestionar permutas, mientras que los administradores pueden supervisar y validar estas solicitudes.
+    La autenticación se gestiona mediante SAML, por lo que se espera que las solicitudes a estos endpoints incluyan la cookie de sesión correspondiente una vez que el usuario se haya autenticado.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Servidor principal de la API
+
+tags:
+  - name: Usuarios
+    description: Endpoints para la gestión de datos de usuario.
+  - name: Permutas
+    description: Endpoints para la gestión de permutas.
+  - name: Incidencias
+    description: Endpoints para la gestión de incidencias.
+  - name: Estadísticas
+    description: Endpoints para obtener estadísticas del sistema.
+
+paths:
+  /usuario/obtenerDatosUsuario:
+    post:
+      tags:
+        - Usuarios
+      summary: Obtiene los datos del usuario autenticado
+      description: Devuelve la información completa del usuario que ha iniciado sesión a través de SAML.
+      responses:
+        '200':
+          description: Datos del usuario obtenidos correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+        '401':
+          description: No autorizado. El usuario no ha iniciado sesión.
+
+  /usuario/actualizarEstudiosUsuario:
+    post:
+      tags:
+        - Usuarios
+      summary: Actualiza los estudios del usuario
+      description: Permite al usuario modificar la información sobre sus estudios actuales.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estudios:
+                  type: string
+                  description: "El nuevo identificador o nombre de los estudios del usuario."
+                  example: "Grado en Ingeniería del Software"
+      responses:
+        '200':
+          description: Estudios actualizados correctamente.
+        '400':
+          description: Datos de entrada inválidos.
+        '401':
+          description: No autorizado.
+
+  /permutas/solicitarPermuta:
+    post:
+      tags:
+        - Permutas
+      summary: Solicita una nueva permuta
+      description: Crea una nueva solicitud de permuta para cambiar de un grupo/asignatura a otro.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              : '#/components/schemas/SolicitudPermuta'
+      responses:
+        '201':
+          description: Solicitud de permuta creada con éxito.
+        '400':
+          description: Datos de la solicitud inválidos.
+        '401':
+          description: No autorizado.
+
+  /permutas/aceptarPermuta:
+    post:
+      tags:
+        - Permutas
+      summary: Acepta una permuta propuesta
+      description: Un usuario acepta una solicitud de permuta que le ha sido propuesta por otro usuario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permutaId:
+                  type: integer
+                  description: "ID de la permuta que se va a aceptar."
+                  example: 123
+      responses:
+        '200':
+          description: Permuta aceptada correctamente.
+        '400':
+          description: El ID de la permuta es inválido o ya ha sido gestionada.
+        '401':
+          description: No autorizado.
+
+  /permutas/rechazarSolicitudPermuta:
+    post:
+      tags:
+        - Permutas
+      summary: Rechaza una solicitud de permuta
+      description: Un usuario rechaza una solicitud de permuta que le ha sido propuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                solicitudId:
+                  type: integer
+                  description: "ID de la solicitud de permuta que se va a rechazar."
+                  example: 456
+      responses:
+        '200':
+          description: Solicitud de permuta rechazada correctamente.
+        '400':
+          description: El ID de la solicitud es inválido.
+        '401':
+          description: No autorizado.
+
+  /incidencia/crearIncidencia:
+    post:
+      tags:
+        - Incidencias
+      summary: Crea una nueva incidencia
+      description: Permite a un usuario registrar una incidencia o problema en el sistema.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              : '#/components/schemas/CrearIncidencia'
+      responses:
+        '201':
+          description: Incidencia creada con éxito.
+        '400':
+          description: Datos de la incidencia inválidos.
+        '401':
+          description: No autorizado.
+
+  /incidencia/obtenerIncidencias:
+    post:
+      tags:
+        - Incidencias
+      summary: Obtiene todas las incidencias
+      description: Devuelve una lista de todas las incidencias registradas (probablemente para administradores).
+      responses:
+        '200':
+          description: Lista de incidencias.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  : '#/components/schemas/Incidencia'
+        '401':
+          description: No autorizado.
+
+  /estadisticas/permutas:
+    post:
+      tags:
+        - Estadísticas
+      summary: Obtiene estadísticas de permutas
+      description: Devuelve datos estadísticos sobre las permutas completadas, pendientes, etc.
+      responses:
+        '200':
+          description: Estadísticas de permutas.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 150
+                  completadas:
+                    type: integer
+                    example: 120
+                  pendientes:
+                    type: integer
+                    example: 30
+        '401':
+          description: No autorizado.
+
+  /estadisticas/solicitudes:
+    post:
+      tags:
+        - Estadísticas
+      summary: Obtiene estadísticas de solicitudes
+      description: Devuelve datos estadísticos sobre las solicitudes de permuta.
+      responses:
+        '200':
+          description: Estadísticas de solicitudes.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 500
+                  aceptadas:
+                    type: integer
+                    example: 350
+                  rechazadas:
+                    type: integer
+                    example: 150
+        '401':
+          description: No autorizado.
+
+components:
+  schemas:
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "Identificador único del usuario (e.g., email o DNI)."
+          example: "usuario@ejemplo.com"
+        nombre:
+          type: string
+          example: "Juan"
+        apellidos:
+          type: string
+          example: "Pérez"
+        estudios:
+          type: string
+          example: "Grado en Ingeniería del Software"
+    SolicitudPermuta:
+      type: object
+      required:
+        - asignaturaOrigen
+        - grupoOrigen
+        - asignaturaDestino
+        - grupoDestino
+      properties:
+        asignaturaOrigen:
+          type: string
+          description: "Asignatura que el usuario quiere dejar."
+          example: "Cálculo"
+        grupoOrigen:
+          type: string
+          description: "Grupo de la asignatura que el usuario quiere dejar."
+          example: "Grupo A"
+        asignaturaDestino:
+          type: string
+          description: "Asignatura que el usuario quiere obtener."
+          example: "Cálculo"
+        grupoDestino:
+          type: string
+          description: "Grupo de la asignatura que el usuario quiere obtener."
+          example: "Grupo B"
+    CrearIncidencia:
+      type: object
+      required:
+        - titulo
+        - descripcion
+      properties:
+        titulo:
+          type: string
+          description: "Título breve de la incidencia."
+          example: "Error al aceptar permuta"
+        descripcion:
+          type: string
+          description: "Descripción detallada del problema."
+          example: "Cuando intento aceptar la permuta #123, la página muestra un error 500."
+    Incidencia:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        titulo:
+          type: string
+          example: "Error al aceptar permuta"
+        descripcion:
+          type: string
+          example: "Cuando intento aceptar la permuta #123, la página muestra un error 500."
+        estado:
+          type: string
+          enum: [abierta, en_proceso, cerrada]
+          example: "abierta"
+        fechaCreacion:
+          type: string
+          format: date-time
