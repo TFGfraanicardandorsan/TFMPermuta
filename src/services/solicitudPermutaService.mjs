@@ -15,7 +15,7 @@ class SolicitudPermutaService {
                 FROM solicitud_permuta 
                 WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
                 AND id_asignatura_fk = (SELECT id FROM asignatura WHERE codigo = $2)
-                AND estado = 'SOLICITADA'
+                AND estado = 'SOLICITADA' AND vigente = true
             `,
             values: [uvus, asignatura],
         };
