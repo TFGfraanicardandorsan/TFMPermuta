@@ -73,7 +73,7 @@ paths:
         content:
           application/json:
             schema:
-              : '#/components/schemas/SolicitudPermuta'
+              $ref: '#/components/schemas/SolicitudPermuta'
       responses:
         '201':
           description: Solicitud de permuta creada con éxito.
@@ -143,7 +143,7 @@ paths:
         content:
           application/json:
             schema:
-              : '#/components/schemas/CrearIncidencia'
+              $ref: '#/components/schemas/CrearIncidencia'
       responses:
         '201':
           description: Incidencia creada con éxito.
@@ -166,7 +166,7 @@ paths:
               schema:
                 type: array
                 items:
-                  : '#/components/schemas/Incidencia'
+                  $ref: '#/components/schemas/Incidencia'
         '401':
           description: No autorizado.
 

@@ -11,7 +11,6 @@ const userName = process.env.EMAIL_USERNAME;
 const passWord = process.env.EMAIL_PASSWORD;
 class Email {
     constructor(){
-        console.log("userName", userName)
         this.transporter = nodemailer.createTransport({
             host: 'smtp.office365.com',
             port: 587,
@@ -27,7 +26,6 @@ class Email {
     }
 
     async sendEmail(to, subject, html,attachments = []) {
-        console.log("userName", userName)
         try {
             const mailOptions = {
                 from: userName,
@@ -36,14 +34,12 @@ class Email {
                 html,
                 attachments
             };
-            const info = await this.transporter.sendMail(mailOptions);
-            console.log('Correo enviado a', to, "respuesta:" ,info.response);
+            await this.transporter.sendMail(mailOptions);
         } catch (error) {
             console.error('Error al enviar el correo:', error);
         }
     }
     async sendEmailToStudentsDocumentoPermuta(estudiantes, subject, htmlTemplate, pdfUUID){
-        console.log("PDFUUID comprobar que viene con extensión", pdfUUID);
         // Lista de correos de los estudiantes para el campo "to"
         let to;
         if (Array.isArray(estudiantes)) {

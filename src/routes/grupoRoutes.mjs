@@ -10,5 +10,5 @@ router
 .post('/obtenerTodosGruposMisAsignaturasUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasUsuario)
 .post('/obtenerTodosGruposMisAsignaturasSinGrupoUsuario',verificarRol('estudiante'), grupoController.obtenerTodosGruposMisAsignaturasSinGrupoUsuario)
 .post('/obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario',verificarRol('estudiante'),grupoController.obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario)
-.post('/acturlizarProyectoDocente', verificarRol('administrador'), grupoController.actualizarProyectoDocente)
+.post('/actualizarProyectoDocente', verificarRol('administrador'), grupoController.actualizarProyectoDocente)
 export default router;
