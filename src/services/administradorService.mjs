@@ -37,20 +37,36 @@ class AdministradorService {
         `
       };
 
+      // Permutas de cada asignatura agrupadas por grado
+      const permutasPorGrado = {
+        text: `
+          SELECT e.nombre as grado_nombre, e.siglas as grado_siglas, a.siglas as asignatura_siglas, a.codigo as asignatura_codigo, COUNT(*) as cantidad
+          FROM permuta p
+          JOIN usuario u ON p.usuario_id_1_fk = u.id
+          JOIN estudios e ON u.estudios_id_fk = e.id
+          JOIN asignatura a ON p.asignatura_id_fk = a.id
+          GROUP BY e.nombre, e.siglas, a.siglas, a.codigo
+          ORDER BY e.nombre, cantidad DESC
+        `
+      };
+
       const [
         estadosRes,
         asignaturasRes,
-        estudiosRes
+        estudiosRes,
+        gradosRes
       ] = await Promise.all([
         conexion.query(permutasPorEstado),
         conexion.query(permutasPorAsignatura),
-        conexion.query(topEstudios)
+        conexion.query(topEstudios),
+        conexion.query(permutasPorGrado)
       ]);
 
       return {
         permutasPorEstado: estadosRes.rows,
         permutasPorAsignatura: asignaturasRes.rows,
-        topEstudios: estudiosRes.rows
+        topEstudios: estudiosRes.rows,
+        permutasPorGrado: gradosRes.rows
       };
 
     } catch (error) {
