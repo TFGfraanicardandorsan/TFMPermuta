@@ -71,9 +71,25 @@ const obtenerPlantillaPermuta = (req, res) => {
         .status(401)
         .json({ err: true, message: "No hay usuario en la sesión" });
     }
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-11
+
+    let startYear, endYear;
+    if (month >= 8) { // September or later
+      startYear = year;
+      endYear = year + 1;
+    } else {
+      startYear = year - 1;
+      endYear = year;
+    }
+
+    const startYY = startYear.toString().slice(-2);
+    const endYY = endYear.toString().slice(-2);
+
     const pdfPath = path.join(
       process.env.PLANTILLAS,
-      "plantillaPermuta2425.pdf"
+      `plantillaPermuta${startYY}${endYY}.pdf`
     );
     res.sendFile(pdfPath, (err) => {
       if (err) {
