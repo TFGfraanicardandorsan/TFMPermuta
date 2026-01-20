@@ -221,6 +221,10 @@ Ejemplo 2:
 
 export const sendMessage = async (chatId, text, parseMode = "HTML", markup = null) => {
   try {
+    if (!chatId || chatId === null || chatId === undefined || chatId === '') {
+      console.error("Error: chatId es requerido para enviar un mensaje");
+      return;
+    }
     const body = { chat_id: chatId, text, parse_mode: parseMode };
     if (markup) {
       body.reply_markup = markup;
@@ -252,9 +256,20 @@ export const handleCallbackQuery = async (callbackQuery) => {
         await sendMessage(chatId, "No se encontró ninguna solicitud con ese UVUS.");
         return;
       }
+      // Validar que tenemos todos los datos necesarios
+      if (!solicitud.uvus || !solicitud.nombre_completo) {
+        await sendMessage(chatId, `❌ Error: La solicitud no tiene datos completos. UVUS: ${solicitud.uvus}, Nombre: ${solicitud.nombre_completo}`);
+        return;
+      }
       await sendMessage(solicitud.chat_id, `🎉 ¡Felicidades! Has sido aceptado en el sistema de Permutas ETSII. Bienvenido.\n Recuerda que debes completar los datos de tu perfil:\n 1. Marcar qué estudios estás cursando.\n2. Una vez que has puesto el estudio añadir las asignaturas.\n3. Añadir los grupos EN LOS QUE ESTÁS MATRICULADO de las asignaturas marcadas (se te redirigirá después de marcar las asignaturas).\nSi no haces todo esto NO podrás solicitar ni aceptar las permutas.\nRecuerda que el enlace de tu perfil es: https://permutas.eii.us.es/miPerfil`);
       // Eliminar la solicitud de la lista de pendientes
-      await autorizacionService?.insertarUsuario(solicitud.uvus, solicitud.nombre_completo, solicitud.correo, solicitud.chat_id,);
+      try {
+        await autorizacionService?.insertarUsuario(solicitud.uvus, solicitud.nombre_completo, solicitud.correo || '', solicitud.chat_id);
+      } catch (insertError) {
+        console.error("Error al insertar usuario en callback aceptar:", insertError);
+        await sendMessage(chatId, `❌ Error al insertar usuario: ${insertError.message}`);
+        return;
+      }
       // Notificar al administrador que la solicitud fue aceptada
       await sendMessage(chatId, `Usuario ${uvus} aceptado correctamente.`);
       await autorizacionService?.eliminarSolicitudAltaUsuario(uvus);
@@ -273,6 +288,7 @@ export const handleCallbackQuery = async (callbackQuery) => {
     }
   } catch (error) {
     console.error("Error procesando callback:", error);
+    await sendMessage(chatId, `Error procesando tu solicitud: ${error.message}`);
   }
 };
 
