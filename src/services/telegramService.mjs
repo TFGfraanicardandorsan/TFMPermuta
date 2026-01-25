@@ -70,6 +70,7 @@ Es muy importante que las mayúsculas y minúsculas sean las mismas que tu uvus,
         /^[a-z]{9}\d*$/.test(uvusEnviado) && // 9 letras minúsculas (opcionalmente seguido de números)
         partes.length >= 2
       ) {
+        correo = uvusEnviado + "@alum.us.es";
         nombreCompleto = partes.join(" ");
       }
       // Caso 2: UVUS, correo y Nombre y Apellidos (ejemplo 2)
