@@ -1,5 +1,4 @@
 import permutaService from "../services/permutaService.mjs";
-import permutasService from "../services/permutasService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 import solicitudPermutaService from "../services/solicitudPermutaService.mjs";
 
@@ -177,7 +176,7 @@ const actualizarVigenciaPermutas = async (req, res) => {
         }
         const uvus = req.session.user.nombre_usuario;
         res.status(200).json({ err: false, result: await permutaService.actualizarLaVigenciaPermuta() });
-        res.status(200).json({ err: false, result: await permutasService.actualizarLaVigenciaPermutas() });
+        res.status(200).json({ err: false, result: await permutaService.actualizarLaVigenciaPermutas() });
         res.status(200).json({ err: false, result: await solicitudPermutaService.actualizarLaVigenciaSolicitud() });
     } catch (err) {
     console.error("api actualizarVigenciaPermutasYSolicitudes ha tenido una excepción:", err);
