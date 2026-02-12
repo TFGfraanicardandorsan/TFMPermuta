@@ -175,13 +175,14 @@ const actualizarVigenciaPermutas = async (req, res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        res.status(200).json({ err: false, result: await permutaService.actualizarLaVigenciaPermuta() });
-        res.status(200).json({ err: false, result: await permutaService.actualizarLaVigenciaPermutas() });
-        res.status(200).json({ err: false, result: await solicitudPermutaService.actualizarLaVigenciaSolicitud() });
+        const result1 = await permutaService.actualizarLaVigenciaPermuta();
+        const result2 = await permutaService.actualizarLaVigenciaPermutas();
+        const result3 = await solicitudPermutaService.actualizarLaVigenciaSolicitud();
+        res.status(200).json({ err: false, result: [result1, result2, result3] });
     } catch (err) {
-    console.error("api actualizarVigenciaPermutasYSolicitudes ha tenido una excepción:", err);
-    res.status(500).json({ err: true, message: "Error interno en actualizarVigenciaPermutasYSolicitudes", details: err.message });
-  }
+        console.error("api actualizarVigenciaPermutasYSolicitudes ha tenido una excepción:", err);
+        res.status(500).json({ err: true, message: "Error interno en actualizarVigenciaPermutasYSolicitudes", details: err.message });
+    }
 };
 
 export default {
