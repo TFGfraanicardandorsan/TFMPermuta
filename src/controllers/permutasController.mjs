@@ -1,5 +1,5 @@
 import permutaService from "../services/permutaService.mjs";
-import permutaService from "../services/permutasService.mjs";
+import permutasService from "../services/permutasService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 import solicitudPermutaService from "../services/solicitudPermutaService.mjs";
 
