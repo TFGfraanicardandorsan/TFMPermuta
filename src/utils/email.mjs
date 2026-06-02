@@ -7,8 +7,8 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const userName = process.env.EMAIL_USERNAME;
-const passWord = process.env.EMAIL_PASSWORD;
+const userName = process.env.EMAIL_USERNAME || process.env.SMTP_USER || 'no-reply@example.com';
+const passWord = process.env.EMAIL_PASSWORD || process.env.SMTP_PASSWORD || '';
 class Email {
     constructor(){
         this.transporter = nodemailer.createTransport({
@@ -21,7 +21,7 @@ class Email {
             },
             tls: { rejectUnauthorized: true } // false para desarrollo en producción debería ser true para verificar certificados
         });
-        this.pdfFolder = process.env.PDF_FOLDER
+        this.pdfFolder = process.env.PDF_FOLDER || path.join(process.cwd(), 'tmp')
         this.templatesFolder = path.join(__dirname);
     }
 

@@ -34,7 +34,7 @@ const options = {
             uvus: { type: 'string', example: 'juapergar' },
             nombre_completo: { type: 'string', example: 'Juan Pérez García' },
             correo: { type: 'string', example: 'juapergar@alum.us.es' },
-            rol: { type: 'string', enum: ['estudiante', 'administrador'], example: 'estudiante' },
+            rol: { type: 'string', enum: ['estudiante', 'administrador', 'delegacion'], example: 'estudiante' },
           },
         },
         SolicitudPermuta: {

@@ -19,6 +19,7 @@ import uploadRouter from './routes/uploadRoutes.mjs'
 import telegramRouter from './routes/telegramRoutes.mjs'
 import permutaRouter from './routes/permutasRoutes.mjs'
 import administradorRouter from './routes/administradorRoutes.mjs'
+import delegadosRouter from './routes/delegadosRoutes.mjs'
 import { setBotCommands } from './middleware/botCommands.mjs';
 import { swaggerUi, swaggerSpec } from './config/swagger.mjs';
 
@@ -26,8 +27,8 @@ dotenv.config();
 const app = express();
 
 await setBotCommands(); // Establecer los comandos del bot de Telegram
-app.use(express.json()); // Middleware nativo para JSON
-app.use(express.urlencoded({extended:true})) // Middleware nativo para formularios URL encoded
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '30mb' })); // Middleware nativo para JSON
+app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '30mb' })) // Middleware nativo para formularios URL encoded
 
 // Swagger docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -80,10 +81,15 @@ app.use('/api/v1/permutas', permutaRouter)
 app.use('/api/v1', uploadRouter)
 app.use('/api/v1/estadisticas', administradorRouter)
 app.use('/api/v1/telegram',telegramRouter)
+app.use('/api/v1/delegados', delegadosRouter)
 
 // Configurar el servidor con HTTPS
-const keyPath = process.env.SSL_KEY_PATH || './src/config/certs/key.pem';
-const certPath = process.env.SSL_CERT_PATH || './src/config/certs/cert.pem';
+const resolveCertPath = (envPath, fallbackPaths) => {
+    if (envPath) return envPath;
+    return fallbackPaths.find((candidate) => fs.existsSync(candidate)) || fallbackPaths[0];
+};
+const keyPath = resolveCertPath(process.env.SSL_KEY_PATH, ['./src/config/certs/key.pem', './src/config/certs/privkey.pem']);
+const certPath = resolveCertPath(process.env.SSL_CERT_PATH, ['./src/config/certs/cert.pem', './src/config/certs/fullchain.pem']);
 const options = {
     key: fs.readFileSync(keyPath),
     cert: fs.readFileSync(certPath),
