@@ -5,5 +5,10 @@ const router = Router()
 router
 .post('/notificaciones', notificacionController.getNotificacionesUsuario)
 .post('/insertarNotificacion',verificarRol('administrador'), notificacionController.insertarNotificacion)
+.post(
+  '/notificarCierreIncidencia',
+  verificarRol('administrador'),
+  notificacionController.notificarCierreIncidencia
+);
 
 export default router;

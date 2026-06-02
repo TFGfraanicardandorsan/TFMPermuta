@@ -109,7 +109,6 @@ export default {
     obtenerAsignaturasMiEstudioUsuario,
     asignaturaPermutable,
     asignaturaPermutableUsuario,
-    obtenerTodosGruposMisAsignaturasSinGrupoUsuario,
     obtenerAsignaturasNoMatriculadas,
     crearAsignatura,
     verAsignatura

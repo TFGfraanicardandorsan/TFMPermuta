@@ -10,7 +10,8 @@ export const setBotCommands = async () => {
           { command: 'misincidencias', description: 'Ver mis incidencias' },
           { command: 'vernotificaciones', description: 'Ver notificaciones' },
           { command: 'perfil', description: 'Mi Perfil' },
-          { command: 'ayuda', description: 'Mostrar ayuda' }
+          { command: 'ayuda', description: 'Mostrar ayuda' },
+          { command: 'actualizarcorreo', description: 'Actualizar correo electrónico' }
         ]
       }),
     });

@@ -1,0 +1,63 @@
+import nodemailer from 'nodemailer';
+import ejs from 'ejs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const userName = process.env.EMAIL_USERNAME;
+const passWord = process.env.EMAIL_PASSWORD;
+class Email {
+    constructor(){
+        this.transporter = nodemailer.createTransport({
+            host: 'smtp.office365.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: userName,
+                pass: passWord,
+            },
+            tls: { rejectUnauthorized: true } // false para desarrollo en producción debería ser true para verificar certificados
+        });
+        this.pdfFolder = process.env.PDF_FOLDER
+        this.templatesFolder = path.join(__dirname);
+    }
+
+    async sendEmail(to, subject, html,attachments = []) {
+        try {
+            const mailOptions = {
+                from: userName,
+                to,
+                subject,
+                html,
+                attachments
+            };
+            await this.transporter.sendMail(mailOptions);
+        } catch (error) {
+            console.error('Error al enviar el correo:', error);
+        }
+    }
+    async sendEmailToStudentsDocumentoPermuta(estudiantes, subject, htmlTemplate, pdfUUID){
+        // Lista de correos de los estudiantes para el campo "to"
+        let to;
+        if (Array.isArray(estudiantes)) {
+            to = estudiantes.map(est => est.correo).join(',');
+        } else {
+            to = estudiantes.correo;
+        }
+        const htmlTemplatePath = path.join(this.templatesFolder, htmlTemplate);
+        const html = await ejs.renderFile(htmlTemplatePath, { estudiantes:Array.isArray(estudiantes) ? estudiantes : [estudiantes] });
+        const attachments = pdfUUID ? [
+            {
+                filename: 'SolicitudPermuta.pdf',
+                path: path.join(this.pdfFolder, pdfUUID),
+                contentType: 'application/pdf'
+            }
+        ] : [];
+        await this.sendEmail(to,subject,html, attachments);
+    }
+}
+const email = new Email();
+export default email;

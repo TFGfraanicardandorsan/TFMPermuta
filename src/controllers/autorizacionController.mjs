@@ -34,17 +34,15 @@ export const verificarSesionUsuario = async (req, res) => {
     const user = await autorizacionService.verificarSiExisteUsuario(uvus);
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "Usuario no encontrado en la base de datos" });
+      return res.redirect(`https://permutas.eii.us.es/noRegistrado`);
     }
     // Guardar la información del usuario en la sesión (para la sesion en Express)
     req.session.user = user;
     // Redirigir al frontend con éxito
-    res.redirect(`https://permutas.eii.us.es/`);
+    return res.redirect(`https://permutas.eii.us.es/`);
   } catch (error) {
     console.error("Error al obtener la sesión del usuario:", error);
-    res
+    return res
       .status(500)
       .json({ message: "Error al obtener la sesión", error: error.message });
   }
@@ -64,7 +62,7 @@ export const logout = async (req, res) => {
     });
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
-    res
+    return res
       .status(500)
       .json({ message: "Error al cerrar sesión", error: error.message });
   }
@@ -79,6 +77,6 @@ export const obtenerSesion = async (req, res) => {
     return res.status(200).send({isAuthenticated: true,user: { uvus, rol }});
   } catch (error) {
     console.error("Error al obtener la sesión:", error);
-    res.status(500).json({ message: "Error al obtener la sesión", error: error.message });
+    return res.status(500).json({ message: "Error al obtener la sesión", error: error.message });
   }
 };

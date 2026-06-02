@@ -20,12 +20,17 @@ import telegramRouter from './routes/telegramRoutes.mjs'
 import permutaRouter from './routes/permutasRoutes.mjs'
 import administradorRouter from './routes/administradorRoutes.mjs'
 import { setBotCommands } from './middleware/botCommands.mjs';
+import { swaggerUi, swaggerSpec } from './config/swagger.mjs';
+
 dotenv.config();
 const app = express();
 
 await setBotCommands(); // Establecer los comandos del bot de Telegram
 app.use(express.json()); // Middleware nativo para JSON
 app.use(express.urlencoded({extended:true})) // Middleware nativo para formularios URL encoded
+
+// Swagger docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Middleware 
 app.use(session({
@@ -39,6 +44,17 @@ app.use(session({
         maxAge: 7200000 
       },
 }));
+
+// CSRF protection middleware
+//import csurf from 'csurf';
+//const csrfProtection = csurf({ cookie: false });
+//app.use(csrfProtection);
+
+// Optional: expose CSRF token to clients (for forms, etc.)
+//app.use((req, res, next) => {
+//    res.locals.csrfToken = req.csrfToken();
+//    next();
+//});
 // Inicializar Passport 
 app.use(passport.initialize());
 app.use(passport.session());

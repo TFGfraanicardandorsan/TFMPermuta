@@ -143,6 +143,62 @@ async verAsignatura(codigo) {
     await conexion.end();
   }
 }
+async obtenerTodosGruposMisAsignaturasSinGrupoUsuario(uvus) {
+  const conexion = await database.connectPostgreSQL();
+  try {
+    const query = {
+      text: `
+        SELECT 
+          g.id, 
+          g.nombre AS numGrupo, 
+          a.nombre AS nombreAsignatura, 
+          a.codigo AS codAsignatura 
+        FROM 
+          grupo g 
+        LEFT JOIN 
+          asignatura a 
+        ON 
+          a.id = g.asignatura_id_fk
+        WHERE 
+          g.asignatura_id_fk IN (
+            SELECT 
+              ua.asignatura_id_fk 
+            FROM 
+              usuario_asignatura ua 
+            WHERE 
+              ua.usuario_id_fk = (
+                SELECT 
+                  id 
+                FROM 
+                  usuario u 
+                WHERE 
+                  u.nombre_usuario = $1
+              )
+          )
+          AND g.id NOT IN (
+            SELECT 
+              ug.grupo_id_fk 
+            FROM 
+              usuario_grupo ug 
+            WHERE 
+              ug.usuario_id_fk = (
+                SELECT 
+                  id 
+                FROM 
+                  usuario u 
+                WHERE 
+                  u.nombre_usuario = $1
+              )
+          );
+      `,
+      values: [uvus],
+    };
+    const res = await conexion.query(query);
+    return res.rows;
+  } finally {
+    await conexion.end();
+  }
+}
 }
 const asignaturaService = new AsignaturaService();
 export default asignaturaService;

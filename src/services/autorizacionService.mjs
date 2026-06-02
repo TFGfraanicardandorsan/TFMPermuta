@@ -85,10 +85,10 @@ class AutorizacionService{
     }
   }
 
-  async insertarSolicitudAltaUsuario(uvusEnviado,nombreCompleto,chatId){
+  async insertarSolicitudAltaUsuario(uvusEnviado,nombreCompleto,chatId,correo){
     try{
       const conexion = await database.connectPostgreSQL();
-      const correo = `${uvusEnviado}@alum.us.es`;
+      if (correo!=null) correo = `${uvusEnviado}@alum.us.es`;
       const query = {
         text: ` INSERT INTO alta_usuario_bot (uvus, correo, nombre_completo, chat_id, user_id)
                 VALUES ($1, $2, $3, $4, $5)`,

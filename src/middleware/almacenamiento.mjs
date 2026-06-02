@@ -10,16 +10,38 @@ const storage = multer.diskStorage({
       uploadPath = process.env.BUZON;
     } else if (tipo === "archivador") {
       uploadPath = process.env.ARCHIVADOR;
-    } else if (tipo === "proyectoDocente"){
+    } else if (tipo === "proyectoDocente") {
       uploadPath = process.env.PROYECTO_DOCENTE;
-    }else {
+    } else if (tipo === "plantilla") {
+      uploadPath = process.env.PLANTILLAS;
+    } else {
       return cb(new Error("Tipo de carpeta no válido"));
     }
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname);
-    cb(null, uuidv4() + extension);
+    if (req.body.tipo === "plantilla") {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-11
+
+      let startYear, endYear;
+      if (month >= 8) { // September or later
+        startYear = year;
+        endYear = year + 1;
+      } else {
+        startYear = year - 1;
+        endYear = year;
+      }
+
+      const startYY = startYear.toString().slice(-2);
+      const endYY = endYear.toString().slice(-2);
+
+      cb(null, `plantillaPermuta${startYY}${endYY}.pdf`);
+    } else {
+      const extension = path.extname(file.originalname);
+      cb(null, uuidv4() + extension);
+    }
   },
 });
 

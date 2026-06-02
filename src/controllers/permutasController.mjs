@@ -1,5 +1,6 @@
 import permutaService from "../services/permutaService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
+import solicitudPermutaService from "../services/solicitudPermutaService.mjs";
 
 const generarBorradorPermutas = async (req, res) => {
     try {
@@ -168,6 +169,22 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
   }
 };
 
+const actualizarVigenciaPermutas = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        const result1 = await permutaService.actualizarLaVigenciaPermuta();
+        const result2 = await permutaService.actualizarLaVigenciaPermutas();
+        const result3 = await solicitudPermutaService.actualizarLaVigenciaSolicitud();
+        res.status(200).json({ err: false, result: [result1, result2, result3] });
+    } catch (err) {
+        console.error("api actualizarVigenciaPermutasYSolicitudes ha tenido una excepción:", err);
+        res.status(500).json({ err: true, message: "Error interno en actualizarVigenciaPermutasYSolicitudes", details: err.message });
+    }
+};
+
 export default {
     listarPermutas,
     aceptarPermuta,
@@ -178,5 +195,6 @@ export default {
     obtenerPermutasAgrupadasPorUsuario,
     generarBorradorPermutas,
     firmarPermuta,
-    validarPermuta
+    validarPermuta,
+    actualizarVigenciaPermutas
 }
