@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import valoracionAsignaturaService from "./valoracionAsignaturaService.mjs";
 
 class AdministradorService {
   async obtenerEstadisticasPermutas() {
@@ -209,6 +210,10 @@ class AdministradorService {
     } finally {
       await conexion.end();
     }
+  }
+
+  async obtenerEstadisticasValoracionAsignaturas(asignaturaCodigo = null) {
+    return valoracionAsignaturaService.obtenerEstadisticasValoracionAsignaturas(asignaturaCodigo);
   }
 }
 

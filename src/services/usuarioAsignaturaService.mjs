@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import valoracionAsignaturaService from "./valoracionAsignaturaService.mjs";
 class AsignaturaUsuarioService {
 
   async actualizarAsignaturasUsuario(uvus, asignatura) {
@@ -42,14 +43,20 @@ class AsignaturaUsuarioService {
       return res.rows;
     } catch (err) {
       console.error(err);
-      return 'Se ha producido un error al conseguir las asignaturas del usuario';
+      return { err: true, message: 'Se ha producido un error al conseguir las asignaturas del usuario' };
     }
   }
 
 
-  async superarAsignaturasUsuario(uvus, asignatura) {
+  async superarAsignaturasUsuario(uvus, asignatura, respuestas = null) {
     const conexion = await database.connectPostgreSQL();
     try {
+      await conexion.query("BEGIN");
+
+      if (Array.isArray(respuestas) && respuestas.length > 0) {
+        await valoracionAsignaturaService.guardarValoracionAsignatura(uvus, asignatura, respuestas, { conexion });
+      }
+
       // Eliminar de la tabla usuario_grupo
       const deleteUsuarioGrupoQuery = {
         text: `delete from usuario_grupo 
@@ -73,11 +80,17 @@ class AsignaturaUsuarioService {
       };
       await conexion.query(deleteUsuarioAsignaturaQuery);
 
-      await conexion.end();
+      await conexion.query("COMMIT");
       return 'Asignatura y grupos asociados superados correctamente';
     } catch (err) {
+      await conexion.query("ROLLBACK").catch(() => {});
       console.error(err);
-      return 'Se ha producido un error al eliminar la asignatura y los grupos asociados del usuario';
+      if (err.statusCode) {
+        throw err;
+      }
+      return { err: true, message: 'Se ha producido un error al eliminar la asignatura y los grupos asociados del usuario' };
+    } finally {
+      await conexion.end();
     }
   }
 
@@ -95,7 +108,7 @@ class AsignaturaUsuarioService {
       return res.rows;
     } catch (err) {
       console.error(err);
-      return 'Se ha producido un error al conseguir las asignaturas sin grupo del usuario';
+      return { err: true, message: 'Se ha producido un error al conseguir las asignaturas sin grupo del usuario' };
     }
   }
 
@@ -122,7 +135,7 @@ class AsignaturaUsuarioService {
       return { result: res.rows[0].result };
     } catch (err) {
       console.error(err);
-      return { result: false, error: 'Se ha producido un error al comprobar las asignaturas sin grupo del usuario' };
+      return { err: true, message: 'Se ha producido un error al comprobar las asignaturas sin grupo del usuario' };
     }
   }
 }
