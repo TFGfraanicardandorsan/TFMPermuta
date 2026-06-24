@@ -8,5 +8,6 @@ router
 .post('/solicitudes', verificarRol('administrador'), administradorController.obtenerEstadisticasSolicitudes)
 .post('/obtenerEstadisticasIncidencias',verificarRol('administrador'),administradorController.obtenerEstadisticasIncidencias)
 .post('/estadisticasUsuarios', verificarRol('administrador'), administradorController.obtenerEstadisticasUsuarios)
+.post('/valoracionesAsignaturas', verificarRol('administrador'), administradorController.obtenerEstadisticasValoracionAsignaturas)
 .post('/importar-asignaturas', verificarRol('administrador'), importDatosController.importarAsignaturasDesdeCSVHandler)
 export default router;

@@ -30,10 +30,10 @@ const obtenerEstadisticasIncidencias = async (req, res) => {
       return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
     }
     const estadisticas = await administradorService.obtenerEstadisticasIncidencias();
-    res.json({ error: false, result: estadisticas });
+    res.json({ err: false, result: estadisticas });
   } catch (err) {
     console.error("Error en obtenerEstadisticasIncidencias:", err);
-    res.status(500).json({ error: true, message: "Error al obtener estadísticas de incidencias" });
+    res.status(500).json({ err: true, message: "Error al obtener estadísticas de incidencias" });
   }
 };
 
@@ -43,10 +43,28 @@ const obtenerEstadisticasUsuarios = async (req, res) => {
       return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
     }
     const estadisticas = await administradorService.obtenerEstadisticasUsuarios();
-    res.json({ error: false, result: estadisticas });
+    res.json({ err: false, result: estadisticas });
   } catch (err) {
     console.error("Error en obtenerEstadisticasUsuarios:", err);
-    res.status(500).json({ error: true, message: "Error al obtener estadísticas de usuarios" });
+    res.status(500).json({ err: true, message: "Error al obtener estadísticas de usuarios" });
+  }
+};
+
+const obtenerEstadisticasValoracionAsignaturas = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+
+    const asignatura = req.body.asignatura ?? req.body.codigo ?? null;
+    const estadisticas = await administradorService.obtenerEstadisticasValoracionAsignaturas(asignatura);
+    res.json({ err: false, result: estadisticas });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ err: true, message: err.message });
+    }
+    console.error("Error en obtenerEstadisticasValoracionAsignaturas:", err);
+    res.status(500).json({ err: true, message: "Error al obtener estadísticas de valoraciones de asignaturas" });
   }
 };
 
@@ -54,5 +72,6 @@ export default {
   obtenerEstadisticasIncidencias,
   obtenerEstadisticasPermutas,
   obtenerEstadisticasSolicitudes,
-  obtenerEstadisticasUsuarios
+  obtenerEstadisticasUsuarios,
+  obtenerEstadisticasValoracionAsignaturas
 };
