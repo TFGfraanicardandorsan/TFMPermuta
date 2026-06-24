@@ -31,7 +31,7 @@ class SolicitudPermutaService {
     const insert_solicitud_permuta = {
       text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk, vigente) values ((
               SELECT id FROM usuario WHERE nombre_usuario = $2),
-              (SELECT id FROM grupo WHERE id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
+              (SELECT id FROM grupo WHERE habilitado = true AND id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
               (SELECT id FROM asignatura WHERE codigo = $1)),
               'SOLICITADA',
             (Select id from asignatura where codigo = $1), true) returning id`,
@@ -46,7 +46,7 @@ class SolicitudPermutaService {
         text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) 
                 values(
                   $3,
-                  (select id from grupo where nombre = $2 and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
+                  (select id from grupo where nombre = $2 and habilitado = true and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
         values: [asignatura, grupo, id],
       };
       await conexion.query(insertGrupoDeseado);
@@ -123,15 +123,17 @@ class SolicitudPermutaService {
         a.siglas AS siglas_asignatura
       FROM solicitud_permuta sp
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
-      INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
-      INNER JOIN grupo gd_grupo ON gd.grupo_id_fk = gd_grupo.id
+      INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id AND g.habilitado = true
+      INNER JOIN grupo gd_grupo ON gd.grupo_id_fk = gd_grupo.id AND gd_grupo.habilitado = true
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.id_asignatura_fk = ANY($1)
-      AND vigente = true
+      AND sp.vigente = true
       AND gd.grupo_id_fk IN (
-        SELECT grupo_id_fk
-        FROM usuario_grupo
-        WHERE usuario_id_fk = (
+        SELECT ug.grupo_id_fk
+        FROM usuario_grupo ug
+        INNER JOIN grupo grupo_usuario ON grupo_usuario.id = ug.grupo_id_fk
+        WHERE grupo_usuario.habilitado = true
+        AND ug.usuario_id_fk = (
           SELECT id FROM usuario WHERE nombre_usuario = $2
         )
       )
@@ -162,9 +164,9 @@ class SolicitudPermutaService {
         a.codigo AS codigo_asignatura, 
         a.nombre AS nombre_asignatura
       FROM solicitud_permuta sp
-      INNER JOIN grupo g_solicitante ON sp.grupo_solicitante_id_fk = g_solicitante.id
+      INNER JOIN grupo g_solicitante ON sp.grupo_solicitante_id_fk = g_solicitante.id AND g_solicitante.habilitado = true
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
-      INNER JOIN grupo g_deseado ON gd.grupo_id_fk = g_deseado.id
+      INNER JOIN grupo g_deseado ON gd.grupo_id_fk = g_deseado.id AND g_deseado.habilitado = true
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.usuario_id_fk = (
         SELECT id FROM usuario WHERE nombre_usuario = $1
@@ -208,8 +210,24 @@ class SolicitudPermutaService {
       (select usuario_id_fk from solicitud_permuta where id = $2),
       (select id from usuario where nombre_usuario = $1),  
       (select id_asignatura_fk from solicitud_permuta where id = $2),
-      (select grupo_solicitante_id_fk from solicitud_permuta where id = $2),
-      (select grupo_id_fk from grupo_deseado where solicitud_permuta_id_fk = $2 and grupo_id_fk in (select grupo_id_fk  from usuario_grupo where usuario_id_fk = (select id from usuario where nombre_usuario=$1 ))),
+      (
+        select sp.grupo_solicitante_id_fk
+        from solicitud_permuta sp
+        inner join grupo g on g.id = sp.grupo_solicitante_id_fk
+        where sp.id = $2
+          and sp.vigente = true
+          and g.habilitado = true
+      ),
+      (
+        select gd.grupo_id_fk
+        from grupo_deseado gd
+        inner join usuario_grupo ug on ug.grupo_id_fk = gd.grupo_id_fk
+        inner join grupo g on g.id = gd.grupo_id_fk
+        where gd.solicitud_permuta_id_fk = $2
+          and ug.usuario_id_fk = (select id from usuario where nombre_usuario=$1)
+          and g.habilitado = true
+        limit 1
+      ),
 	    'ACEPTADA',
       false,
       true)`,
@@ -334,8 +352,9 @@ class SolicitudPermutaService {
       FROM solicitud_permuta sp
       INNER JOIN usuario u ON sp.usuario_id_fk = u.id
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
-      INNER JOIN grupo g ON gd.grupo_id_fk = g.id
-      WHERE sp.estado = 'SOLICITADA' and sp.vigente = true
+      INNER JOIN grupo g ON gd.grupo_id_fk = g.id AND g.habilitado = true
+      INNER JOIN grupo grupo_solicitante ON sp.grupo_solicitante_id_fk = grupo_solicitante.id
+      WHERE sp.estado = 'SOLICITADA' and sp.vigente = true and grupo_solicitante.habilitado = true
     `
     };
 
@@ -348,6 +367,7 @@ class SolicitudPermutaService {
       FROM usuario u
       INNER JOIN usuario_grupo ug ON u.id = ug.usuario_id_fk
       INNER JOIN grupo g ON ug.grupo_id_fk = g.id
+      WHERE g.habilitado = true
     `
     };
 
@@ -388,8 +408,24 @@ class SolicitudPermutaService {
           $1,
           $2,
           $3,
-          (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = $1 AND asignatura_id_fk = $3),
-          (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = $2 AND asignatura_id_fk = $3),
+          (
+            SELECT ug.grupo_id_fk
+            FROM usuario_grupo ug
+            INNER JOIN grupo g ON g.id = ug.grupo_id_fk
+            WHERE ug.usuario_id_fk = $1
+              AND g.asignatura_id_fk = $3
+              AND g.habilitado = true
+            LIMIT 1
+          ),
+          (
+            SELECT ug.grupo_id_fk
+            FROM usuario_grupo ug
+            INNER JOIN grupo g ON g.id = ug.grupo_id_fk
+            WHERE ug.usuario_id_fk = $2
+              AND g.asignatura_id_fk = $3
+              AND g.habilitado = true
+            LIMIT 1
+          ),
           'PROPUESTA',
           false,
           false

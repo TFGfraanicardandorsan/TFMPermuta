@@ -126,6 +126,7 @@ class AsignaturaUsuarioService {
                     JOIN grupo g ON ug.grupo_id_fk = g.id
                     WHERE ug.usuario_id_fk = ua.usuario_id_fk
                     AND g.asignatura_id_fk = ua.asignatura_id_fk
+                    AND g.habilitado = true
                 )
             ) as result`,
         values: [uvus],

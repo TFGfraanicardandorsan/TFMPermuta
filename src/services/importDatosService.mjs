@@ -1,6 +1,7 @@
 import fs from 'fs';
 import csv from 'csv-parser';
 import database from '../config/database.mjs';
+import grupoService from './grupoService.mjs';
 
 class ImportDatosService {
  async importarAsignaturasDesdeCSV(rutaArchivo) {
@@ -21,6 +22,7 @@ class ImportDatosService {
       .on('end', async () => {
         const conexion = await database.connectPostgreSQL();
         try {
+          await conexion.query("BEGIN");
           for (const asignatura of asignaturas) {
             // Obtener el id del estudio por siglas
             const estudioRes = await conexion.query({
@@ -68,42 +70,59 @@ class ImportDatosService {
 
             // Ajustar número de grupos
             const gruposRes = await conexion.query({
-              text: 'SELECT id, nombre FROM grupo WHERE asignatura_id_fk = $1 ORDER BY CAST(nombre AS INTEGER) ASC',
+              text: 'SELECT id, nombre, habilitado FROM grupo WHERE asignatura_id_fk = $1 ORDER BY CAST(nombre AS INTEGER) ASC',
               values: [asignatura_id],
             });
             const gruposActuales = gruposRes.rows;
-            const numActual = gruposActuales.length;
+            const gruposHabilitados = gruposActuales.filter(grupo => grupo.habilitado);
+            const gruposDeshabilitados = gruposActuales.filter(grupo => !grupo.habilitado);
+            const numActual = gruposHabilitados.length;
             const numDeseado = parseInt(asignatura.numeroGrupos, 10);
 
-            // Insertar grupos si faltan
+            // Rehabilitar grupos si faltan, e insertar solo si no hay grupos deshabilitados reutilizables.
             if (numActual < numDeseado) {
+              let gruposPendientes = numDeseado - numActual;
+              const gruposARehabilitar = gruposDeshabilitados
+                .sort((a, b) => parseInt(a.nombre, 10) - parseInt(b.nombre, 10))
+                .slice(0, gruposPendientes);
+
+              for (const grupo of gruposARehabilitar) {
+                await conexion.query({
+                  text: 'UPDATE grupo SET habilitado = true WHERE id = $1',
+                  values: [grupo.id],
+                });
+                gruposPendientes--;
+              }
+
               let ultimoNumero = 0;
               if (gruposActuales.length > 0) {
                 ultimoNumero = Math.max(...gruposActuales.map(g => parseInt(g.nombre, 10)));
               }
-              for (let i = 1; i <= numDeseado - numActual; i++) {
+              for (let i = 1; i <= gruposPendientes; i++) {
                 await conexion.query({
-                  text: 'INSERT INTO grupo (nombre, asignatura_id_fk) VALUES ($1, $2)',
+                  text: 'INSERT INTO grupo (nombre, asignatura_id_fk, habilitado) VALUES ($1, $2, true)',
                   values: [(ultimoNumero + i).toString(), asignatura_id],
                 });
               }
             }
 
-            // Eliminar grupos si sobran (en orden decreciente)
+            // Deshabilitar grupos si sobran (en orden decreciente).
             if (numActual > numDeseado) {
-              const gruposAEliminar = gruposActuales
-                .slice(numDeseado) // los que sobran
+              const gruposADeshabilitar = gruposHabilitados
                 .sort((a, b) => parseInt(b.nombre, 10) - parseInt(a.nombre, 10)); // orden decreciente
-              for (const grupo of gruposAEliminar) {
+              for (const grupo of gruposADeshabilitar.slice(0, numActual - numDeseado)) {
+                await grupoService.desactivarRelacionesGrupo(conexion, grupo);
                 await conexion.query({
-                  text: 'DELETE FROM grupo WHERE id = $1',
+                  text: 'UPDATE grupo SET habilitado = false WHERE id = $1',
                   values: [grupo.id],
                 });
               }
             }
           }
+          await conexion.query("COMMIT");
           resolve();
         } catch (err) {
+          await conexion.query("ROLLBACK");
           reject(err);
         } finally {
           await conexion.end();
