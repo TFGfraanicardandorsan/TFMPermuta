@@ -1,6 +1,7 @@
 import database from "../config/database.mjs";
 import { mensajeGradoSeleccionado } from "../utils/mensajesTelegram.mjs";
 import { sendMessage } from "./telegramService.mjs";
+import { toCanonicalRole } from "../utils/roles.mjs";
 class UsuarioService{
 
 async obtenerDatosUsuario(uvus) {
@@ -80,7 +81,10 @@ async obtenerDatosUsuario(uvus) {
                LEFT JOIN roles r ON r.usuario_id_fk = u.id`,
       };
       const res = await conexion.query(query);
-      return res.rows;
+      return res.rows.map((usuario) => ({
+        ...usuario,
+        rol: toCanonicalRole(usuario.rol),
+      }));
     } finally {
       await conexion.end();
     }
@@ -89,6 +93,7 @@ async obtenerDatosUsuario(uvus) {
   async actualizarUsuario(uvus, { nombre_completo, correo, rol }) {
     const conexion = await database.connectPostgreSQL();
     try {
+      const rolCanonico = toCanonicalRole(rol);
       // Actualiza datos básicos
       await conexion.query({
         text: `UPDATE usuario SET nombre_completo = $1, correo = $2 WHERE nombre_usuario = $3`,
@@ -97,7 +102,7 @@ async obtenerDatosUsuario(uvus) {
       // Actualiza rol
       await conexion.query({
         text: `UPDATE roles SET rol = $1 WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)`,
-        values: [rol, uvus],
+        values: [rolCanonico, uvus],
       });
       return "Usuario actualizado correctamente";
     } finally {

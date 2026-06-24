@@ -5,6 +5,7 @@ import delegadosController from '../controllers/delegadosController.mjs';
 import { verificarRol } from '../middleware/rolMiddleware.mjs';
 
 const router = Router();
+const rolesDelegacion = ['administrador', 'delegacion'];
 const uploadCsv = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -13,22 +14,22 @@ const uploadCsv = multer({
 });
 
 router
-  .get('/plantillaCSV', verificarRol('delegacion'), delegadosController.descargarPlantillaCSV)
-  .post('/generarCertificados', verificarRol('delegacion'), uploadCsv.any(), delegadosController.generarCertificados)
-  .post('/generarAcreditacionesDelegados', verificarRol('delegacion'), uploadCsv.any(), delegadosController.generarCertificados)
-  .post('/guardarCertificados', verificarRol('delegacion'), uploadCsv.any(), delegadosController.guardarCertificados)
-  .post('/prepararCorreos', verificarRol('delegacion'), uploadCsv.any(), delegadosController.prepararCorreos)
-  .post('/enviarCertificados', verificarRol('delegacion'), uploadCsv.any(), delegadosController.enviarCertificados)
-  .post('/enviarCertificadosTelegram', verificarRol('delegacion'), uploadCsv.any(), delegadosController.enviarCertificadosTelegram)
-  .post('/payloadFirmaLote', verificarRol('delegacion'), uploadCsv.any(), delegadosController.payloadFirmaLote)
-  .post('/enviarCertificadoFirmado', verificarRol('delegacion'), delegadosController.enviarCertificadoFirmado)
-  .get('/microsoft/status', verificarRol('delegacion'), delegadosController.estadoMicrosoft)
-  .get('/microsoft/login', verificarRol('delegacion'), delegadosController.loginMicrosoft)
-  .get('/microsoft/callback', verificarRol('delegacion'), delegadosController.callbackMicrosoft)
-  .post('/microsoft/logout', verificarRol('delegacion'), delegadosController.logoutMicrosoft)
-  .post('/enviarCertificadosGraph', verificarRol('delegacion'), uploadCsv.any(), delegadosController.enviarCertificadosGraph)
-  .post('/enviarCertificadoFirmadoGraph', verificarRol('delegacion'), delegadosController.enviarCertificadoFirmadoGraph)
-  .all('/afirma-signature-storage/StorageService', verificarRol('delegacion'), delegadosController.afirmaStorage)
-  .all('/afirma-signature-retriever/RetrieveService', verificarRol('delegacion'), delegadosController.afirmaRetrieve);
+  .get('/plantillaCSV', verificarRol(rolesDelegacion), delegadosController.descargarPlantillaCSV)
+  .post('/generarCertificados', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.generarCertificados)
+  .post('/generarAcreditacionesDelegados', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.generarCertificados)
+  .post('/guardarCertificados', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.guardarCertificados)
+  .post('/prepararCorreos', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.prepararCorreos)
+  .post('/enviarCertificados', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.enviarCertificados)
+  .post('/enviarCertificadosTelegram', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.enviarCertificadosTelegram)
+  .post('/payloadFirmaLote', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.payloadFirmaLote)
+  .post('/enviarCertificadoFirmado', verificarRol(rolesDelegacion), delegadosController.enviarCertificadoFirmado)
+  .get('/microsoft/status', verificarRol(rolesDelegacion), delegadosController.estadoMicrosoft)
+  .get('/microsoft/login', verificarRol(rolesDelegacion), delegadosController.loginMicrosoft)
+  .get('/microsoft/callback', verificarRol(rolesDelegacion), delegadosController.callbackMicrosoft)
+  .post('/microsoft/logout', verificarRol(rolesDelegacion), delegadosController.logoutMicrosoft)
+  .post('/enviarCertificadosGraph', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.enviarCertificadosGraph)
+  .post('/enviarCertificadoFirmadoGraph', verificarRol(rolesDelegacion), delegadosController.enviarCertificadoFirmadoGraph)
+  .all('/afirma-signature-storage/StorageService', verificarRol(rolesDelegacion), delegadosController.afirmaStorage)
+  .all('/afirma-signature-retriever/RetrieveService', verificarRol(rolesDelegacion), delegadosController.afirmaRetrieve);
 
 export default router;

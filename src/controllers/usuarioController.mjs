@@ -2,6 +2,7 @@ import usuarioService from "../services/usuarioService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 import { mensajeCorreoActualizado } from "../utils/mensajesTelegram.mjs";
 import { sendMessage } from "../services/telegramService.mjs";
+import { isSupportedRole, toCanonicalRole } from "../utils/roles.mjs";
 
 
 const obtenerDatosUsuario = async (req, res) => {
@@ -99,8 +100,14 @@ const actualizarUsuario = async (req, res) => {
     if (!uvus) {
       return res.status(400).json({ err: true, message: "Falta el uvus del usuario" });
     }
-    // Puedes añadir validaciones aquí si lo deseas
-    const result = await usuarioService.actualizarUsuario(uvus, { nombre_completo, correo, rol });
+    if (!isSupportedRole(rol)) {
+      return res.status(400).json({ err: true, message: "El rol debe ser estudiante, administrador o delegacion" });
+    }
+    const result = await usuarioService.actualizarUsuario(uvus, {
+      nombre_completo,
+      correo,
+      rol: toCanonicalRole(rol),
+    });
     res.json({ err: false, result });
   } catch (err) {
     console.error("API actualizarUsuario ha tenido una excepción", err);

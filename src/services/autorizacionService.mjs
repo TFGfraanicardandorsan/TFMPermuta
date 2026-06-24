@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import { toCanonicalRole } from "../utils/roles.mjs";
 
 class AutorizacionService{
   async verificarSiExisteUsuario(uvus){
@@ -13,7 +14,11 @@ class AutorizacionService{
       };
       const res = await conexion.query(query);
       await conexion.end();
-      return res.rows[0];
+      if (!res.rows[0]) return undefined;
+      return {
+        ...res.rows[0],
+        rol: toCanonicalRole(res.rows[0].rol),
+      };
     } catch (error){
       console.error('Error al verificar si existe el usuario:', error);
       return { err: true, errmsg: 'Error al verificar si existe el usuario' };
