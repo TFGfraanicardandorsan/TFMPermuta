@@ -1,6 +1,68 @@
 import grupoService from "../services/grupoService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 
+const CURSOS_VALIDOS = ["PRIMERO", "SEGUNDO", "TERCERO", "CUARTO"];
+
+const validarCodigoAsignatura = (valor) => {
+    const validCodigo = GenericValidators.isInteger(valor, "Código de asignatura");
+    if (!validCodigo.valido) {
+        return validCodigo;
+    }
+    return { valido: true, valor: validCodigo.valor };
+};
+
+const validarCodigosAsignaturas = (body) => {
+    const entrada = body.codigos ?? body.asignaturas ?? body.codigo ?? body.asignatura;
+    const valores = Array.isArray(entrada) ? entrada : [entrada];
+    if (valores.length === 0 || valores.some((valor) => valor === undefined || valor === null)) {
+        return { valido: false, mensaje: "Debe indicarse al menos una asignatura" };
+    }
+
+    const codigos = [];
+    for (const valor of valores) {
+        const validCodigo = validarCodigoAsignatura(valor);
+        if (!validCodigo.valido) {
+            return validCodigo;
+        }
+        codigos.push(validCodigo.valor);
+    }
+
+    return { valido: true, valor: codigos };
+};
+
+const validarCursoGrado = (body) => {
+    const estudiosId = body.estudios_id ?? body.estudiosId ?? body.grado_id ?? body.grado;
+    const validEstudiosId = GenericValidators.isInteger(estudiosId, "Grado");
+    if (!validEstudiosId.valido) {
+        return validEstudiosId;
+    }
+
+    const { curso } = body;
+    if (!CURSOS_VALIDOS.includes(curso)) {
+        return { valido: false, mensaje: "El curso debe ser PRIMERO, SEGUNDO, TERCERO o CUARTO" };
+    }
+
+    return {
+        valido: true,
+        valor: {
+            estudiosId: validEstudiosId.valor,
+            curso,
+        },
+    };
+};
+
+const manejarErrorServicioGrupos = (res, err, mensajeGenerico) => {
+    if (err.statusCode) {
+        return res.status(err.statusCode).json({
+            err: true,
+            message: err.message,
+            detalles: err.detalles,
+        });
+    }
+    console.error(mensajeGenerico, err);
+    return res.status(500).json({ err: true, message: mensajeGenerico });
+};
+
 const obtenerGruposPorAsignatura = async (req,res) => {
     try{
         if (!req.session.user) {
@@ -113,6 +175,100 @@ const actualizarProyectoDocente = async (req, res) => {
     }
 };
 
+const crearGrupoAsignatura = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+
+        const codigo = req.body.codigo ?? req.body.asignatura;
+        const validCodigo = validarCodigoAsignatura(codigo);
+        if (!validCodigo.valido) {
+            return res.status(400).json({ err: true, message: validCodigo.mensaje });
+        }
+
+        const result = await grupoService.crearGrupoAsignatura(validCodigo.valor);
+        return res.status(201).json({ err: false, result });
+    } catch (err) {
+        return manejarErrorServicioGrupos(res, err, "Error al crear el grupo de la asignatura");
+    }
+};
+
+const crearGruposCursoGrado = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+
+        const validCursoGrado = validarCursoGrado(req.body);
+        if (!validCursoGrado.valido) {
+            return res.status(400).json({ err: true, message: validCursoGrado.mensaje });
+        }
+
+        const { estudiosId, curso } = validCursoGrado.valor;
+        const result = await grupoService.crearGruposCursoGrado(estudiosId, curso);
+        return res.status(201).json({ err: false, result });
+    } catch (err) {
+        return manejarErrorServicioGrupos(res, err, "Error al crear los grupos del curso del grado");
+    }
+};
+
+const eliminarUltimoGrupoAsignatura = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+
+        const codigo = req.body.codigo ?? req.body.asignatura;
+        const validCodigo = validarCodigoAsignatura(codigo);
+        if (!validCodigo.valido) {
+            return res.status(400).json({ err: true, message: validCodigo.mensaje });
+        }
+
+        const result = await grupoService.eliminarUltimoGrupoAsignatura(validCodigo.valor);
+        return res.json({ err: false, result });
+    } catch (err) {
+        return manejarErrorServicioGrupos(res, err, "Error al eliminar el último grupo de la asignatura");
+    }
+};
+
+const eliminarUltimosGruposAsignaturas = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+
+        const validCodigos = validarCodigosAsignaturas(req.body);
+        if (!validCodigos.valido) {
+            return res.status(400).json({ err: true, message: validCodigos.mensaje });
+        }
+
+        const result = await grupoService.eliminarUltimosGruposAsignaturas(validCodigos.valor);
+        return res.json({ err: false, result });
+    } catch (err) {
+        return manejarErrorServicioGrupos(res, err, "Error al eliminar los últimos grupos de las asignaturas");
+    }
+};
+
+const eliminarUltimosGruposCursoGrado = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+
+        const validCursoGrado = validarCursoGrado(req.body);
+        if (!validCursoGrado.valido) {
+            return res.status(400).json({ err: true, message: validCursoGrado.mensaje });
+        }
+
+        const { estudiosId, curso } = validCursoGrado.valor;
+        const result = await grupoService.eliminarUltimosGruposCursoGrado(estudiosId, curso);
+        return res.json({ err: false, result });
+    } catch (err) {
+        return manejarErrorServicioGrupos(res, err, "Error al eliminar los últimos grupos del curso del grado");
+    }
+};
+
 export default {
     obtenerGruposPorAsignatura,
     insertarMisGrupos,
@@ -120,5 +276,10 @@ export default {
     obtenerTodosGruposMisAsignaturasUsuario,
     obtenerTodosGruposMisAsignaturasSinGrupoUsuario,
     obtenerGruposAsignaturasSinAsignaturaConGrupoUsuario,
-    actualizarProyectoDocente
+    actualizarProyectoDocente,
+    crearGrupoAsignatura,
+    crearGruposCursoGrado,
+    eliminarUltimoGrupoAsignatura,
+    eliminarUltimosGruposAsignaturas,
+    eliminarUltimosGruposCursoGrado
 }

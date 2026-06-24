@@ -8,7 +8,7 @@ process.env.EMAIL_USERNAME = process.env.EMAIL_USERNAME || 'test@example.com';
 process.env.EMAIL_PASSWORD = process.env.EMAIL_PASSWORD || 'secret';
 
 // Import after setting env so module picks them up
-import email from '../src/utils/email.mjs';
+const { default: email } = await import('../src/utils/email.mjs');
 
 const originalSendMail = email.transporter.sendMail.bind(email.transporter);
 
