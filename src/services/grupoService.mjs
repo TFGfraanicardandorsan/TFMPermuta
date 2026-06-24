@@ -116,7 +116,7 @@ class GrupoService {
     return grupoRes.rows[0];
   }
 
-  async asegurarGrupoSinReferencias(conexion, grupo, asignatura) {
+  async obtenerReferenciasGrupo(conexion, grupo) {
     const referenciasRes = await conexion.query({
       text: `
         SELECT
@@ -128,22 +128,50 @@ class GrupoService {
       values: [grupo.id],
     });
 
-    const referencias = referenciasRes.rows[0];
-    const totalReferencias = Object.values(referencias)
-      .reduce((total, valor) => total + Number(valor), 0);
+    return referenciasRes.rows[0];
+  }
 
-    if (totalReferencias > 0) {
+  async limpiarReferenciasGrupoEliminable(conexion, grupo, asignatura) {
+    const referencias = await this.obtenerReferenciasGrupo(conexion, grupo);
+
+    if (Number(referencias.permutas) > 0) {
       throw crearErrorServicio(
         409,
-        `No se puede eliminar el grupo ${grupo.numGrupo} de la asignatura ${asignatura.codigo} porque tiene relaciones asociadas`,
+        `No se puede eliminar el grupo ${grupo.numGrupo} de la asignatura ${asignatura.codigo} porque tiene permutas asociadas`,
         referencias,
       );
     }
+
+    await conexion.query({
+      text: `
+        UPDATE solicitud_permuta
+        SET estado = 'CANCELADA', vigente = false
+        WHERE grupo_solicitante_id_fk = $1
+           OR id IN (
+             SELECT solicitud_permuta_id_fk
+             FROM grupo_deseado
+             WHERE grupo_id_fk = $1
+           )
+      `,
+      values: [grupo.id],
+    });
+
+    await conexion.query({
+      text: "DELETE FROM grupo_deseado WHERE grupo_id_fk = $1",
+      values: [grupo.id],
+    });
+
+    await conexion.query({
+      text: "DELETE FROM usuario_grupo WHERE grupo_id_fk = $1",
+      values: [grupo.id],
+    });
+
+    return referencias;
   }
 
   async eliminarUltimoGrupo(conexion, asignatura) {
     const grupo = await this.obtenerUltimoGrupo(conexion, asignatura);
-    await this.asegurarGrupoSinReferencias(conexion, grupo, asignatura);
+    const referenciasEliminadas = await this.limpiarReferenciasGrupoEliminable(conexion, grupo, asignatura);
 
     await conexion.query({
       text: "DELETE FROM grupo WHERE id = $1",
@@ -155,6 +183,7 @@ class GrupoService {
       codigoAsignatura: asignatura.codigo,
       nombreAsignatura: asignatura.nombre,
       curso: asignatura.curso,
+      referenciasEliminadas,
     };
   }
 
