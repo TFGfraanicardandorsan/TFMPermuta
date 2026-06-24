@@ -90,6 +90,8 @@ test('eliminarUltimoGrupoAsignatura elimina el grupo de mayor valor', async () =
     { rows: [{ usuarios: 0, grupos_deseados: 0, solicitudes: 0, permutas: 0 }] },
     { rows: [] },
     { rows: [] },
+    { rows: [] },
+    { rows: [] },
   ]);
   database.connectPostgreSQL = async () => fake.client;
 
@@ -97,16 +99,46 @@ test('eliminarUltimoGrupoAsignatura elimina el grupo de mayor valor', async () =
 
   assert.equal(resultado.gruposEliminados[0].numGrupo, '4');
   assert.match(textoQuery(fake.consultas[2]), /ORDER BY CAST\(nombre AS INTEGER\) DESC/);
-  assert.deepEqual(fake.consultas[4].values, [99]);
-  assert.equal(textoQuery(fake.consultas[5]), 'COMMIT');
+  assert.match(textoQuery(fake.consultas[4]), /UPDATE solicitud_permuta/);
+  assert.match(textoQuery(fake.consultas[5]), /DELETE FROM grupo_deseado/);
+  assert.match(textoQuery(fake.consultas[6]), /DELETE FROM usuario_grupo/);
+  assert.deepEqual(fake.consultas[7].values, [99]);
+  assert.equal(textoQuery(fake.consultas[8]), 'COMMIT');
 });
 
-test('eliminarUltimoGrupoAsignatura hace rollback si el grupo tiene relaciones', async () => {
+test('eliminarUltimoGrupoAsignatura limpia usuarios y solicitudes antes de eliminar el grupo', async () => {
   const fake = crearClienteConRespuestas([
     { rows: [] },
     { rows: [{ id: 10, codigo: 2050001, nombre: 'Matemáticas', curso: 'PRIMERO' }] },
     { rows: [{ id: 99, numGrupo: '4' }] },
-    { rows: [{ usuarios: 1, grupos_deseados: 0, solicitudes: 0, permutas: 0 }] },
+    { rows: [{ usuarios: 3, grupos_deseados: 0, solicitudes: 3, permutas: 0 }] },
+    { rows: [] },
+    { rows: [] },
+    { rows: [] },
+    { rows: [] },
+    { rows: [] },
+  ]);
+  database.connectPostgreSQL = async () => fake.client;
+
+  const resultado = await grupoService.eliminarUltimoGrupoAsignatura(2050001);
+
+  assert.deepEqual(resultado.gruposEliminados[0].referenciasEliminadas, {
+    usuarios: 3,
+    grupos_deseados: 0,
+    solicitudes: 3,
+    permutas: 0,
+  });
+  assert.match(textoQuery(fake.consultas[4]), /SET estado = 'CANCELADA', vigente = false/);
+  assert.match(textoQuery(fake.consultas[6]), /DELETE FROM usuario_grupo/);
+  assert.equal(textoQuery(fake.consultas.at(-1)), 'COMMIT');
+});
+
+test('eliminarUltimoGrupoAsignatura hace rollback si el grupo tiene permutas', async () => {
+  const fake = crearClienteConRespuestas([
+    { rows: [] },
+    { rows: [{ id: 10, codigo: 2050001, nombre: 'Matemáticas', curso: 'PRIMERO' }] },
+    { rows: [{ id: 99, numGrupo: '4' }] },
+    { rows: [{ usuarios: 1, grupos_deseados: 0, solicitudes: 0, permutas: 1 }] },
     { rows: [] },
   ]);
   database.connectPostgreSQL = async () => fake.client;
@@ -119,7 +151,7 @@ test('eliminarUltimoGrupoAsignatura hace rollback si el grupo tiene relaciones',
         usuarios: 1,
         grupos_deseados: 0,
         solicitudes: 0,
-        permutas: 0,
+        permutas: 1,
       });
       return true;
     },
