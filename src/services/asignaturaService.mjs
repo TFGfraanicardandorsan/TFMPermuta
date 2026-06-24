@@ -34,7 +34,7 @@ class AsignaturaService{
       const query = {
         text: ` SELECT a.nombre, a.siglas, a.curso, a.codigo
                 FROM asignatura a
-                JOIN grupo g ON a.id = g.asignatura_id_fk
+                JOIN grupo g ON a.id = g.asignatura_id_fk AND g.habilitado = true
                 GROUP BY a.nombre, a.siglas, a.curso, a.codigo
                 HAVING COUNT(g.id) > 1
                 ORDER BY a.curso`,
@@ -51,8 +51,14 @@ async asignaturasPermutablesUsuario(uvus){
   const query = {
     text: `SELECT a.nombre, a.siglas, a.curso, a.codigo
             FROM asignatura a
-            JOIN grupo g ON a.id = g.asignatura_id_fk
-            WHERE g.id IN (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1))
+            JOIN grupo g ON a.id = g.asignatura_id_fk AND g.habilitado = true
+            WHERE a.id IN (
+              SELECT grupo_usuario.asignatura_id_fk
+              FROM usuario_grupo ug
+              INNER JOIN grupo grupo_usuario ON grupo_usuario.id = ug.grupo_id_fk
+              WHERE grupo_usuario.habilitado = true
+                AND ug.usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
+            )
             GROUP BY a.nombre, a.siglas, a.curso, a.codigo
             HAVING COUNT(g.id) > 1
             ORDER BY a.curso`,
@@ -160,6 +166,8 @@ async obtenerTodosGruposMisAsignaturasSinGrupoUsuario(uvus) {
         ON 
           a.id = g.asignatura_id_fk
         WHERE 
+          g.habilitado = true
+          AND
           g.asignatura_id_fk IN (
             SELECT 
               ua.asignatura_id_fk 
@@ -175,19 +183,16 @@ async obtenerTodosGruposMisAsignaturasSinGrupoUsuario(uvus) {
                   u.nombre_usuario = $1
               )
           )
-          AND g.id NOT IN (
-            SELECT 
-              ug.grupo_id_fk 
-            FROM 
-              usuario_grupo ug 
-            WHERE 
-              ug.usuario_id_fk = (
-                SELECT 
-                  id 
-                FROM 
-                  usuario u 
-                WHERE 
-                  u.nombre_usuario = $1
+          AND NOT EXISTS (
+            SELECT 1
+            FROM usuario_grupo ug
+            INNER JOIN grupo grupo_usuario ON grupo_usuario.id = ug.grupo_id_fk
+            WHERE grupo_usuario.habilitado = true
+              AND grupo_usuario.asignatura_id_fk = g.asignatura_id_fk
+              AND ug.usuario_id_fk = (
+                SELECT id
+                FROM usuario u
+                WHERE u.nombre_usuario = $1
               )
           );
       `,

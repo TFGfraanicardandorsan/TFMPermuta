@@ -69,6 +69,40 @@ class GrupoService {
   }
 
   async crearSiguienteGrupo(conexion, asignatura) {
+    const grupoDeshabilitadoRes = await conexion.query({
+      text: `
+        SELECT id, nombre
+        FROM grupo
+        WHERE asignatura_id_fk = $1
+          AND habilitado = false
+        ORDER BY CAST(nombre AS INTEGER) ASC
+        LIMIT 1
+        FOR UPDATE
+      `,
+      values: [asignatura.id],
+    });
+
+    if (grupoDeshabilitadoRes.rows.length > 0) {
+      const grupoDeshabilitado = grupoDeshabilitadoRes.rows[0];
+      const grupoRehabilitadoRes = await conexion.query({
+        text: `
+          UPDATE grupo
+          SET habilitado = true
+          WHERE id = $1
+          RETURNING id, nombre AS "numGrupo", asignatura_id_fk AS "asignaturaId"
+        `,
+        values: [grupoDeshabilitado.id],
+      });
+
+      return {
+        ...grupoRehabilitadoRes.rows[0],
+        codigoAsignatura: asignatura.codigo,
+        nombreAsignatura: asignatura.nombre,
+        curso: asignatura.curso,
+        rehabilitado: true,
+      };
+    }
+
     const maxGrupoRes = await conexion.query({
       text: `
         SELECT COALESCE(MAX(CAST(nombre AS INTEGER)), 0) AS max_grupo
@@ -81,8 +115,8 @@ class GrupoService {
     const siguienteNumero = Number(maxGrupoRes.rows[0].max_grupo) + 1;
     const grupoRes = await conexion.query({
       text: `
-        INSERT INTO grupo (nombre, asignatura_id_fk)
-        VALUES ($1, $2)
+        INSERT INTO grupo (nombre, asignatura_id_fk, habilitado)
+        VALUES ($1, $2, true)
         RETURNING id, nombre AS "numGrupo", asignatura_id_fk AS "asignaturaId"
       `,
       values: [String(siguienteNumero), asignatura.id],
@@ -102,6 +136,7 @@ class GrupoService {
         SELECT id, nombre AS "numGrupo"
         FROM grupo
         WHERE asignatura_id_fk = $1
+          AND habilitado = true
         ORDER BY CAST(nombre AS INTEGER) DESC
         LIMIT 1
         FOR UPDATE
@@ -131,33 +166,36 @@ class GrupoService {
     return referenciasRes.rows[0];
   }
 
-  async limpiarReferenciasGrupoEliminable(conexion, grupo, asignatura) {
+  async desactivarRelacionesGrupo(conexion, grupo) {
     const referencias = await this.obtenerReferenciasGrupo(conexion, grupo);
-
-    if (Number(referencias.permutas) > 0) {
-      throw crearErrorServicio(
-        409,
-        `No se puede eliminar el grupo ${grupo.numGrupo} de la asignatura ${asignatura.codigo} porque tiene permutas asociadas`,
-        referencias,
-      );
-    }
 
     await conexion.query({
       text: `
         UPDATE solicitud_permuta
         SET estado = 'CANCELADA', vigente = false
-        WHERE grupo_solicitante_id_fk = $1
-           OR id IN (
-             SELECT solicitud_permuta_id_fk
-             FROM grupo_deseado
-             WHERE grupo_id_fk = $1
-           )
+        WHERE vigente = true
+          AND (
+            grupo_solicitante_id_fk = $1
+            OR id IN (
+              SELECT solicitud_permuta_id_fk
+              FROM grupo_deseado
+              WHERE grupo_id_fk = $1
+            )
+          )
       `,
       values: [grupo.id],
     });
 
     await conexion.query({
-      text: "DELETE FROM grupo_deseado WHERE grupo_id_fk = $1",
+      text: `
+        UPDATE permuta
+        SET vigente = false
+        WHERE vigente = true
+          AND (
+            grupo_id_1_fk = $1
+            OR grupo_id_2_fk = $1
+          )
+      `,
       values: [grupo.id],
     });
 
@@ -171,10 +209,10 @@ class GrupoService {
 
   async eliminarUltimoGrupo(conexion, asignatura) {
     const grupo = await this.obtenerUltimoGrupo(conexion, asignatura);
-    const referenciasEliminadas = await this.limpiarReferenciasGrupoEliminable(conexion, grupo, asignatura);
+    const referenciasDesactivadas = await this.desactivarRelacionesGrupo(conexion, grupo);
 
     await conexion.query({
-      text: "DELETE FROM grupo WHERE id = $1",
+      text: "UPDATE grupo SET habilitado = false WHERE id = $1",
       values: [grupo.id],
     });
 
@@ -183,14 +221,14 @@ class GrupoService {
       codigoAsignatura: asignatura.codigo,
       nombreAsignatura: asignatura.nombre,
       curso: asignatura.curso,
-      referenciasEliminadas,
+      referenciasDesactivadas,
     };
   }
 
   async obtenerGruposPorAsignatura(asignatura) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `select id,nombre as numGrupo from grupo where asignatura_id_fk = (Select id from asignatura where codigo = $1)`,
+      text: `select id,nombre as numGrupo from grupo where asignatura_id_fk = (Select id from asignatura where codigo = $1) and habilitado = true`,
       values: [asignatura],
     };
     const res = await conexion.query(query);
@@ -202,7 +240,7 @@ class GrupoService {
     const insert = {
       text: `insert into usuario_grupo (usuario_id_fk, grupo_id_fk ) values (
           (select id from usuario where nombre_usuario=$3), 
-          (select id from grupo g  where g.nombre = $1 and g.asignatura_id_fk = (select id from asignatura where codigo =$2 )))`,
+          (select id from grupo g  where g.nombre = $1 and g.habilitado = true and g.asignatura_id_fk = (select id from asignatura where codigo =$2 )))`,
       values: [num_grupo, codigo, uvus],
     };
     await conexion.query(insert);
@@ -213,7 +251,7 @@ class GrupoService {
     const conexion = await database.connectPostgreSQL();
     const query = {
       text: `select g.id, g.nombre as numGrupo , a.nombre as asignatura, a.codigo as codigo from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
-          where g.id in (select ug.grupo_id_fk  from usuario_grupo ug where ug.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
+          where g.habilitado = true and g.id in (select ug.grupo_id_fk  from usuario_grupo ug where ug.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
       values: [uvus],
     };
     const res = await conexion.query(query);
@@ -225,7 +263,7 @@ class GrupoService {
     const conexion = await database.connectPostgreSQL();
     const query = {
       text: `select g.nombre as numGrupo , a.nombre as nombreAsignatura, a.codigo as codAsignatura from grupo g left join asignatura a on a.id = g.asignatura_id_fk
-          where g.asignatura_id_fk in (select ua.asignatura_id_fk from usuario_asignatura ua where ua.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
+          where g.habilitado = true and g.asignatura_id_fk in (select ua.asignatura_id_fk from usuario_asignatura ua where ua.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
       values: [uvus],
     };
     const res = await conexion.query(query);
@@ -237,10 +275,36 @@ class GrupoService {
     const conexion = await database.connectPostgreSQL();
     const query = {
       text: `
-select g.id, g.nombre as numGrupo , a.nombre as nombreAsignatura, a.codigo as codAsignatura from grupo g left join asignatura a on a.id = g.asignatura_id_fk
-          where g.asignatura_id_fk in (select ua.asignatura_id_fk from usuario_asignatura ua where ua.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1)
-and g.id not in(select g.id from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
-          where g.id in (select ug.grupo_id_fk  from usuario_grupo ug where ug.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1))));
+        SELECT
+          g.id,
+          g.nombre AS numGrupo,
+          a.nombre AS nombreAsignatura,
+          a.codigo AS codAsignatura
+        FROM grupo g
+        LEFT JOIN asignatura a ON a.id = g.asignatura_id_fk
+        WHERE g.habilitado = true
+          AND g.asignatura_id_fk IN (
+            SELECT ua.asignatura_id_fk
+            FROM usuario_asignatura ua
+            WHERE ua.usuario_id_fk = (
+              SELECT id
+              FROM usuario u
+              WHERE u.nombre_usuario = $1
+            )
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM usuario_grupo ug
+            INNER JOIN grupo grupo_usuario ON grupo_usuario.id = ug.grupo_id_fk
+            WHERE grupo_usuario.habilitado = true
+              AND grupo_usuario.asignatura_id_fk = g.asignatura_id_fk
+              AND ug.usuario_id_fk = (
+                SELECT id
+                FROM usuario u
+                WHERE u.nombre_usuario = $1
+              )
+          )
+        ORDER BY a.codigo, CAST(g.nombre AS INTEGER)
       `,
       values: [uvus],
     };
@@ -265,6 +329,8 @@ and g.id not in(select g.id from grupo g left join asignatura a on a.id = g.asig
       ON 
         a.id = g.asignatura_id_fk
       WHERE 
+        g.habilitado = true
+        AND
         g.asignatura_id_fk IN (
           SELECT 
             ua.asignatura_id_fk 
@@ -280,23 +346,16 @@ and g.id not in(select g.id from grupo g left join asignatura a on a.id = g.asig
                 u.nombre_usuario = $1
             )
         )
-        AND g.asignatura_id_fk NOT IN (
-          SELECT 
-            g.asignatura_id_fk 
-          FROM 
-            grupo g 
-          INNER JOIN 
-            usuario_grupo ug 
-          ON 
-            g.id = ug.grupo_id_fk 
-          WHERE 
-            ug.usuario_id_fk = (
-              SELECT 
-                id 
-              FROM 
-                usuario u 
-              WHERE 
-                u.nombre_usuario = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM usuario_grupo ug
+          INNER JOIN grupo grupo_usuario ON grupo_usuario.id = ug.grupo_id_fk
+          WHERE grupo_usuario.habilitado = true
+            AND grupo_usuario.asignatura_id_fk = g.asignatura_id_fk
+            AND ug.usuario_id_fk = (
+              SELECT id
+              FROM usuario u
+              WHERE u.nombre_usuario = $1
             )
         );
     `,

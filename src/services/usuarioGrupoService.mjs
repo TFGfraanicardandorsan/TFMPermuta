@@ -7,7 +7,7 @@ class UsuarioGrupoService{
   async insertarGrupoAsignatura(uvus, grupo, asignatura) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `select count(*) from usuario_grupo where grupo_id_fk = (select id from grupo g  where g.nombre = $2 and g.asignatura_id_fk = (select id from asignatura where codigo =$3 )) 
+      text: `select count(*) from usuario_grupo where grupo_id_fk = (select id from grupo g  where g.nombre = $2 and g.habilitado = true and g.asignatura_id_fk = (select id from asignatura where codigo =$3 )) 
       and usuario_id_fk = (select id from usuario where nombre_usuario =$1)`,
       values: [uvus, grupo, asignatura],
     };
@@ -20,7 +20,7 @@ class UsuarioGrupoService{
       const insertQuery = {
         text: `insert into usuario_grupo values (
               (select id from usuario where nombre_usuario=$1), 
-              (select id from grupo g  where g.nombre = $2 and g.asignatura_id_fk = (select id from asignatura where codigo =$3 )))`,
+              (select id from grupo g  where g.nombre = $2 and g.habilitado = true and g.asignatura_id_fk = (select id from asignatura where codigo =$3 )))`,
         values: [uvus, grupo, asignatura],
       };
       await conexion.query(insertQuery);
@@ -31,7 +31,7 @@ class UsuarioGrupoService{
                from usuario_grupo ug
                join grupo g on ug.grupo_id_fk = g.id
                join asignatura a on g.asignatura_id_fk = a.id
-               where ug.usuario_id_fk = (select id from usuario where nombre_usuario = $1)`,
+               where g.habilitado = true and ug.usuario_id_fk = (select id from usuario where nombre_usuario = $1)`,
         values: [uvus],
       };
       const gruposRes = await conexion.query(gruposQuery);
