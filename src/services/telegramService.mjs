@@ -245,6 +245,41 @@ export const sendMessage = async (chatId, text, parseMode = "HTML", markup = nul
   }
 };
 
+export const sendDocument = async (chatId, documentBuffer, filename, caption = "", parseMode = "HTML") => {
+  try {
+    if (!chatId || chatId === null || chatId === undefined || chatId === '') {
+      return { ok: false, error: "chatId es requerido para enviar un documento" };
+    }
+    if (!Buffer.isBuffer(documentBuffer) || documentBuffer.length === 0) {
+      return { ok: false, error: "El documento está vacío" };
+    }
+
+    const form = new FormData();
+    form.append("chat_id", String(chatId));
+    form.append("document", new Blob([documentBuffer], { type: "application/pdf" }), filename);
+    if (caption) {
+      form.append("caption", caption);
+      form.append("parse_mode", parseMode);
+    }
+
+    const response = await fetch(`${getTelegramApiUrl()}/sendDocument`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Telegram API sendDocument error:", error);
+      return { ok: false, error };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("Error enviando documento:", err);
+    return { ok: false, error: err.message };
+  }
+};
+
 
 export const handleCallbackQuery = async (callbackQuery) => {
   const chatId = callbackQuery.message.chat.id;
