@@ -101,6 +101,13 @@ El archivo `.env` debe incluir las siguientes variables:
 - `POST /api/v1/estadisticas/permutas`: Obtiene estadísticas de permutas.
 - `POST /api/v1/estadisticas/solicitudes`: Obtiene estadísticas de solicitudes.
 
+### Grupos
+- `POST /api/v1/grupo/crearGrupoAsignatura`: Crea el siguiente grupo de una asignatura.
+- `POST /api/v1/grupo/crearGruposCursoGrado`: Crea el siguiente grupo para todas las asignaturas de un curso de un grado.
+- `POST /api/v1/grupo/eliminarUltimoGrupoAsignatura`: Elimina el grupo de mayor número de una asignatura.
+- `POST /api/v1/grupo/eliminarUltimosGruposAsignaturas`: Elimina el grupo de mayor número de varias asignaturas.
+- `POST /api/v1/grupo/eliminarUltimosGruposCursoGrado`: Elimina el grupo de mayor número de todas las asignaturas de un curso de un grado.
+
 ## Tecnologías Utilizadas
 
 - **Backend**: Node.js, Express.js

@@ -105,6 +105,24 @@ test('crearGruposCursoGrado crea un grupo secuencial por cada asignatura del cur
   assert.deepEqual(fake.consultas[7].values, ['4', 11]);
 });
 
+test('obtenerTodosGruposMisAsignaturasSinGrupoUsuario excluye solo los grupos del usuario', async () => {
+  const gruposEsperados = [
+    { id: 2, numgrupo: '2', nombreasignatura: 'Matemáticas', codasignatura: 2050001 },
+    { id: 3, numgrupo: '3', nombreasignatura: 'Matemáticas', codasignatura: 2050001 },
+  ];
+  const fake = crearClienteConRespuestas([{ rows: gruposEsperados }]);
+  database.connectPostgreSQL = async () => fake.client;
+
+  const resultado = await grupoService.obtenerTodosGruposMisAsignaturasSinGrupoUsuario('usuario');
+  const query = fake.consultas[0];
+
+  assert.deepEqual(resultado, gruposEsperados);
+  assert.deepEqual(query.values, ['usuario']);
+  assert.match(textoQuery(query), /ug\.grupo_id_fk = g\.id/);
+  assert.doesNotMatch(textoQuery(query), /grupo_usuario\.asignatura_id_fk = g\.asignatura_id_fk/);
+  assert.equal(fake.estaCerrado(), true);
+});
+
 test('eliminarUltimoGrupoAsignatura deshabilita el grupo activo de mayor valor', async () => {
   const fake = crearClienteConRespuestas([
     { rows: [] },

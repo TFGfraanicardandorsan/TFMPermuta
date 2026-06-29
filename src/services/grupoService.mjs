@@ -295,9 +295,7 @@ class GrupoService {
           AND NOT EXISTS (
             SELECT 1
             FROM usuario_grupo ug
-            INNER JOIN grupo grupo_usuario ON grupo_usuario.id = ug.grupo_id_fk
-            WHERE grupo_usuario.habilitado = true
-              AND grupo_usuario.asignatura_id_fk = g.asignatura_id_fk
+            WHERE ug.grupo_id_fk = g.id
               AND ug.usuario_id_fk = (
                 SELECT id
                 FROM usuario u
