@@ -22,6 +22,7 @@ router
   .post('/enviarCertificados', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.enviarCertificados)
   .post('/enviarCertificadosTelegram', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.enviarCertificadosTelegram)
   .post('/payloadFirmaLote', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.payloadFirmaLote)
+  .post('/firmar-lote', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.payloadFirmaLote)
   .post('/enviarCertificadoFirmado', verificarRol(rolesDelegacion), delegadosController.enviarCertificadoFirmado)
   .get('/microsoft/status', verificarRol(rolesDelegacion), delegadosController.estadoMicrosoft)
   .get('/microsoft/login', verificarRol(rolesDelegacion), delegadosController.loginMicrosoft)

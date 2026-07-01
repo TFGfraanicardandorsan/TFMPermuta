@@ -9,8 +9,18 @@ import {
   parseCsvUpload,
   sampleCsv,
 } from '../src/services/delegadosCsvService.mjs';
+import delegadosController from '../src/controllers/delegadosController.mjs';
+import delegadosRouter from '../src/routes/delegadosRoutes.mjs';
 import { buildCertificateZip, buildPdfDocuments, readSubmission } from '../src/services/delegadosService.mjs';
 import { saveCertificateDocuments } from '../src/services/delegadosStorageService.mjs';
+
+test('delegados expone POST /firmar-lote mediante el controlador de firma por lotes', () => {
+  const route = delegadosRouter.stack.find((layer) => layer.route?.path === '/firmar-lote')?.route;
+
+  assert.ok(route);
+  assert.equal(route.methods.post, true);
+  assert.equal(route.stack.at(-1).handle, delegadosController.payloadFirmaLote);
+});
 
 test('parseCsvUpload accepts DLGA sample CSV and normalizes rows', () => {
   const rows = parseCsvUpload(sampleCsv(), new Date(2026, 4, 29));

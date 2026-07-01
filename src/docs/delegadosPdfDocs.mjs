@@ -221,7 +221,7 @@
 
 /**
  * @swagger
- * /delegados/payloadFirmaLote:
+ * /delegados/firmar-lote:
  *   post:
  *     summary: Generar payload JSON con PDFs en base64 para firma por lotes
  *     tags: [Delegados]
