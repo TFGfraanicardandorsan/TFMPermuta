@@ -43,6 +43,7 @@ import autorizacionService from '../services/autorizacionService.mjs';
 import { sendDocument } from '../services/telegramService.mjs';
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const MAX_SIGNED_PDF_BYTES = Number(process.env.DELEGADOS_SIGNED_PDF_MAX_BYTES || 10 * 1024 * 1024);
 
 const descargarPlantillaCSV = async (req, res) => {
   sendDownload(res, sampleCsv(), 'text/csv; charset=utf-8', 'plantilla_certificados.csv');
@@ -227,6 +228,60 @@ const enviarCertificadoFirmado = async (req, res) => {
     return res.json({ err: false, result: { enviado: true } });
   } catch (error) {
     return handleControllerError(error, res, 'Error enviando certificado firmado');
+  }
+};
+
+const enviarCertificadoFirmadoTelegram = async (req, res) => {
+  try {
+    const payload = signedTelegramCertificatePayload(req);
+    if (payload.errors.length > 0) return validationError(res, payload.errors);
+
+    const chatId = await autorizacionService.obtenerChatIdUsuario(payload.uvus);
+    if (!chatId || typeof chatId === 'object') {
+      return res.status(404).json({
+        err: true,
+        message: `No se ha encontrado un chat de Telegram para ${payload.uvus}.`,
+      });
+    }
+
+    const [savedDocument] = await saveCertificateDocuments([
+      {
+        row: {
+          rowNumber: 1,
+          uvus: payload.uvus,
+          tipo_delegado: payload.delegateType,
+        },
+        filename: payload.filename,
+        pdf: payload.pdfBytes,
+      },
+    ]);
+    const telegramResult = await sendDocument(
+      chatId,
+      payload.pdfBytes,
+      payload.filename,
+      telegramCertificateCaption({
+        nombre: payload.name || payload.uvus,
+        tipo_delegado: payload.delegateType,
+      }),
+    );
+
+    if (!telegramResult.ok) {
+      return res.status(502).json({
+        err: true,
+        message: `Telegram no pudo enviar el certificado a ${payload.uvus}.`,
+      });
+    }
+
+    return res.json({
+      err: false,
+      result: {
+        enviado: true,
+        uvus: payload.uvus,
+        guardado: savedDocument,
+      },
+    });
+  } catch (error) {
+    return handleControllerError(error, res, 'Error enviando certificado firmado por Telegram');
   }
 };
 
@@ -498,6 +553,36 @@ function signedCertificatePayload(req) {
   };
 }
 
+function signedTelegramCertificatePayload(req) {
+  const errors = [];
+  const uvus = bodyField(req, ['uvus', 'nombreUsuario', 'nombre_usuario']);
+  const name = bodyField(req, ['name', 'nombre']);
+  const delegateType = bodyField(req, ['delegateType', 'tipoDelegado', 'tipo_delegado']);
+  const filename = safePdfFilename(bodyField(req, ['filename', 'nombreArchivo']) || 'certificado_firmado.pdf');
+  const pdfBase64 = String(bodyField(req, ['pdfBase64', 'pdf_base64']) || '').trim();
+
+  if (!uvus) errors.push('Falta el UVUS del destinatario.');
+  if (!['Centro', 'Curso', 'Grupo'].includes(delegateType)) {
+    errors.push('El tipo de delegado no es válido.');
+  }
+
+  const pdfBytes = Buffer.from(pdfBase64, 'base64');
+  if (pdfBytes.length === 0 || !pdfBytes.subarray(0, 4).equals(Buffer.from('%PDF'))) {
+    errors.push('El adjunto recibido no parece un PDF.');
+  } else if (pdfBytes.length > MAX_SIGNED_PDF_BYTES) {
+    errors.push('El PDF firmado supera el tamaño máximo permitido.');
+  }
+
+  return {
+    uvus,
+    name,
+    delegateType,
+    filename,
+    pdfBytes,
+    errors,
+  };
+}
+
 async function sendDocumentsByTelegram(documents, savedDocuments) {
   const savedByRow = new Map(savedDocuments.map((document) => [document.rowNumber, document]));
   const results = [];
@@ -633,6 +718,7 @@ export default {
   enviarCertificadosTelegram,
   payloadFirmaLote,
   enviarCertificadoFirmado,
+  enviarCertificadoFirmadoTelegram,
   estadoMicrosoft,
   loginMicrosoft,
   callbackMicrosoft,

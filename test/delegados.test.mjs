@@ -22,6 +22,47 @@ test('delegados expone POST /firmar-lote mediante el controlador de firma por lo
   assert.equal(route.stack.at(-1).handle, delegadosController.payloadFirmaLote);
 });
 
+test('delegados expone el envío de certificados firmados por Telegram', () => {
+  const route = delegadosRouter.stack
+    .find((layer) => layer.route?.path === '/enviarCertificadoFirmadoTelegram')
+    ?.route;
+
+  assert.ok(route);
+  assert.equal(route.methods.post, true);
+  assert.equal(route.stack.at(-1).handle, delegadosController.enviarCertificadoFirmadoTelegram);
+});
+
+test('el envío por Telegram rechaza contenido que no sea un PDF firmado', async () => {
+  let statusCode;
+  let responseBody;
+  const res = {
+    status(code) {
+      statusCode = code;
+      return this;
+    },
+    json(body) {
+      responseBody = body;
+      return this;
+    },
+  };
+
+  await delegadosController.enviarCertificadoFirmadoTelegram(
+    {
+      body: {
+        uvus: 'pabmedmej',
+        delegateType: 'Centro',
+        filename: 'certificado.pdf',
+        pdfBase64: Buffer.from('no es un PDF').toString('base64'),
+      },
+    },
+    res,
+  );
+
+  assert.equal(statusCode, 400);
+  assert.equal(responseBody.err, true);
+  assert.match(responseBody.message, /no parece un PDF/);
+});
+
 test('parseCsvUpload accepts DLGA sample CSV and normalizes rows', () => {
   const rows = parseCsvUpload(sampleCsv(), new Date(2026, 4, 29));
 
