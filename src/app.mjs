@@ -21,14 +21,33 @@ import permutaRouter from './routes/permutasRoutes.mjs'
 import administradorRouter from './routes/administradorRoutes.mjs'
 import delegadosRouter from './routes/delegadosRoutes.mjs'
 import { setBotCommands } from './middleware/botCommands.mjs';
+import { createCsrfProtection, issueCsrfToken } from './middleware/csrf.mjs';
 import { swaggerUi, swaggerSpec } from './config/swagger.mjs';
 
 dotenv.config();
+if (!process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET es obligatoria para proteger las sesiones.');
+}
+
 const app = express();
 
 await setBotCommands(); // Establecer los comandos del bot de Telegram
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '30mb' })); // Middleware nativo para JSON
 app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '30mb' })) // Middleware nativo para formularios URL encoded
+
+const frontendOrigins = (process.env.FRONTEND_ORIGINS
+    || 'https://permutas.eii.us.es,https://permutas.eii.us.es:3033,http://localhost:3033,http://127.0.0.1:3033')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+app.use(cors({
+    origin: frontendOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
+    exposedHeaders: ['X-CSRF-Error'],
+    credentials: true,
+}));
 
 // Swagger docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -42,29 +61,23 @@ app.use(session({
         secure: true,
         httpOnly: true,
         sameSite: 'none',
+        path: '/',
         maxAge: 7200000 
       },
 }));
 
-// CSRF protection middleware
-//import csurf from 'csurf';
-//const csrfProtection = csurf({ cookie: false });
-//app.use(csrfProtection);
-
-// Optional: expose CSRF token to clients (for forms, etc.)
-//app.use((req, res, next) => {
-//    res.locals.csrfToken = req.csrfToken();
-//    next();
-//});
 // Inicializar Passport 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Configuración de CORS para permitir las peticiones desde el cliente
-app.use(cors({
-    origin:['https://permutas.eii.us.es:3033', 'http://localhost:3033'],
-    methods: ['GET', 'POST'],
-    credentials:true
+app.get('/api/v1/csrf-token', issueCsrfToken);
+app.use(createCsrfProtection({
+    allowedOrigins: frontendOrigins,
+    ignoredPaths: [
+        '/api/v1/telegram/webhook',
+        '/api/v1/delegados/afirma-signature-storage/StorageService',
+        '/api/v1/delegados/afirma-signature-retriever/RetrieveService',
+    ],
 }));
 
 app.use('/api/v1/autorizacion', autorizacionRouter )

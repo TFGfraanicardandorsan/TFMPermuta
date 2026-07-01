@@ -81,6 +81,13 @@ El archivo `.env` debe incluir las siguientes variables:
 - `DB_NAME`: Nombre de la base de datos.
 - `SSL_KEY_PATH`: Ruta al archivo de clave SSL.
 - `SSL_CERT_PATH`: Ruta al archivo de certificado SSL.
+- `SESSION_SECRET`: Secreto robusto utilizado para firmar la sesión.
+- `FRONTEND_ORIGINS`: Orígenes permitidos por CORS y CSRF, separados por comas.
+
+Las peticiones `POST`, `PUT`, `PATCH` y `DELETE` requieren la cabecera
+`X-CSRF-Token`. El token se obtiene mediante `GET /api/v1/csrf-token` y queda
+vinculado a la sesión del usuario. El frontend gestiona automáticamente su
+obtención y renovación.
 
 ## Endpoints Principales
 

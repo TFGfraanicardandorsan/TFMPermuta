@@ -36,9 +36,11 @@ export const verificarSesionUsuario = async (req, res) => {
     if (!user) {
       return res.redirect(`https://permutas.eii.us.es/noRegistrado`);
     }
-    // Guardar la información del usuario en la sesión (para la sesion en Express)
+
+    await regenerateSession(req);
     req.session.user = user;
-    // Redirigir al frontend con éxito
+    await saveSession(req);
+
     return res.redirect(`https://permutas.eii.us.es/`);
   } catch (error) {
     console.error("Error al obtener la sesión del usuario:", error);
@@ -48,6 +50,20 @@ export const verificarSesionUsuario = async (req, res) => {
   }
 };
 
+const regenerateSession = (req) => new Promise((resolve, reject) => {
+  req.session.regenerate((error) => {
+    if (error) reject(error);
+    else resolve();
+  });
+});
+
+const saveSession = (req) => new Promise((resolve, reject) => {
+  req.session.save((error) => {
+    if (error) reject(error);
+    else resolve();
+  });
+});
+
 export const logout = async (req, res) => {
   try {
     req.session.destroy((err) => {
@@ -55,10 +71,16 @@ export const logout = async (req, res) => {
         console.error("Error al destruir la sesión:", err);
         return res.status(500).json({ message: "Error al cerrar sesión" });
       }
-      res.clearCookie("connect.sid");
-      res.redirect(
-        "https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout"
-      );
+      res.clearCookie("connect.sid", {
+        secure: true,
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+      });
+      return res.json({
+        err: false,
+        redirectUrl: "https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp&logout",
+      });
     });
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
