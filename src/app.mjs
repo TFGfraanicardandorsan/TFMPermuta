@@ -20,6 +20,7 @@ import telegramRouter from './routes/telegramRoutes.mjs'
 import permutaRouter from './routes/permutasRoutes.mjs'
 import administradorRouter from './routes/administradorRoutes.mjs'
 import delegadosRouter from './routes/delegadosRoutes.mjs'
+import feedbackRouter from './routes/feedbackRoutes.mjs'
 import { setBotCommands } from './middleware/botCommands.mjs';
 import { createCsrfProtection, issueCsrfToken } from './middleware/csrf.mjs';
 import { swaggerUi, swaggerSpec } from './config/swagger.mjs';
@@ -95,6 +96,7 @@ app.use('/api/v1', uploadRouter)
 app.use('/api/v1/estadisticas', administradorRouter)
 app.use('/api/v1/telegram',telegramRouter)
 app.use('/api/v1/delegados', delegadosRouter)
+app.use('/api/v1/feedback', feedbackRouter)
 
 // Configurar el servidor con HTTPS
 const resolveCertPath = (envPath, fallbackPaths) => {
