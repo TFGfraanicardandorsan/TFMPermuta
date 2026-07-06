@@ -44,14 +44,7 @@ const superarAsignaturasUsuario = async (req, res) => {
             return res.status(400).json({ err: true, message: validAsignatura.mensaje });
         }
         const asignatura = validAsignatura.valor;
-        const { respuestas } = req.body;
-        if (respuestas !== undefined && !Array.isArray(respuestas)) {
-            return res.status(400).json({ err: true, message: "Las respuestas deben enviarse como un array" });
-        }
-        if (Array.isArray(respuestas) && respuestas.length === 0) {
-            return res.status(400).json({ err: true, message: "Debe enviarse al menos una respuesta" });
-        }
-        res.send({ err: false, result: await usuarioAsignaturaService.superarAsignaturasUsuario(uvus, asignatura, respuestas) })
+        res.send({ err: false, result: await usuarioAsignaturaService.superarAsignaturasUsuario(uvus, asignatura) })
     } catch (err) {
         if (err.statusCode) {
             return res.status(err.statusCode).json({ err: true, message: err.message });

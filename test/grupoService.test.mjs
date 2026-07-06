@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import database from '../src/config/database.mjs';
 import grupoService from '../src/services/grupoService.mjs';
+import { obtenerCursoAcademico } from '../src/utils/cursoAcademico.mjs';
 
 const originalConnectPostgreSQL = database.connectPostgreSQL;
 
@@ -120,6 +121,28 @@ test('obtenerTodosGruposMisAsignaturasSinGrupoUsuario excluye solo los grupos de
   assert.deepEqual(query.values, ['usuario']);
   assert.match(textoQuery(query), /ug\.grupo_id_fk = g\.id/);
   assert.doesNotMatch(textoQuery(query), /grupo_usuario\.asignatura_id_fk = g\.asignatura_id_fk/);
+  assert.equal(fake.estaCerrado(), true);
+});
+
+test('obtenerMiGrupoAsignatura indica si ya fue evaluada en el curso actual', async () => {
+  const asignaturasEsperadas = [{
+    id: 2,
+    numgrupo: '2',
+    asignatura: 'Matemáticas',
+    codigo: 2050001,
+    cursoAcademico: obtenerCursoAcademico(),
+    evaluada: true,
+  }];
+  const fake = crearClienteConRespuestas([{ rows: asignaturasEsperadas }]);
+  database.connectPostgreSQL = async () => fake.client;
+
+  const resultado = await grupoService.obtenerMiGrupoAsignatura('usuario');
+  const query = fake.consultas[0];
+
+  assert.deepEqual(resultado, asignaturasEsperadas);
+  assert.deepEqual(query.values, ['usuario', obtenerCursoAcademico()]);
+  assert.match(textoQuery(query), /EXISTS/);
+  assert.match(textoQuery(query), /r\.curso_academico = \$2/);
   assert.equal(fake.estaCerrado(), true);
 });
 

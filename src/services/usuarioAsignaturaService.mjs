@@ -1,5 +1,4 @@
 import database from "../config/database.mjs";
-import valoracionAsignaturaService from "./valoracionAsignaturaService.mjs";
 class AsignaturaUsuarioService {
 
   async actualizarAsignaturasUsuario(uvus, asignatura) {
@@ -48,14 +47,10 @@ class AsignaturaUsuarioService {
   }
 
 
-  async superarAsignaturasUsuario(uvus, asignatura, respuestas = null) {
+  async superarAsignaturasUsuario(uvus, asignatura) {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query("BEGIN");
-
-      if (Array.isArray(respuestas) && respuestas.length > 0) {
-        await valoracionAsignaturaService.guardarValoracionAsignatura(uvus, asignatura, respuestas, { conexion });
-      }
 
       // Eliminar de la tabla usuario_grupo
       const deleteUsuarioGrupoQuery = {

@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import { obtenerCursoAcademico } from "../utils/cursoAcademico.mjs";
 
 const crearErrorServicio = (statusCode, message, detalles = undefined) => {
   const error = new Error(message);
@@ -250,9 +251,28 @@ class GrupoService {
   async obtenerMiGrupoAsignatura(uvus) {
     const conexion = await database.connectPostgreSQL();
     const query = {
-      text: `select g.id, g.nombre as numGrupo , a.nombre as asignatura, a.codigo as codigo from grupo g left join asignatura a on a.id = g.asignatura_id_fk 
-          where g.habilitado = true and g.id in (select ug.grupo_id_fk  from usuario_grupo ug where ug.usuario_id_fk = (select id from usuario u where u.nombre_usuario = $1));`,
-      values: [uvus],
+      text: `
+        SELECT
+          g.id,
+          g.nombre AS "numgrupo",
+          a.nombre AS asignatura,
+          a.codigo,
+          $2::varchar AS "cursoAcademico",
+          EXISTS (
+            SELECT 1
+            FROM respuesta_valoracion_asignatura r
+            WHERE r.usuario_id_fk = u.id
+              AND r.asignatura_id_fk = a.id
+              AND r.curso_academico = $2
+          ) AS evaluada
+        FROM usuario u
+        JOIN usuario_grupo ug ON ug.usuario_id_fk = u.id
+        JOIN grupo g ON g.id = ug.grupo_id_fk AND g.habilitado = TRUE
+        JOIN asignatura a ON a.id = g.asignatura_id_fk
+        WHERE u.nombre_usuario = $1
+        ORDER BY a.nombre
+      `,
+      values: [uvus, obtenerCursoAcademico()],
     };
     const res = await conexion.query(query);
     await conexion.end();

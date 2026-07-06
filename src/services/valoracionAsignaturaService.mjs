@@ -1,10 +1,11 @@
 import database from "../config/database.mjs";
+import { obtenerCursoAcademico } from "../utils/cursoAcademico.mjs";
 
 class ValoracionAsignaturaValidationError extends Error {
-  constructor(message) {
+  constructor(message, statusCode = 400) {
     super(message);
     this.name = "ValoracionAsignaturaValidationError";
-    this.statusCode = 400;
+    this.statusCode = statusCode;
   }
 }
 
@@ -32,10 +33,13 @@ class ValoracionAsignaturaService {
       const contexto = await this.obtenerContextoValoracion(conexion, uvus, codigoAsignatura);
       const preguntas = await this.obtenerPreguntasActivas(conexion);
       const respuestasNormalizadas = this.normalizarRespuestas(respuestas, preguntas);
+      const cursoAcademico = opciones.cursoAcademico || obtenerCursoAcademico();
 
       const values = respuestasNormalizadas.flatMap((respuesta) => [
         contexto.usuario_id,
         contexto.asignatura_id,
+        contexto.grupo_id,
+        cursoAcademico,
         respuesta.preguntaId,
         respuesta.respuestaBoolean,
         respuesta.respuestaNumero,
@@ -43,7 +47,7 @@ class ValoracionAsignaturaService {
       ]);
 
       const placeholders = respuestasNormalizadas
-        .map((_, index) => `($${index * 6 + 1}, $${index * 6 + 2}, $${index * 6 + 3}, $${index * 6 + 4}, $${index * 6 + 5}, $${index * 6 + 6})`)
+        .map((_, index) => `($${index * 8 + 1}, $${index * 8 + 2}, $${index * 8 + 3}, $${index * 8 + 4}, $${index * 8 + 5}, $${index * 8 + 6}, $${index * 8 + 7}, $${index * 8 + 8})`)
         .join(", ");
 
       await conexion.query({
@@ -51,14 +55,17 @@ class ValoracionAsignaturaService {
           INSERT INTO respuesta_valoracion_asignatura (
             usuario_id_fk,
             asignatura_id_fk,
+            grupo_id_fk,
+            curso_academico,
             pregunta_id_fk,
             respuesta_boolean,
             respuesta_numero,
             respuesta_texto
           )
           VALUES ${placeholders}
-          ON CONFLICT (usuario_id_fk, asignatura_id_fk, pregunta_id_fk)
+          ON CONFLICT (usuario_id_fk, asignatura_id_fk, curso_academico, pregunta_id_fk)
           DO UPDATE SET
+            grupo_id_fk = EXCLUDED.grupo_id_fk,
             respuesta_boolean = EXCLUDED.respuesta_boolean,
             respuesta_numero = EXCLUDED.respuesta_numero,
             respuesta_texto = EXCLUDED.respuesta_texto,
@@ -79,6 +86,11 @@ class ValoracionAsignaturaService {
           nombre: contexto.asignatura_nombre,
           siglas: contexto.asignatura_siglas,
         },
+        grupo: {
+          id: contexto.grupo_id,
+          numero: contexto.grupo_numero,
+        },
+        cursoAcademico,
       };
     } catch (err) {
       if (conexionPropia) {
@@ -114,6 +126,9 @@ class ValoracionAsignaturaService {
                 p.tipo_respuesta,
                 p.orden,
                 r.usuario_id_fk,
+                r.grupo_id_fk,
+                g.nombre AS grupo_numero,
+                r.curso_academico,
                 r.respuesta_boolean,
                 r.respuesta_numero,
                 r.respuesta_texto,
@@ -123,6 +138,7 @@ class ValoracionAsignaturaService {
               LEFT JOIN respuesta_valoracion_asignatura r
                 ON r.asignatura_id_fk = a.id
                 AND r.pregunta_id_fk = p.id
+              LEFT JOIN grupo g ON g.id = r.grupo_id_fk
               WHERE p.activa = TRUE
               ORDER BY a.codigo, p.orden, r.fecha_respuesta DESC
             `,
@@ -142,6 +158,9 @@ class ValoracionAsignaturaService {
                 p.tipo_respuesta,
                 p.orden,
                 r.usuario_id_fk,
+                r.grupo_id_fk,
+                g.nombre AS grupo_numero,
+                r.curso_academico,
                 r.respuesta_boolean,
                 r.respuesta_numero,
                 r.respuesta_texto,
@@ -151,6 +170,7 @@ class ValoracionAsignaturaService {
               LEFT JOIN respuesta_valoracion_asignatura r
                 ON r.asignatura_id_fk = a.id
                 AND r.pregunta_id_fk = p.id
+              LEFT JOIN grupo g ON g.id = r.grupo_id_fk
               WHERE p.activa = TRUE
                 AND a.codigo = $1
               ORDER BY a.codigo, p.orden, r.fecha_respuesta DESC
@@ -173,17 +193,30 @@ class ValoracionAsignaturaService {
           a.id AS asignatura_id,
           a.codigo AS asignatura_codigo,
           a.nombre AS asignatura_nombre,
-          a.siglas AS asignatura_siglas
+          a.siglas AS asignatura_siglas,
+          g.id AS grupo_id,
+          g.nombre AS grupo_numero
         FROM usuario u
-        CROSS JOIN asignatura a
+        JOIN usuario_asignatura ua ON ua.usuario_id_fk = u.id
+        JOIN asignatura a ON a.id = ua.asignatura_id_fk
+        JOIN usuario_grupo ug ON ug.usuario_id_fk = u.id
+        JOIN grupo g
+          ON g.id = ug.grupo_id_fk
+          AND g.asignatura_id_fk = a.id
+          AND g.habilitado = TRUE
         WHERE u.nombre_usuario = $1
           AND a.codigo = $2
+        ORDER BY g.id
+        LIMIT 1
       `,
       values: [uvus, asignaturaCodigo],
     });
 
     if (res.rows.length === 0) {
-      throw new ValoracionAsignaturaValidationError("Usuario o asignatura no encontrados");
+      throw new ValoracionAsignaturaValidationError(
+        "Debes estar matriculado y tener un grupo asignado para valorar la asignatura",
+        409
+      );
     }
 
     return res.rows[0];
@@ -368,15 +401,46 @@ class ValoracionAsignaturaService {
           nombre: row.asignatura_nombre,
           siglas: row.asignatura_siglas,
           totalValoraciones: 0,
+          comparativaGrupos: [],
           bloques: [],
-          _usuarios: new Set(),
+          _valoraciones: new Set(),
+          _comparativas: new Map(),
           _bloques: new Map(),
         });
       }
 
       const asignatura = asignaturas.get(codigoAsignatura);
       if (row.usuario_id_fk !== null && row.usuario_id_fk !== undefined) {
-        asignatura._usuarios.add(Number(row.usuario_id_fk));
+        asignatura._valoraciones.add(`${row.usuario_id_fk}:${row.curso_academico || "historico"}`);
+
+        if (row.pregunta_codigo === "valoracion_global") {
+          const cursoAcademico = row.curso_academico || "historico";
+          const grupoKey = row.grupo_id_fk === null || row.grupo_id_fk === undefined
+            ? "sin-grupo"
+            : String(row.grupo_id_fk);
+
+          if (!asignatura._comparativas.has(cursoAcademico)) {
+            asignatura._comparativas.set(cursoAcademico, new Map());
+          }
+
+          const gruposCurso = asignatura._comparativas.get(cursoAcademico);
+          if (!gruposCurso.has(grupoKey)) {
+            gruposCurso.set(grupoKey, {
+              grupoId: row.grupo_id_fk === null || row.grupo_id_fk === undefined
+                ? null
+                : Number(row.grupo_id_fk),
+              grupoNumero: row.grupo_numero,
+              totalValoraciones: 0,
+              _valoraciones: [],
+            });
+          }
+
+          const grupo = gruposCurso.get(grupoKey);
+          grupo.totalValoraciones += 1;
+          if (row.respuesta_numero !== null && row.respuesta_numero !== undefined) {
+            grupo._valoraciones.push(Number(row.respuesta_numero));
+          }
+        }
       }
 
       const bloqueId = Number(row.bloque);
@@ -437,8 +501,33 @@ class ValoracionAsignaturaService {
     }
 
     return Array.from(asignaturas.values()).map((asignatura) => {
-      asignatura.totalValoraciones = asignatura._usuarios.size;
-      delete asignatura._usuarios;
+      asignatura.totalValoraciones = asignatura._valoraciones.size;
+      asignatura.comparativaGrupos = Array.from(asignatura._comparativas.entries())
+        .sort(([cursoA], [cursoB]) => cursoB.localeCompare(cursoA))
+        .map(([cursoAcademico, grupos]) => ({
+          cursoAcademico,
+          grupos: Array.from(grupos.values())
+            .map((grupo) => ({
+              grupoId: grupo.grupoId,
+              grupoNumero: grupo.grupoNumero,
+              totalValoraciones: grupo.totalValoraciones,
+              mediaGlobal: grupo._valoraciones.length > 0
+                ? Number((
+                  grupo._valoraciones.reduce((total, valor) => total + valor, 0) /
+                  grupo._valoraciones.length
+                ).toFixed(2))
+                : null,
+            }))
+            .sort((grupoA, grupoB) =>
+              String(grupoA.grupoNumero || "").localeCompare(
+                String(grupoB.grupoNumero || ""),
+                undefined,
+                { numeric: true }
+              )
+            ),
+        }));
+      delete asignatura._valoraciones;
+      delete asignatura._comparativas;
       delete asignatura._bloques;
 
       asignatura.bloques = asignatura.bloques.map((bloque) => {

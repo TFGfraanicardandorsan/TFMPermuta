@@ -18,12 +18,22 @@ CREATE TABLE IF NOT EXISTS respuesta_valoracion_asignatura (
   id BIGSERIAL PRIMARY KEY,
   usuario_id_fk INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
   asignatura_id_fk INTEGER NOT NULL REFERENCES asignatura(id) ON DELETE CASCADE,
+  grupo_id_fk INTEGER REFERENCES grupo(id) ON DELETE SET NULL,
+  curso_academico VARCHAR(9) NOT NULL,
   pregunta_id_fk INTEGER NOT NULL REFERENCES pregunta_valoracion_asignatura(id) ON DELETE CASCADE,
   respuesta_boolean BOOLEAN,
   respuesta_numero NUMERIC(5, 2),
   respuesta_texto TEXT,
   fecha_respuesta TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT respuesta_valoracion_asignatura_unica UNIQUE (usuario_id_fk, asignatura_id_fk, pregunta_id_fk),
+  CONSTRAINT respuesta_valoracion_asignatura_unica_curso UNIQUE (
+    usuario_id_fk,
+    asignatura_id_fk,
+    curso_academico,
+    pregunta_id_fk
+  ),
+  CONSTRAINT respuesta_valoracion_asignatura_curso_chk CHECK (
+    curso_academico ~ '^[0-9]{4}-[0-9]{4}$'
+  ),
   CONSTRAINT respuesta_valoracion_asignatura_contenido_chk CHECK (
     num_nonnulls(respuesta_boolean, respuesta_numero, respuesta_texto) = 1
   ),
@@ -31,6 +41,55 @@ CREATE TABLE IF NOT EXISTS respuesta_valoracion_asignatura (
     respuesta_numero IS NULL OR (respuesta_numero >= 1 AND respuesta_numero <= 10)
   )
 );
+
+-- Migración compatible con instalaciones que ya tenían valoraciones.
+ALTER TABLE respuesta_valoracion_asignatura
+  ADD COLUMN IF NOT EXISTS grupo_id_fk INTEGER REFERENCES grupo(id) ON DELETE SET NULL;
+
+ALTER TABLE respuesta_valoracion_asignatura
+  ADD COLUMN IF NOT EXISTS curso_academico VARCHAR(9);
+
+UPDATE respuesta_valoracion_asignatura
+SET curso_academico = CASE
+  WHEN EXTRACT(MONTH FROM fecha_respuesta) >= 9
+    THEN CONCAT(EXTRACT(YEAR FROM fecha_respuesta)::int, '-', EXTRACT(YEAR FROM fecha_respuesta)::int + 1)
+  ELSE CONCAT(EXTRACT(YEAR FROM fecha_respuesta)::int - 1, '-', EXTRACT(YEAR FROM fecha_respuesta)::int)
+END
+WHERE curso_academico IS NULL;
+
+ALTER TABLE respuesta_valoracion_asignatura
+  ALTER COLUMN curso_academico SET NOT NULL;
+
+ALTER TABLE respuesta_valoracion_asignatura
+  DROP CONSTRAINT IF EXISTS respuesta_valoracion_asignatura_unica;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'respuesta_valoracion_asignatura_unica_curso'
+  ) THEN
+    ALTER TABLE respuesta_valoracion_asignatura
+      ADD CONSTRAINT respuesta_valoracion_asignatura_unica_curso UNIQUE (
+        usuario_id_fk,
+        asignatura_id_fk,
+        curso_academico,
+        pregunta_id_fk
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'respuesta_valoracion_asignatura_curso_chk'
+  ) THEN
+    ALTER TABLE respuesta_valoracion_asignatura
+      ADD CONSTRAINT respuesta_valoracion_asignatura_curso_chk CHECK (
+        curso_academico ~ '^[0-9]{4}-[0-9]{4}$'
+      );
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_respuesta_valoracion_asignatura_asignatura
   ON respuesta_valoracion_asignatura (asignatura_id_fk);
@@ -40,6 +99,9 @@ CREATE INDEX IF NOT EXISTS idx_respuesta_valoracion_asignatura_pregunta
 
 CREATE INDEX IF NOT EXISTS idx_respuesta_valoracion_asignatura_fecha
   ON respuesta_valoracion_asignatura (fecha_respuesta);
+
+CREATE INDEX IF NOT EXISTS idx_respuesta_valoracion_asignatura_grupo_curso
+  ON respuesta_valoracion_asignatura (grupo_id_fk, curso_academico);
 
 INSERT INTO pregunta_valoracion_asignatura
   (codigo, bloque, bloque_nombre, enunciado, tipo_respuesta, condicion, orden)
