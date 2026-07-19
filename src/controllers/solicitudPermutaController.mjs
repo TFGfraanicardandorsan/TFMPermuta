@@ -130,6 +130,19 @@ const aceptarPermutaPropuesta = async (req, res) => {
     }
 };
 
+const getPermutasPropuestasSistema = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+        const uvus = req.session.user.nombre_usuario;
+        res.send({ err: false, result: await solicitudPermutaService.getPermutasPropuestasSistema(uvus) });
+    } catch (err) {
+        console.error('api getPermutasPropuestasSistema ha tenido una excepción:', err);
+        res.status(500).json({ err: true, message: 'Error interno en getPermutasPropuestasSistema', details: err.message });
+    }
+};
+
 const rechazarPermutaPropuesta = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -199,6 +212,7 @@ export default {
     aceptarSolicitudPermuta,
     verListaPermutas,
     proponerPermutas,
+    getPermutasPropuestasSistema,
     validarSolicitudPermuta,
     aceptarPermutaPropuesta,
     rechazarPermutaPropuesta,

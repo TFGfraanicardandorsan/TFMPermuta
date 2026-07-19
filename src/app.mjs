@@ -24,6 +24,7 @@ import feedbackRouter from './routes/feedbackRoutes.mjs'
 import { setBotCommands } from './middleware/botCommands.mjs';
 import { createCsrfProtection, issueCsrfToken } from './middleware/csrf.mjs';
 import { swaggerUi, swaggerSpec } from './config/swagger.mjs';
+import { iniciarPropuestasPermutaPeriodicas } from './services/propuestaPermutaScheduler.mjs';
 
 dotenv.config();
 if (!process.env.SESSION_SECRET) {
@@ -114,6 +115,7 @@ const options = {
 const server = https.createServer(options, app);
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
+    iniciarPropuestasPermutaPeriodicas();
     console.log(`Servidor corriendo en https://localhost:${port}`);
     console.log(`Se están utilizando las claves ${keyPath} y ${certPath}`);
 });

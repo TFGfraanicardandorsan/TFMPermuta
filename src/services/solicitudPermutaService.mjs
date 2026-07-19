@@ -340,106 +340,100 @@ class SolicitudPermutaService {
   }
   async proponerPermutas() {
     const conexion = await database.connectPostgreSQL();
+    try {
+      await conexion.query('BEGIN');
+      await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
+      const solicitudesRes = await conexion.query(`
+        SELECT DISTINCT sp.usuario_id_fk AS estudiante_id,
+          sp.id_asignatura_fk AS asignatura,
+          sp.grupo_solicitante_id_fk AS grupo_actual,
+          gd.grupo_id_fk AS grupo_deseado
+        FROM solicitud_permuta sp
+        INNER JOIN grupo_deseado gd ON gd.solicitud_permuta_id_fk = sp.id
+        INNER JOIN grupo actual ON actual.id = sp.grupo_solicitante_id_fk
+        INNER JOIN grupo deseado ON deseado.id = gd.grupo_id_fk
+        WHERE sp.estado = 'SOLICITADA' AND sp.vigente = true
+          AND actual.habilitado = true AND deseado.habilitado = true
+          AND actual.asignatura_id_fk = sp.id_asignatura_fk
+          AND deseado.asignatura_id_fk = sp.id_asignatura_fk
+          AND NOT EXISTS (
+            SELECT 1 FROM permuta p
+            WHERE p.vigente = true
+              AND p.estado IN ('PROPUESTA', 'ACEPTADA', 'VALIDADA')
+              AND p.asignatura_id_fk = sp.id_asignatura_fk
+              AND sp.usuario_id_fk IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+          )
+      `);
 
-    // 1. Obtener todas las solicitudes de permuta activas
-    const solicitudesQuery = {
-      text: `
-      SELECT 
-        sp.id,
-        u.id as estudiante_id,
-        sp.id_asignatura_fk as asignatura,
-        g.nombre as permuta_a
-      FROM solicitud_permuta sp
-      INNER JOIN usuario u ON sp.usuario_id_fk = u.id
-      INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
-      INNER JOIN grupo g ON gd.grupo_id_fk = g.id AND g.habilitado = true
-      INNER JOIN grupo grupo_solicitante ON sp.grupo_solicitante_id_fk = grupo_solicitante.id
-      WHERE sp.estado = 'SOLICITADA' and sp.vigente = true and grupo_solicitante.habilitado = true
-    `
-    };
-
-    const estudiantesQuery = {
-      text: `
-      SELECT DISTINCT 
-        u.id,
-        u.nombre_usuario,
-        g.nombre as grupo
-      FROM usuario u
-      INNER JOIN usuario_grupo ug ON u.id = ug.usuario_id_fk
-      INNER JOIN grupo g ON ug.grupo_id_fk = g.id
-      WHERE g.habilitado = true
-    `
-    };
-
-    const [solicitudesRes, estudiantesRes] = await Promise.all([
-      conexion.query(solicitudesQuery),
-      conexion.query(estudiantesQuery)
-    ]);
-
-    // 2. Preparar los datos para el algoritmo
-    const estudiantes = estudiantesRes.rows;
-    const permutas = solicitudesRes.rows.map(s => ({
-      estudianteId: s.estudiante_id,
-      permutaA: s.permuta_a,
-      asignatura: s.asignatura
-    }));
-
-    // 3. Ejecutar el algoritmo de matching
-    const permutaMatching = new PermutaMatching(estudiantes, permutas);
-    permutaMatching.construirGrafo();
-    const permutasOptimas = permutaMatching.emparejar();
-
-    // 4. Registrar las permutas propuestas en la base de datos
-    for (const permuta of permutasOptimas) {
-      const insertPermutaQuery = {
-        text: `
-        INSERT INTO permuta (
-          id,
-          usuario_id_1_fk,
-          usuario_id_2_fk,
-          asignatura_id_fk,
-          grupo_id_1_fk,
-          grupo_id_2_fk,
-          estado,
-          aceptada_1,
-          aceptada_2
-        ) VALUES (
-          DEFAULT,
-          $1,
-          $2,
-          $3,
-          (
-            SELECT ug.grupo_id_fk
-            FROM usuario_grupo ug
-            INNER JOIN grupo g ON g.id = ug.grupo_id_fk
-            WHERE ug.usuario_id_fk = $1
-              AND g.asignatura_id_fk = $3
-              AND g.habilitado = true
-            LIMIT 1
-          ),
-          (
-            SELECT ug.grupo_id_fk
-            FROM usuario_grupo ug
-            INNER JOIN grupo g ON g.id = ug.grupo_id_fk
-            WHERE ug.usuario_id_fk = $2
-              AND g.asignatura_id_fk = $3
-              AND g.habilitado = true
-            LIMIT 1
-          ),
-          'PROPUESTA',
-          false,
-          false
-        )
-      `,
-        values: [permuta.estudiante1, permuta.estudiante2, permuta.asignaturas[0]]
-      };
-
-      await conexion.query(insertPermutaQuery);
+      const emparejamientos = new PermutaMatching(solicitudesRes.rows).construirGrafo().emparejar();
+      let propuestasCreadas = 0;
+      for (const permuta of emparejamientos) {
+        for (const asignatura of permuta.asignaturas) {
+          const resultado = await conexion.query({
+            text: `INSERT INTO permuta (
+              solicitud_permuta_id_fk, usuario_id_1_fk, usuario_id_2_fk,
+              asignatura_id_fk, grupo_id_1_fk, grupo_id_2_fk,
+              estado, aceptada_1, aceptada_2
+            ) SELECT
+              sp1.id, $1, $2, $3, sp1.grupo_solicitante_id_fk,
+              sp2.grupo_solicitante_id_fk, 'PROPUESTA', false, false
+            FROM solicitud_permuta sp1
+            INNER JOIN solicitud_permuta sp2
+              ON sp2.usuario_id_fk = $2 AND sp2.id_asignatura_fk = $3
+              AND sp2.estado = 'SOLICITADA' AND sp2.vigente = true
+            INNER JOIN grupo_deseado gd1 ON gd1.solicitud_permuta_id_fk = sp1.id
+              AND gd1.grupo_id_fk = sp2.grupo_solicitante_id_fk
+            INNER JOIN grupo_deseado gd2 ON gd2.solicitud_permuta_id_fk = sp2.id
+              AND gd2.grupo_id_fk = sp1.grupo_solicitante_id_fk
+            WHERE sp1.usuario_id_fk = $1 AND sp1.id_asignatura_fk = $3
+              AND sp1.estado = 'SOLICITADA' AND sp1.vigente = true
+            ORDER BY sp1.id LIMIT 1 RETURNING id`,
+            values: [permuta.estudiante1, permuta.estudiante2, asignatura]
+          });
+          propuestasCreadas += resultado.rowCount;
+        }
+      }
+      await conexion.query('COMMIT');
+      return { emparejamientos, propuestasCreadas };
+    } catch (error) {
+      await conexion.query('ROLLBACK');
+      throw error;
+    } finally {
+      await conexion.end();
     }
-
-    await conexion.end();
-    return permutasOptimas;
   }
+  async getPermutasPropuestasSistema(uvus) {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const resultado = await conexion.query({
+        text: `
+          SELECT p.id AS permuta_id,
+            a.nombre AS nombre_asignatura,
+            a.codigo AS codigo_asignatura,
+            a.siglas AS siglas_asignatura,
+            CASE WHEN p.usuario_id_1_fk = u.id THEN g1.nombre ELSE g2.nombre END AS grupo_actual,
+            CASE WHEN p.usuario_id_1_fk = u.id THEN g2.nombre ELSE g1.nombre END AS grupo_destino,
+            CASE WHEN p.usuario_id_1_fk = u.id THEN p.aceptada_1 ELSE p.aceptada_2 END AS aceptada_por_mi,
+            CASE WHEN p.usuario_id_1_fk = u.id THEN p.aceptada_2 ELSE p.aceptada_1 END AS aceptada_por_otro,
+            p.estado
+          FROM permuta p
+          INNER JOIN usuario u ON u.nombre_usuario = $1
+          INNER JOIN asignatura a ON a.id = p.asignatura_id_fk
+          INNER JOIN grupo g1 ON g1.id = p.grupo_id_1_fk
+          INNER JOIN grupo g2 ON g2.id = p.grupo_id_2_fk
+          WHERE u.id IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+            AND p.estado = 'PROPUESTA'
+            AND p.vigente = true
+          ORDER BY a.nombre, p.id
+        `,
+        values: [uvus]
+      });
+      return resultado.rows;
+    } finally {
+      await conexion.end();
+    }
+  }
+
   async aceptarPermutaPropuesta(uvus, permutaId) {
     const conexion = await database.connectPostgreSQL();
     try {

@@ -1,6 +1,5 @@
-import database from "./database.mjs";
+import database from "../config/database.mjs";
 import notificacionService from "./notificacionService.mjs";
-import cron from "node-cron";
 
 class PlazosService {
   async insertarPlazoPermuta(
@@ -93,6 +92,16 @@ const plazosService = new PlazosService();
 export default plazosService;
 
 // Ejecuta todos los días a las 9:00 AM
-cron.schedule("0 9 * * *", async () => {
-  await plazosService.notificarCierreProximoPlazoPermuta();
-});
+const ahora = new Date();
+const proximaEjecucion = new Date(ahora);
+proximaEjecucion.setHours(9, 0, 0, 0);
+if (proximaEjecucion <= ahora) proximaEjecucion.setDate(proximaEjecucion.getDate() + 1);
+const inicio = setTimeout(() => {
+  void plazosService.notificarCierreProximoPlazoPermuta();
+  const diario = setInterval(
+    () => void plazosService.notificarCierreProximoPlazoPermuta(),
+    24 * 60 * 60 * 1000
+  );
+  diario.unref?.();
+}, proximaEjecucion.getTime() - ahora.getTime());
+inicio.unref?.();

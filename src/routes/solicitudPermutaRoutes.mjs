@@ -12,6 +12,7 @@ router
 .post('/verListaPermutas',verificarRol('estudiante'), solicitudPermutaController.verListaPermutas)
 .post('/validarSolicitudPermuta',verificarRol('estudiante'), solicitudPermutaController.validarSolicitudPermuta)
 .post('/proponerPermutas',verificarRol('estudiante'), solicitudPermutaController.proponerPermutas)
+.post('/getPermutasPropuestasSistema', verificarRol('estudiante'), solicitudPermutaController.getPermutasPropuestasSistema)
 .post('/getTodasSolicitudesPermuta',verificarRol('administrador'), solicitudPermutaController.getTodasSolicitudesPermuta)
 .post('/permuta/:id/aceptar', verificarRol('estudiante'), solicitudPermutaController.aceptarPermutaPropuesta)
 .post('/permuta/:id/rechazar', verificarRol('estudiante'), solicitudPermutaController.rechazarPermutaPropuesta)
