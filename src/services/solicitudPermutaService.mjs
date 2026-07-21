@@ -30,9 +30,7 @@ class SolicitudPermutaService {
     ) {
       throw crearErrorSolicitud(400, 'Debe indicarse al menos un grupo deseado válido.');
     }
-    const gruposSolicitados = [...new Set(
-      grupos_deseados.map((grupo) => String(grupo))
-    )];
+    const gruposSolicitados = [...new Set(grupos_deseados)];
 
     const conexion = await database.connectPostgreSQL();
     let transaccionIniciada = false;
@@ -113,7 +111,7 @@ class SolicitudPermutaService {
           WHERE asignatura_id_fk = $1
             AND habilitado = true
             AND id <> $2
-            AND nombre = ANY($3::text[])
+            AND CAST(nombre AS INTEGER) = ANY($3::int[])
           ORDER BY CAST(nombre AS INTEGER), id
           FOR SHARE
         `,

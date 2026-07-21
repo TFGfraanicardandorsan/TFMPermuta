@@ -4,9 +4,12 @@ import database from '../src/config/database.mjs';
 import solicitudPermutaService from '../src/services/solicitudPermutaService.mjs';
 import solicitudPermutaController from '../src/controllers/solicitudPermutaController.mjs';
 import solicitudPermutaRoutes from '../src/routes/solicitudPermutaRoutes.mjs';
+import autorizacionService from '../src/services/autorizacionService.mjs';
 
 const originalConnectPostgreSQL = database.connectPostgreSQL;
 const originalEditarGruposDeseados = solicitudPermutaService.editarGruposDeseados;
+const originalObtenerChatIdUsuario = autorizacionService.obtenerChatIdUsuario;
+const originalConsoleError = console.error;
 
 const textoQuery = (query) => typeof query === 'string' ? query : query.text;
 
@@ -94,6 +97,8 @@ const crearRespuesta = () => ({
 test.afterEach(() => {
   database.connectPostgreSQL = originalConnectPostgreSQL;
   solicitudPermutaService.editarGruposDeseados = originalEditarGruposDeseados;
+  autorizacionService.obtenerChatIdUsuario = originalObtenerChatIdUsuario;
+  console.error = originalConsoleError;
 });
 
 test('la ruta de edición usa PATCH, rol de estudiante y el controlador esperado', () => {
@@ -292,6 +297,59 @@ test('solicitarPermuta rechaza una lista vacía antes de abrir la transacción',
     solicitudPermutaService.solicitarPermuta('alumno', 2050001, []),
     (error) => error.statusCode === 400
   );
+});
+
+test('solicitarPermuta compara números compatibles y crea todos los grupos en un único INSERT', async () => {
+  const fake = crearCliente((query) => {
+    const texto = textoQuery(query);
+    if (texto === 'BEGIN' || texto === 'COMMIT' || /pg_advisory_xact_lock/.test(texto)) {
+      return { rows: [] };
+    }
+    if (/FROM usuario u/.test(texto) && /grupo_solicitante_id/.test(texto)) {
+      return { rows: [{
+        usuario_id: 1,
+        asignatura_id: 5,
+        asignatura: 'Programación',
+        grupo_solicitante_id: 10,
+        grupo_solicitante: 1,
+      }] };
+    }
+    if (/FROM solicitud_permuta/.test(texto)) return { rows: [] };
+    if (/FROM permuta p/.test(texto)) return { rows: [] };
+    if (/FROM grupo/.test(texto) && /ANY\(\$3::int\[\]\)/.test(texto)) {
+      return { rows: [{ id: 20, nombre: 2 }, { id: 30, nombre: 3 }] };
+    }
+    if (/INSERT INTO solicitud_permuta/.test(texto)) return { rows: [{ id: 7 }] };
+    if (/INSERT INTO grupo_deseado/.test(texto)) return { rows: [], rowCount: 2 };
+    throw new Error(`Consulta inesperada en el doble de prueba: ${texto}`);
+  });
+  database.connectPostgreSQL = async () => fake.client;
+  autorizacionService.obtenerChatIdUsuario = async () => null;
+  console.error = () => {};
+
+  const resultado = await solicitudPermutaService.solicitarPermuta(
+    'alumno',
+    2050001,
+    [2, 3, 3]
+  );
+
+  const gruposValidosQuery = fake.consultas.find(
+    (query) => /FROM grupo/.test(textoQuery(query)) && /ANY\(\$3::int\[\]\)/.test(textoQuery(query))
+  );
+  const insertGrupos = fake.consultas.filter(
+    (query) => /INSERT INTO grupo_deseado/.test(textoQuery(query))
+  );
+
+  assert.match(
+    textoQuery(gruposValidosQuery),
+    /CAST\(nombre AS INTEGER\) = ANY\(\$3::int\[\]\)/
+  );
+  assert.deepEqual(gruposValidosQuery.values, [5, 10, [2, 3]]);
+  assert.equal(insertGrupos.length, 1);
+  assert.deepEqual(insertGrupos[0].values, [7, [20, 30]]);
+  assert.equal(textoQuery(fake.consultas.at(-1)), 'COMMIT');
+  assert.equal(fake.estaCerrado(), true);
+  assert.equal(resultado, 'Permuta de la asignatura solicitada.');
 });
 
 test('getMisSolicitudesPermuta conserva nombres y añade IDs y editable', async () => {
