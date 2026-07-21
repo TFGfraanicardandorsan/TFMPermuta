@@ -16,6 +16,18 @@ const options = {
       },
     ],
     components: {
+      securitySchemes: {
+        cookieAuth: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'connect.sid',
+        },
+        csrfToken: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-CSRF-Token',
+        },
+      },
       schemas: {
         Incidencia: {
           type: 'object',

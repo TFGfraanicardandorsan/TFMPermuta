@@ -6,6 +6,7 @@ const router = Router()
 
 router
 .post('/solicitarPermuta',verificarRol('estudiante'), solicitudPermutaController.solicitarPermuta)
+.patch('/:solicitudId/grupos-deseados', verificarRol('estudiante'), solicitudPermutaController.editarGruposDeseados)
 .post('/getSolicitudesPermutaInteresantes',verificarRol('estudiante'), solicitudPermutaController.getSolicitudesPermutaInteresantes)
 .post('/getMisSolicitudesPermuta',verificarRol('estudiante'), solicitudPermutaController.getMisSolicitudesPermuta)
 .post('/aceptarSolicitudPermuta',verificarRol('estudiante'), solicitudPermutaController.aceptarSolicitudPermuta)

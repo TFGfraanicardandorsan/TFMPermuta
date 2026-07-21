@@ -62,7 +62,52 @@ paths:
         '401':
           description: No autorizado.
 
-  /permutas/solicitarPermuta:
+  /solicitudPermuta/{solicitudId}/grupos-deseados:
+    patch:
+      tags:
+        - Permutas
+      summary: Edita los grupos deseados de una solicitud propia
+      description: Sustituye los grupos deseados mediante inserciones y eliminaciones diferenciales. Requiere sesión de estudiante y token CSRF.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - in: path
+          name: solicitudId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - grupos_deseados_ids
+              properties:
+                grupos_deseados_ids:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items:
+                    type: integer
+                    minimum: 1
+                  example: [12, 13]
+      responses:
+        '200':
+          description: Grupos deseados actualizados correctamente.
+        '400':
+          description: Petición o grupos no válidos.
+        '403':
+          description: Sesión, rol o token CSRF no válido.
+        '404':
+          description: Solicitud no encontrada para el usuario autenticado.
+        '409':
+          description: Solicitud no editable o con permuta activa.
+
+  /solicitudPermuta/solicitarPermuta:
     post:
       tags:
         - Permutas
@@ -223,6 +268,15 @@ paths:
           description: No autorizado.
 
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
   schemas:
     Usuario:
       type: object

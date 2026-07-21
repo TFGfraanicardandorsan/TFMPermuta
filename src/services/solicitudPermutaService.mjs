@@ -4,83 +4,186 @@ import { mensajeSolicitudPermuta } from "../utils/mensajesTelegram.mjs";
 import { sendMessage } from "./telegramService.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 
+const BLOQUEO_PROPUESTAS_PERMUTA = "SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))";
+const ESTADOS_PERMUTA_ACTIVA = ['PROPUESTA', 'ACEPTADA', 'VALIDADA', 'FINALIZADA'];
+const MAX_INT_POSTGRES = 2_147_483_647;
+const MAX_GRUPOS_DESEADOS = 100;
+
+const crearErrorSolicitud = (statusCode, message, detalles = undefined) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  if (detalles !== undefined) {
+    error.detalles = detalles;
+  }
+  return error;
+};
+
 class SolicitudPermutaService {
   async solicitarPermuta(uvus, asignatura, grupos_deseados) {
+    if (
+      !Array.isArray(grupos_deseados)
+      || grupos_deseados.length === 0
+      || grupos_deseados.length > MAX_GRUPOS_DESEADOS
+      || grupos_deseados.some((grupo) => (
+        !Number.isSafeInteger(grupo) || grupo <= 0 || grupo > MAX_INT_POSTGRES
+      ))
+    ) {
+      throw crearErrorSolicitud(400, 'Debe indicarse al menos un grupo deseado válido.');
+    }
+    const gruposSolicitados = [...new Set(
+      grupos_deseados.map((grupo) => String(grupo))
+    )];
+
     const conexion = await database.connectPostgreSQL();
+    let transaccionIniciada = false;
+    let datosSolicitud;
+    try {
+      await conexion.query('BEGIN');
+      transaccionIniciada = true;
+      await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
 
-    // Verificar si ya existe una solicitud activa para esta asignatura y usuario
-    const verificarSolicitudQuery = {
-      text: `
-                SELECT 1 
-                FROM solicitud_permuta 
-                WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-                AND id_asignatura_fk = (SELECT id FROM asignatura WHERE codigo = $2)
-                AND estado = 'SOLICITADA' AND vigente = true
-            `,
-      values: [uvus, asignatura],
-    };
+      const contextoRes = await conexion.query({
+        text: `
+          SELECT
+            u.id AS usuario_id,
+            a.id AS asignatura_id,
+            a.nombre AS asignatura,
+            g.id AS grupo_solicitante_id,
+            g.nombre AS grupo_solicitante
+          FROM usuario u
+          INNER JOIN asignatura a ON a.codigo = $2
+          INNER JOIN usuario_grupo ug ON ug.usuario_id_fk = u.id
+          INNER JOIN grupo g ON g.id = ug.grupo_id_fk
+            AND g.asignatura_id_fk = a.id
+            AND g.habilitado = true
+          WHERE u.nombre_usuario = $1
+          ORDER BY g.id
+          LIMIT 1
+          FOR SHARE OF g
+        `,
+        values: [uvus, asignatura],
+      });
 
-    const verificarSolicitudRes = await conexion.query(verificarSolicitudQuery);
+      if (contextoRes.rows.length === 0) {
+        throw crearErrorSolicitud(
+          400,
+          'No existe una asignatura y un grupo actual habilitado para el usuario.'
+        );
+      }
 
-    if (verificarSolicitudRes.rows.length > 0) {
-      await conexion.end();
-      throw new Error('Ya existe una solicitud activa para esta asignatura.');
-    }
+      const contexto = contextoRes.rows[0];
+      const solicitudExistenteRes = await conexion.query({
+        text: `
+          SELECT 1
+          FROM solicitud_permuta
+          WHERE usuario_id_fk = $1
+            AND id_asignatura_fk = $2
+            AND estado = 'SOLICITADA'
+            AND vigente = true
+          LIMIT 1
+          FOR UPDATE
+        `,
+        values: [contexto.usuario_id, contexto.asignatura_id],
+      });
 
-    // Insertar la nueva solicitud de permuta
-    const insert_solicitud_permuta = {
-      text: `insert into solicitud_permuta (usuario_id_fk ,grupo_solicitante_id_fk, estado, id_asignatura_fk, vigente) values ((
-              SELECT id FROM usuario WHERE nombre_usuario = $2),
-              (SELECT id FROM grupo WHERE habilitado = true AND id in (SELECT grupo_id_fk FROM usuario_grupo WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)) AND asignatura_id_fk = 
-              (SELECT id FROM asignatura WHERE codigo = $1)),
-              'SOLICITADA',
-            (Select id from asignatura where codigo = $1), true) returning id`,
-      values: [asignatura, uvus],
-    };
+      if (solicitudExistenteRes.rows.length > 0) {
+        throw crearErrorSolicitud(409, 'Ya existe una solicitud activa para esta asignatura.');
+      }
 
-    const res_solicitud_permuta = await conexion.query(insert_solicitud_permuta);
-    const id = res_solicitud_permuta.rows[0].id;
+      const permutaActivaRes = await conexion.query({
+        text: `
+          SELECT 1
+          FROM permuta p
+          WHERE p.vigente = true
+            AND p.estado = ANY($3::text[])
+            AND p.asignatura_id_fk = $1
+            AND $2 IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+          LIMIT 1
+        `,
+        values: [contexto.asignatura_id, contexto.usuario_id, ESTADOS_PERMUTA_ACTIVA],
+      });
+      if (permutaActivaRes.rows.length > 0) {
+        throw crearErrorSolicitud(409, 'El usuario ya tiene una permuta activa para esta asignatura.');
+      }
 
-    for (const grupo of grupos_deseados) {
-      const insertGrupoDeseado = {
-        text: `insert into grupo_deseado (solicitud_permuta_id_fk , grupo_id_fk ) 
-                values(
-                  $3,
-                  (select id from grupo where nombre = $2 and habilitado = true and grupo.asignatura_id_fk = (select id from asignatura where codigo = $1)))`,
-        values: [asignatura, grupo, id],
+      const gruposValidosRes = await conexion.query({
+        text: `
+          SELECT id, nombre
+          FROM grupo
+          WHERE asignatura_id_fk = $1
+            AND habilitado = true
+            AND id <> $2
+            AND nombre = ANY($3::text[])
+          ORDER BY CAST(nombre AS INTEGER), id
+          FOR SHARE
+        `,
+        values: [contexto.asignatura_id, contexto.grupo_solicitante_id, gruposSolicitados],
+      });
+
+      if (gruposValidosRes.rows.length !== gruposSolicitados.length) {
+        throw crearErrorSolicitud(
+          400,
+          'Uno o más grupos deseados no existen, no están habilitados o no pertenecen a la asignatura.'
+        );
+      }
+
+      const solicitudRes = await conexion.query({
+        text: `
+          INSERT INTO solicitud_permuta (
+            usuario_id_fk, grupo_solicitante_id_fk, estado, id_asignatura_fk, vigente
+          ) VALUES ($1, $2, 'SOLICITADA', $3, true)
+          RETURNING id
+        `,
+        values: [contexto.usuario_id, contexto.grupo_solicitante_id, contexto.asignatura_id],
+      });
+      const solicitudId = solicitudRes.rows[0].id;
+      const gruposIds = gruposValidosRes.rows.map((grupo) => grupo.id);
+
+      await conexion.query({
+        text: `
+          INSERT INTO grupo_deseado (solicitud_permuta_id_fk, grupo_id_fk)
+          SELECT $1, grupo_id
+          FROM unnest($2::int[]) AS grupo_id
+        `,
+        values: [solicitudId, gruposIds],
+      });
+
+      await conexion.query('COMMIT');
+      transaccionIniciada = false;
+      datosSolicitud = {
+        nombreAsignatura: contexto.asignatura,
+        grupoSolicitante: contexto.grupo_solicitante,
+        gruposDeseados: gruposValidosRes.rows.map((grupo) => grupo.nombre),
       };
-      await conexion.query(insertGrupoDeseado);
+    } catch (error) {
+      if (transaccionIniciada) {
+        try {
+          await conexion.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('Error al deshacer la creación de la solicitud de permuta:', rollbackError);
+        }
+      }
+      throw error;
+    } finally {
+      await conexion.end();
     }
-
-    // Obtener datos para el mensaje
-    const datosQuery = {
-      text: `
-            SELECT 
-              a.nombre AS asignatura,
-              g.nombre AS grupo_solicitante
-            FROM solicitud_permuta sp
-            INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
-            INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id
-            WHERE sp.id = $1
-          `,
-      values: [id],
-    };
-    const datosRes = await conexion.query(datosQuery);
-    const { asignatura: nombreAsignatura, grupo_solicitante } = datosRes.rows[0];
 
     // Enviar mensaje por Telegram
     try {
       const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
       await sendMessage(
         chatIdUsuario,
-        mensajeSolicitudPermuta(nombreAsignatura, grupo_solicitante, grupos_deseados),
+        mensajeSolicitudPermuta(
+          datosSolicitud.nombreAsignatura,
+          datosSolicitud.grupoSolicitante,
+          datosSolicitud.gruposDeseados
+        ),
         "HTML"
       );
     } catch (error) {
       console.error("Error al enviar el mensaje de solicitud de permuta:", error);
     }
 
-    await conexion.end();
     return 'Permuta de la asignatura solicitada.';
   }
 
@@ -128,6 +231,7 @@ class SolicitudPermutaService {
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.id_asignatura_fk = ANY($1)
       AND sp.vigente = true
+      AND sp.estado = 'SOLICITADA'
       AND gd.grupo_id_fk IN (
         SELECT ug.grupo_id_fk
         FROM usuario_grupo ug
@@ -140,12 +244,16 @@ class SolicitudPermutaService {
       AND sp.usuario_id_fk != (
         SELECT id FROM usuario WHERE nombre_usuario = $2
       )
-      AND sp.id NOT IN (
-        SELECT solicitud_permuta_id_fk
-        FROM permuta
+      AND NOT EXISTS (
+        SELECT 1
+        FROM permuta p
+        WHERE p.vigente = true
+          AND p.estado = ANY($3::text[])
+          AND p.asignatura_id_fk = sp.id_asignatura_fk
+          AND sp.usuario_id_fk IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
       )
     `,
-      values: [asignaturaUsuario, uvus],
+      values: [asignaturaUsuario, uvus, ESTADOS_PERMUTA_ACTIVA],
     };
     const res = await conexion.query(query);
     await conexion.end();
@@ -160,9 +268,22 @@ class SolicitudPermutaService {
         sp.id AS solicitud_id, 
         sp.estado, 
         g_solicitante.nombre AS grupo_solicitante, 
+        g_deseado.id AS grupo_deseado_id,
         g_deseado.nombre AS grupo_deseado,
         a.codigo AS codigo_asignatura, 
-        a.nombre AS nombre_asignatura
+        a.nombre AS nombre_asignatura,
+        (
+          sp.estado = 'SOLICITADA'
+          AND sp.vigente = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM permuta p
+            WHERE p.vigente = true
+              AND p.estado = ANY($2::text[])
+              AND p.asignatura_id_fk = sp.id_asignatura_fk
+              AND sp.usuario_id_fk IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+          )
+        ) AS editable
       FROM solicitud_permuta sp
       INNER JOIN grupo g_solicitante ON sp.grupo_solicitante_id_fk = g_solicitante.id AND g_solicitante.habilitado = true
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
@@ -170,10 +291,10 @@ class SolicitudPermutaService {
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
       WHERE sp.usuario_id_fk = (
         SELECT id FROM usuario WHERE nombre_usuario = $1
-      ) and vigente = true
+      ) AND sp.vigente = true
       ORDER BY sp.id, g_deseado.nombre
     `,
-      values: [uvus],
+      values: [uvus, ESTADOS_PERMUTA_ACTIVA],
     };
 
     const res = await conexion.query(query);
@@ -184,14 +305,17 @@ class SolicitudPermutaService {
 
       if (solicitudExistente) {
         solicitudExistente.grupos_deseados.push(row.grupo_deseado);
+        solicitudExistente.grupos_deseados_ids.push(row.grupo_deseado_id);
       } else {
         acc.push({
           solicitud_id: row.solicitud_id,
           estado: row.estado,
           grupo_solicitante: row.grupo_solicitante,
           grupos_deseados: [row.grupo_deseado],
+          grupos_deseados_ids: [row.grupo_deseado_id],
           codigo_asignatura: row.codigo_asignatura,
-          nombre_asignatura: row.nombre_asignatura
+          nombre_asignatura: row.nombre_asignatura,
+          editable: row.editable,
         });
       }
 
@@ -202,40 +326,356 @@ class SolicitudPermutaService {
     return solicitudesAgrupadas;
   }
 
+  async editarGruposDeseados(uvus, solicitudId, gruposDeseadosIds) {
+    if (
+      !Array.isArray(gruposDeseadosIds)
+      || gruposDeseadosIds.length === 0
+      || gruposDeseadosIds.length > MAX_GRUPOS_DESEADOS
+      || gruposDeseadosIds.some((grupoId) => (
+        !Number.isSafeInteger(grupoId) || grupoId <= 0 || grupoId > MAX_INT_POSTGRES
+      ))
+    ) {
+      throw crearErrorSolicitud(400, 'Debe indicarse al menos un identificador de grupo válido.');
+    }
+
+    const gruposSolicitados = [...new Set(gruposDeseadosIds)];
+    const conexion = await database.connectPostgreSQL();
+    let transaccionIniciada = false;
+    try {
+      await conexion.query('BEGIN');
+      transaccionIniciada = true;
+      await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
+
+      const solicitudInicialRes = await conexion.query({
+        text: `
+          SELECT
+            sp.id,
+            sp.usuario_id_fk,
+            sp.id_asignatura_fk,
+            sp.grupo_solicitante_id_fk,
+            sp.estado,
+            sp.vigente
+          FROM solicitud_permuta sp
+          INNER JOIN usuario u ON u.id = sp.usuario_id_fk
+          WHERE sp.id = $1
+            AND u.nombre_usuario = $2
+        `,
+        values: [solicitudId, uvus],
+      });
+
+      if (solicitudInicialRes.rows.length === 0) {
+        throw crearErrorSolicitud(404, 'La solicitud no existe o no pertenece al usuario autenticado.');
+      }
+
+      const solicitudInicial = solicitudInicialRes.rows[0];
+      const idsGruposABloquear = [
+        ...new Set([solicitudInicial.grupo_solicitante_id_fk, ...gruposSolicitados]),
+      ].sort((a, b) => a - b);
+      const gruposBloqueadosRes = await conexion.query({
+        text: `
+          SELECT id, nombre, asignatura_id_fk, habilitado
+          FROM grupo
+          WHERE id = ANY($1::int[])
+          ORDER BY id
+          FOR SHARE
+        `,
+        values: [idsGruposABloquear],
+      });
+
+      const solicitudBloqueadaRes = await conexion.query({
+        text: `
+          SELECT
+            sp.id,
+            sp.usuario_id_fk,
+            sp.id_asignatura_fk,
+            sp.grupo_solicitante_id_fk,
+            sp.estado,
+            sp.vigente
+          FROM solicitud_permuta sp
+          INNER JOIN usuario u ON u.id = sp.usuario_id_fk
+          WHERE sp.id = $1
+            AND u.nombre_usuario = $2
+          FOR UPDATE OF sp
+        `,
+        values: [solicitudId, uvus],
+      });
+      if (solicitudBloqueadaRes.rows.length === 0) {
+        throw crearErrorSolicitud(404, 'La solicitud no existe o no pertenece al usuario autenticado.');
+      }
+
+      const solicitud = solicitudBloqueadaRes.rows[0];
+      if (solicitud.estado !== 'SOLICITADA' || solicitud.vigente !== true) {
+        throw crearErrorSolicitud(409, 'La solicitud ya no se encuentra en un estado editable.');
+      }
+      if (
+        solicitud.id_asignatura_fk !== solicitudInicial.id_asignatura_fk
+        || solicitud.grupo_solicitante_id_fk !== solicitudInicial.grupo_solicitante_id_fk
+      ) {
+        throw crearErrorSolicitud(409, 'La solicitud cambió mientras se estaba editando.');
+      }
+
+      const gruposPorIdBloqueados = new Map(
+        gruposBloqueadosRes.rows.map((grupo) => [grupo.id, grupo])
+      );
+      const grupoSolicitante = gruposPorIdBloqueados.get(solicitud.grupo_solicitante_id_fk);
+      if (
+        !grupoSolicitante
+        || grupoSolicitante.habilitado !== true
+        || grupoSolicitante.asignatura_id_fk !== solicitud.id_asignatura_fk
+      ) {
+        throw crearErrorSolicitud(409, 'El grupo actual de la solicitud ya no está disponible.');
+      }
+
+      const permutaActivaRes = await conexion.query({
+        text: `
+          SELECT 1
+          FROM permuta p
+          WHERE p.vigente = true
+            AND p.estado = ANY($3::text[])
+            AND p.asignatura_id_fk = $1
+            AND $2 IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+          LIMIT 1
+        `,
+        values: [solicitud.id_asignatura_fk, solicitud.usuario_id_fk, ESTADOS_PERMUTA_ACTIVA],
+      });
+      if (permutaActivaRes.rows.length > 0) {
+        throw crearErrorSolicitud(
+          409,
+          'La solicitud no puede editarse porque ya tiene una permuta activa para la asignatura.'
+        );
+      }
+
+      const gruposValidos = gruposSolicitados
+        .map((grupoId) => gruposPorIdBloqueados.get(grupoId))
+        .filter((grupo) => (
+          grupo
+          && grupo.habilitado === true
+          && grupo.asignatura_id_fk === solicitud.id_asignatura_fk
+          && grupo.id !== solicitud.grupo_solicitante_id_fk
+        ));
+      if (gruposValidos.length !== gruposSolicitados.length) {
+        const idsValidos = new Set(gruposValidos.map((grupo) => grupo.id));
+        const idsInvalidos = gruposSolicitados.filter((grupoId) => !idsValidos.has(grupoId));
+        throw crearErrorSolicitud(
+          400,
+          'Uno o más grupos no existen, no están habilitados o no pertenecen a la asignatura.',
+          { gruposInvalidos: idsInvalidos }
+        );
+      }
+
+      const gruposActualesRes = await conexion.query({
+        text: `
+          SELECT grupo_id_fk
+          FROM grupo_deseado
+          WHERE solicitud_permuta_id_fk = $1
+          FOR UPDATE
+        `,
+        values: [solicitudId],
+      });
+      const gruposActuales = [...new Set(gruposActualesRes.rows.map((row) => row.grupo_id_fk))];
+      const gruposActualesSet = new Set(gruposActuales);
+      const gruposSolicitadosSet = new Set(gruposSolicitados);
+      const gruposAInsertar = gruposSolicitados.filter((grupoId) => !gruposActualesSet.has(grupoId));
+      const gruposAEliminar = gruposActuales.filter((grupoId) => !gruposSolicitadosSet.has(grupoId));
+
+      if (gruposAEliminar.length > 0) {
+        await conexion.query({
+          text: `
+            DELETE FROM grupo_deseado
+            WHERE solicitud_permuta_id_fk = $1
+              AND grupo_id_fk = ANY($2::int[])
+          `,
+          values: [solicitudId, gruposAEliminar],
+        });
+      }
+      if (gruposAInsertar.length > 0) {
+        await conexion.query({
+          text: `
+            INSERT INTO grupo_deseado (solicitud_permuta_id_fk, grupo_id_fk)
+            SELECT $1, grupo_id
+            FROM unnest($2::int[]) AS grupo_id
+          `,
+          values: [solicitudId, gruposAInsertar],
+        });
+      }
+
+      await conexion.query('COMMIT');
+      transaccionIniciada = false;
+
+      const gruposPorId = new Map(gruposValidos.map((grupo) => [grupo.id, grupo.nombre]));
+      return {
+        solicitud_id: solicitudId,
+        grupos_deseados: gruposSolicitados.map((grupoId) => gruposPorId.get(grupoId)),
+        grupos_deseados_ids: gruposSolicitados,
+        cambios: {
+          insertados: gruposAInsertar,
+          eliminados: gruposAEliminar,
+        },
+      };
+    } catch (error) {
+      if (transaccionIniciada) {
+        try {
+          await conexion.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('Error al deshacer la edición de grupos deseados:', rollbackError);
+        }
+      }
+      throw error;
+    } finally {
+      await conexion.end();
+    }
+  }
+
   async aceptarSolicitudPermuta(uvus, solicitud) {
     const conexion = await database.connectPostgreSQL();
-    const update = {
-      text: ` insert into permuta (solicitud_permuta_id_fk, usuario_id_1_fk, usuario_id_2_fk,asignatura_id_fk, grupo_id_1_fk, grupo_id_2_fk, estado, aceptada_1, aceptada_2) values (
-      ($2),
-      (select usuario_id_fk from solicitud_permuta where id = $2),
-      (select id from usuario where nombre_usuario = $1),  
-      (select id_asignatura_fk from solicitud_permuta where id = $2),
-      (
-        select sp.grupo_solicitante_id_fk
-        from solicitud_permuta sp
-        inner join grupo g on g.id = sp.grupo_solicitante_id_fk
-        where sp.id = $2
-          and sp.vigente = true
-          and g.habilitado = true
-      ),
-      (
-        select gd.grupo_id_fk
-        from grupo_deseado gd
-        inner join usuario_grupo ug on ug.grupo_id_fk = gd.grupo_id_fk
-        inner join grupo g on g.id = gd.grupo_id_fk
-        where gd.solicitud_permuta_id_fk = $2
-          and ug.usuario_id_fk = (select id from usuario where nombre_usuario=$1)
-          and g.habilitado = true
-        limit 1
-      ),
-	    'ACEPTADA',
-      false,
-      true)`,
-      values: [uvus, solicitud],
-    };
-    await conexion.query(update);
-    await conexion.end();
-    return 'Solicitud de permuta aceptada.';
+    let transaccionIniciada = false;
+    try {
+      await conexion.query('BEGIN');
+      transaccionIniciada = true;
+      await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
+
+      const solicitudInicialRes = await conexion.query({
+        text: `
+          SELECT
+            sp.id,
+            sp.usuario_id_fk,
+            sp.id_asignatura_fk,
+            sp.grupo_solicitante_id_fk
+          FROM solicitud_permuta sp
+          WHERE sp.id = $1
+            AND sp.estado = 'SOLICITADA'
+            AND sp.vigente = true
+        `,
+        values: [solicitud],
+      });
+      if (solicitudInicialRes.rows.length === 0) {
+        throw crearErrorSolicitud(409, 'La solicitud no existe o ya no puede aceptarse.');
+      }
+
+      const solicitudInicial = solicitudInicialRes.rows[0];
+      const usuarioAceptanteRes = await conexion.query({
+        text: `
+          SELECT u.id AS usuario_id, g.id AS grupo_id
+          FROM usuario u
+          INNER JOIN usuario_grupo ug ON ug.usuario_id_fk = u.id
+          INNER JOIN grupo g ON g.id = ug.grupo_id_fk
+            AND g.habilitado = true
+            AND g.asignatura_id_fk = $2
+          INNER JOIN grupo_deseado gd ON gd.grupo_id_fk = g.id
+            AND gd.solicitud_permuta_id_fk = $3
+          WHERE u.nombre_usuario = $1
+            AND u.id <> $4
+          ORDER BY g.id
+          LIMIT 1
+          FOR SHARE OF g
+        `,
+        values: [
+          uvus,
+          solicitudInicial.id_asignatura_fk,
+          solicitudInicial.id,
+          solicitudInicial.usuario_id_fk,
+        ],
+      });
+      if (usuarioAceptanteRes.rows.length === 0) {
+        throw crearErrorSolicitud(403, 'El usuario no puede aceptar esta solicitud de permuta.');
+      }
+
+      const usuarioAceptante = usuarioAceptanteRes.rows[0];
+      const grupoSolicitanteRes = await conexion.query({
+        text: `
+          SELECT id
+          FROM grupo
+          WHERE id = $1
+            AND asignatura_id_fk = $2
+            AND habilitado = true
+          FOR SHARE
+        `,
+        values: [solicitudInicial.grupo_solicitante_id_fk, solicitudInicial.id_asignatura_fk],
+      });
+      if (grupoSolicitanteRes.rows.length === 0) {
+        throw crearErrorSolicitud(409, 'El grupo actual de la solicitud ya no está disponible.');
+      }
+
+      const solicitudBloqueadaRes = await conexion.query({
+        text: `
+          SELECT id, usuario_id_fk, id_asignatura_fk, grupo_solicitante_id_fk
+          FROM solicitud_permuta
+          WHERE id = $1
+            AND estado = 'SOLICITADA'
+            AND vigente = true
+          FOR UPDATE
+        `,
+        values: [solicitud],
+      });
+      if (solicitudBloqueadaRes.rows.length === 0) {
+        throw crearErrorSolicitud(409, 'La solicitud ya no puede aceptarse.');
+      }
+      const solicitudEncontrada = solicitudBloqueadaRes.rows[0];
+      if (
+        solicitudEncontrada.usuario_id_fk !== solicitudInicial.usuario_id_fk
+        || solicitudEncontrada.id_asignatura_fk !== solicitudInicial.id_asignatura_fk
+        || solicitudEncontrada.grupo_solicitante_id_fk !== solicitudInicial.grupo_solicitante_id_fk
+      ) {
+        throw crearErrorSolicitud(409, 'La solicitud cambió mientras se estaba aceptando.');
+      }
+
+      const permutaActivaRes = await conexion.query({
+        text: `
+          SELECT 1
+          FROM permuta p
+          WHERE p.vigente = true
+            AND p.estado = ANY($4::text[])
+            AND p.asignatura_id_fk = $1
+            AND (
+              $2 IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+              OR $3 IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+            )
+          LIMIT 1
+        `,
+        values: [
+          solicitudEncontrada.id_asignatura_fk,
+          solicitudEncontrada.usuario_id_fk,
+          usuarioAceptante.usuario_id,
+          ESTADOS_PERMUTA_ACTIVA,
+        ],
+      });
+      if (permutaActivaRes.rows.length > 0) {
+        throw crearErrorSolicitud(409, 'Alguno de los usuarios ya tiene una permuta activa para la asignatura.');
+      }
+
+      await conexion.query({
+        text: `
+          INSERT INTO permuta (
+            solicitud_permuta_id_fk, usuario_id_1_fk, usuario_id_2_fk,
+            asignatura_id_fk, grupo_id_1_fk, grupo_id_2_fk,
+            estado, aceptada_1, aceptada_2
+          ) VALUES ($1, $2, $3, $4, $5, $6, 'ACEPTADA', false, true)
+        `,
+        values: [
+          solicitudEncontrada.id,
+          solicitudEncontrada.usuario_id_fk,
+          usuarioAceptante.usuario_id,
+          solicitudEncontrada.id_asignatura_fk,
+          solicitudEncontrada.grupo_solicitante_id_fk,
+          usuarioAceptante.grupo_id,
+        ],
+      });
+
+      await conexion.query('COMMIT');
+      transaccionIniciada = false;
+      return 'Solicitud de permuta aceptada.';
+    } catch (error) {
+      if (transaccionIniciada) {
+        try {
+          await conexion.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('Error al deshacer la aceptación de la solicitud:', rollbackError);
+        }
+      }
+      throw error;
+    } finally {
+      await conexion.end();
+    }
   }
 
   async actualizarEstadoPermuta(solicitud, uvus) {
@@ -342,7 +782,7 @@ class SolicitudPermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query('BEGIN');
-      await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
+      await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
       const solicitudesRes = await conexion.query(`
         SELECT DISTINCT sp.usuario_id_fk AS estudiante_id,
           sp.id_asignatura_fk AS asignatura,
@@ -603,43 +1043,74 @@ class SolicitudPermutaService {
 
   async cancelarSolicitudPermuta(uvus, solicitudId, esAdmin = false) {
     const conexion = await database.connectPostgreSQL();
+    let transaccionIniciada = false;
     try {
-      // Verifica si el usuario es el creador o es admin
-      const query = {
+      await conexion.query('BEGIN');
+      transaccionIniciada = true;
+      await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
+
+      const solicitudRes = await conexion.query({
         text: `
-        SELECT usuario_id_fk FROM solicitud_permuta WHERE id = $1
-      `,
+          SELECT
+            sp.usuario_id_fk,
+            sp.id_asignatura_fk,
+            sp.estado,
+            sp.vigente,
+            u.nombre_usuario
+          FROM solicitud_permuta sp
+          INNER JOIN usuario u ON u.id = sp.usuario_id_fk
+          WHERE sp.id = $1
+          FOR UPDATE OF sp
+        `,
         values: [solicitudId],
-      };
-      const res = await conexion.query(query);
-      if (res.rows.length === 0) {
-        throw new Error("Solicitud de permuta no encontrada");
-      }
-      const usuarioCreadorId = res.rows[0].usuario_id_fk;
-
-      if (!esAdmin) {
-        const queryUsuario = {
-          text: `SELECT id FROM usuario WHERE nombre_usuario = $1`,
-          values: [uvus],
-        };
-        const resUsuario = await conexion.query(queryUsuario);
-        if (resUsuario.rows.length === 0 || resUsuario.rows[0].id !== usuarioCreadorId) {
-          throw new Error("No tienes permisos para cancelar esta solicitud");
-        }
+      });
+      if (solicitudRes.rows.length === 0) {
+        throw crearErrorSolicitud(404, 'Solicitud de permuta no encontrada.');
       }
 
-      // Cancela la solicitud
+      const solicitud = solicitudRes.rows[0];
+      if (!esAdmin && solicitud.nombre_usuario !== uvus) {
+        throw crearErrorSolicitud(403, 'No tienes permisos para cancelar esta solicitud.');
+      }
+      if (solicitud.estado !== 'SOLICITADA' || solicitud.vigente !== true) {
+        throw crearErrorSolicitud(409, 'La solicitud ya no se encuentra en un estado cancelable.');
+      }
+
+      const permutaActivaRes = await conexion.query({
+        text: `
+          SELECT 1
+          FROM permuta p
+          WHERE p.vigente = true
+            AND p.estado = ANY($3::text[])
+            AND p.asignatura_id_fk = $1
+            AND $2 IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+          LIMIT 1
+        `,
+        values: [solicitud.id_asignatura_fk, solicitud.usuario_id_fk, ESTADOS_PERMUTA_ACTIVA],
+      });
+      if (permutaActivaRes.rows.length > 0) {
+        throw crearErrorSolicitud(409, 'La solicitud no puede cancelarse porque ya tiene una permuta activa.');
+      }
+
       await conexion.query({
         text: `UPDATE solicitud_permuta SET estado = 'CANCELADA' WHERE id = $1`,
         values: [solicitudId],
       });
 
-      await conexion.end();
-      return "Solicitud de permuta cancelada correctamente";
+      await conexion.query('COMMIT');
+      transaccionIniciada = false;
+      return 'Solicitud de permuta cancelada correctamente';
     } catch (error) {
-      await conexion.end();
+      if (transaccionIniciada) {
+        try {
+          await conexion.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('Error al deshacer la cancelación de la solicitud:', rollbackError);
+        }
+      }
       throw error;
-
+    } finally {
+      await conexion.end();
     }
   }
   async actualizarLaVigenciaSolicitud() {

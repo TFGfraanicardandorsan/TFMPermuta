@@ -43,6 +43,11 @@ TFMPermuta es una aplicación diseñada para gestionar permutas de grupos y asig
    npm start
    ```
 
+5. En instalaciones existentes, aplica una vez la migración que evita grupos deseados duplicados antes de desplegar esta versión:
+   ```bash
+   psql -d "$DB_DATABASE" -f sql/grupo_deseado_unico.sql
+   ```
+
 ## Uso
 
 1. Ejecuta el servidor localmente con `npm start`.
@@ -96,7 +101,8 @@ obtención y renovación.
 - `POST /api/v1/usuario/actualizarEstudiosUsuario`: Actualiza los estudios del usuario.
 
 ### Permutas
-- `POST /api/v1/permutas/solicitarPermuta`: Solicita una nueva permuta.
+- `POST /api/v1/solicitudPermuta/solicitarPermuta`: Solicita una nueva permuta.
+- `PATCH /api/v1/solicitudPermuta/{solicitudId}/grupos-deseados`: Edita los grupos deseados de una solicitud propia; requiere al menos un ID de grupo.
 - `POST /api/v1/permutas/aceptarPermuta`: Acepta una permuta propuesta.
 - `POST /api/v1/permutas/rechazarSolicitudPermuta`: Rechaza una solicitud de permuta.
 

@@ -1,6 +1,51 @@
 import solicitudPermutaService from "../services/solicitudPermutaService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 
+const MAX_INT_POSTGRES = 2_147_483_647;
+const MAX_GRUPOS_DESEADOS = 100;
+
+const validarEnteroPositivo = (valor, nombreCampo) => {
+    const numero = typeof valor === 'number'
+        ? valor
+        : typeof valor === 'string' && /^\d+$/.test(valor.trim())
+            ? Number(valor)
+            : Number.NaN;
+
+    if (!Number.isSafeInteger(numero) || numero <= 0 || numero > MAX_INT_POSTGRES) {
+        return { valido: false, mensaje: `${nombreCampo} debe ser un entero positivo` };
+    }
+    return { valido: true, valor: numero };
+};
+
+const validarArrayEnterosPositivosNoVacio = (valor, nombreCampo) => {
+    if (!Array.isArray(valor) || valor.length === 0) {
+        return { valido: false, mensaje: `${nombreCampo} debe contener al menos un grupo` };
+    }
+    if (valor.length > MAX_GRUPOS_DESEADOS) {
+        return { valido: false, mensaje: `${nombreCampo} no puede superar ${MAX_GRUPOS_DESEADOS} elementos` };
+    }
+    if (
+        valor.some((item) => (
+            !Number.isSafeInteger(item) || item <= 0 || item > MAX_INT_POSTGRES
+        ))
+    ) {
+        return { valido: false, mensaje: `${nombreCampo} debe contener solo enteros positivos` };
+    }
+    return { valido: true, valor: [...new Set(valor)] };
+};
+
+const manejarErrorServicio = (res, error, mensajeGenerico) => {
+    if (error.statusCode) {
+        return res.status(error.statusCode).json({
+            err: true,
+            message: error.message,
+            ...(error.detalles !== undefined ? { detalles: error.detalles } : {}),
+        });
+    }
+    console.error(mensajeGenerico, error);
+    return res.status(500).json({ err: true, message: mensajeGenerico });
+};
+
 const solicitarPermuta = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -9,19 +54,50 @@ const solicitarPermuta = async (req, res) => {
         const uvus = req.session.user.nombre_usuario;
         const { grupos_deseados } = req.body;
 
-        const validAsignatura = GenericValidators.isInteger(req.body.asignatura, "Asignatura");
+        const validAsignatura = validarEnteroPositivo(req.body.asignatura, "Asignatura");
         if (!validAsignatura.valido) {
             return res.status(400).json({ err: true, message: validAsignatura.mensaje });
         }
         const asignatura = validAsignatura.valor;
-        const validGrupos = GenericValidators.isArrayOfIntegers(grupos_deseados, "Grupos deseados");
+        const validGrupos = validarArrayEnterosPositivosNoVacio(grupos_deseados, "Grupos deseados");
         if (!validGrupos.valido) {
             return res.status(400).json({ err: true, message: validGrupos.mensaje });
         }
-        res.send({ err: false, result: await solicitudPermutaService.solicitarPermuta(uvus, asignatura, grupos_deseados) });
+        res.send({
+            err: false,
+            result: await solicitudPermutaService.solicitarPermuta(uvus, asignatura, validGrupos.valor),
+        });
     } catch (err) {
-        console.error('api solicitarPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en solicitarPermuta', details: err.message });
+        return manejarErrorServicio(res, err, 'Error interno en solicitarPermuta');
+    }
+};
+
+const editarGruposDeseados = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+        }
+
+        const validSolicitudId = validarEnteroPositivo(req.params.solicitudId, "Solicitud");
+        if (!validSolicitudId.valido) {
+            return res.status(400).json({ err: true, message: validSolicitudId.mensaje });
+        }
+        const validGrupos = validarArrayEnterosPositivosNoVacio(
+            req.body.grupos_deseados_ids,
+            "Grupos deseados"
+        );
+        if (!validGrupos.valido) {
+            return res.status(400).json({ err: true, message: validGrupos.mensaje });
+        }
+
+        const result = await solicitudPermutaService.editarGruposDeseados(
+            req.session.user.nombre_usuario,
+            validSolicitudId.valor,
+            validGrupos.valor
+        );
+        return res.status(200).json({ err: false, result });
+    } catch (error) {
+        return manejarErrorServicio(res, error, 'Error interno al editar los grupos deseados');
     }
 };
 
@@ -57,15 +133,14 @@ const aceptarSolicitudPermuta = async (req,res) => {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
         const uvus = req.session.user.nombre_usuario;
-        const validSolicitud = GenericValidators.isInteger(req.body.solicitud, "Solicitud");
+        const validSolicitud = validarEnteroPositivo(req.body.solicitud, "Solicitud");
         if (!validSolicitud.valido) {
             return res.status(400).json({ err: true, message: validSolicitud.mensaje });
         }
         const solicitud = validSolicitud.valor;
         res.send({ err: false, result: await solicitudPermutaService.aceptarSolicitudPermuta(uvus, solicitud) });
     } catch (err){
-        console.error('api aceptarSolicitudPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en aceptarSolicitudPermuta', details: err.message });
+        return manejarErrorServicio(res, err, 'Error interno en aceptarSolicitudPermuta');
     }
 }
 
@@ -192,7 +267,7 @@ const cancelarSolicitudPermuta = async (req, res) => {
         }
         const uvus = req.session.user.nombre_usuario;
         const { solicitud } = req.body;
-        const validSolicitud = GenericValidators.isInteger(solicitud, "Solicitud");
+        const validSolicitud = validarEnteroPositivo(solicitud, "Solicitud");
         if (!validSolicitud.valido) {
             return res.status(400).json({ err: true, message: validSolicitud.mensaje });
         }
@@ -200,13 +275,13 @@ const cancelarSolicitudPermuta = async (req, res) => {
         const result = await solicitudPermutaService.cancelarSolicitudPermuta(uvus, validSolicitud.valor, esAdmin);
         res.send({ err: false, result });
     } catch (err) {
-        console.error('api cancelarSolicitudPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en cancelarSolicitudPermuta', details: err.message });
+        return manejarErrorServicio(res, err, 'Error interno en cancelarSolicitudPermuta');
     }
 };
 
 export default {
     solicitarPermuta,
+    editarGruposDeseados,
     getSolicitudesPermutaInteresantes,
     getMisSolicitudesPermuta,
     aceptarSolicitudPermuta,
