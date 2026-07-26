@@ -94,17 +94,34 @@ async obtenerDatosUsuario(uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
       const rolCanonico = toCanonicalRole(rol);
-      // Actualiza datos básicos
-      await conexion.query({
-        text: `UPDATE usuario SET nombre_completo = $1, correo = $2 WHERE nombre_usuario = $3`,
+      await conexion.query("BEGIN");
+      const usuarioActualizado = await conexion.query({
+        text: `UPDATE usuario
+               SET nombre_completo = $1, correo = $2
+               WHERE nombre_usuario = $3
+               RETURNING id`,
         values: [nombre_completo, correo, uvus],
       });
-      // Actualiza rol
+
+      if (usuarioActualizado.rowCount === 0) {
+        const error = new Error(`No existe el usuario ${uvus}`);
+        error.code = "USUARIO_NO_ENCONTRADO";
+        throw error;
+      }
+
       await conexion.query({
-        text: `UPDATE roles SET rol = $1 WHERE usuario_id_fk = (SELECT id FROM usuario WHERE nombre_usuario = $2)`,
-        values: [rolCanonico, uvus],
+        text: `UPDATE roles SET rol = $1 WHERE usuario_id_fk = $2`,
+        values: [rolCanonico, usuarioActualizado.rows[0].id],
       });
+      await conexion.query("COMMIT");
       return "Usuario actualizado correctamente";
+    } catch (error) {
+      try {
+        await conexion.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("No se pudo revertir la actualización del usuario", rollbackError);
+      }
+      throw error;
     } finally {
       await conexion.end();
     }

@@ -44,6 +44,9 @@ test('actualizarUsuario guarda delegacion como rol canonico', async () => {
   database.connectPostgreSQL = async () => ({
     async query(query) {
       consultas.push(query);
+      if (typeof query === 'object' && query.text.includes('RETURNING id')) {
+        return { rows: [{ id: 7 }], rowCount: 1 };
+      }
       return { rows: [] };
     },
     async end() {},
@@ -55,5 +58,63 @@ test('actualizarUsuario guarda delegacion como rol canonico', async () => {
     rol: 'delgacion',
   });
 
-  assert.equal(consultas[1].values[0], 'delegacion');
+  const actualizacionRol = consultas.find(
+    (consulta) => typeof consulta === 'object' && consulta.text.includes('UPDATE roles'),
+  );
+  assert.equal(actualizacionRol.values[0], 'delegacion');
+  assert.equal(actualizacionRol.values[1], 7);
+});
+
+test('actualizarUsuario revierte todos los cambios si falla la actualización del rol', async () => {
+  const consultas = [];
+  database.connectPostgreSQL = async () => ({
+    async query(query) {
+      consultas.push(query);
+      if (typeof query === 'object' && query.text.includes('RETURNING id')) {
+        return { rows: [{ id: 7 }], rowCount: 1 };
+      }
+      if (typeof query === 'object' && query.text.includes('UPDATE roles')) {
+        const error = new Error('rol no válido');
+        error.code = '23514';
+        throw error;
+      }
+      return { rows: [] };
+    },
+    async end() {},
+  });
+
+  await assert.rejects(
+    usuarioService.actualizarUsuario('alice', {
+      nombre_completo: 'Alice',
+      correo: 'alice@example.com',
+      rol: 'administrador',
+    }),
+    { code: '23514' },
+  );
+  assert.equal(consultas.at(-1), 'ROLLBACK');
+  assert.equal(consultas.includes('COMMIT'), false);
+});
+
+test('actualizarUsuario informa si el uvus no existe', async () => {
+  const consultas = [];
+  database.connectPostgreSQL = async () => ({
+    async query(query) {
+      consultas.push(query);
+      if (typeof query === 'object' && query.text.includes('RETURNING id')) {
+        return { rows: [], rowCount: 0 };
+      }
+      return { rows: [] };
+    },
+    async end() {},
+  });
+
+  await assert.rejects(
+    usuarioService.actualizarUsuario('inexistente', {
+      nombre_completo: 'Nadie',
+      correo: 'nadie@example.com',
+      rol: 'administrador',
+    }),
+    { code: 'USUARIO_NO_ENCONTRADO' },
+  );
+  assert.equal(consultas.at(-1), 'ROLLBACK');
 });
