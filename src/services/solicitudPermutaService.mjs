@@ -711,20 +711,54 @@ class SolicitudPermutaService {
       text: `
       SELECT 
         p.id AS permuta_id,
-        -- Ordenar usuarios por nombre_usuario
-        LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_1_uvus,
-        GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_2_uvus,
-        -- Alinear nombres completos con el orden de nombre_usuario
-        CASE 
-          WHEN u1.nombre_usuario < u2.nombre_usuario THEN u1.nombre_completo
+        -- Si ya existe documento, respetar quién inició su cumplimentación.
+        COALESCE(
+          documento.estudiante_cumplimentado_1,
+          LEAST(u1.nombre_usuario, u2.nombre_usuario)
+        ) AS usuario_1_uvus,
+        CASE
+          WHEN documento.estudiante_cumplimentado_1 = u1.nombre_usuario
+            THEN u2.nombre_usuario
+          WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
+            THEN u1.nombre_usuario
+          ELSE GREATEST(u1.nombre_usuario, u2.nombre_usuario)
+        END AS usuario_2_uvus,
+        CASE
+          WHEN documento.estudiante_cumplimentado_1 = u1.nombre_usuario
+            THEN u1.nombre_completo
+          WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
+            THEN u2.nombre_completo
+          WHEN u1.nombre_usuario < u2.nombre_usuario
+            THEN u1.nombre_completo
           ELSE u2.nombre_completo
         END AS usuario_1_nombre,
-        CASE 
-          WHEN u1.nombre_usuario < u2.nombre_usuario THEN u2.nombre_completo
+        CASE
+          WHEN documento.estudiante_cumplimentado_1 = u1.nombre_usuario
+            THEN u2.nombre_completo
+          WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
+            THEN u1.nombre_completo
+          WHEN u1.nombre_usuario < u2.nombre_usuario
+            THEN u2.nombre_completo
           ELSE u1.nombre_completo
         END AS usuario_2_nombre,
-        e1.siglas AS usuario_1_estudio,
-        e2.siglas AS usuario_2_estudio,
+        CASE
+          WHEN documento.estudiante_cumplimentado_1 = u1.nombre_usuario
+            THEN e1.siglas
+          WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
+            THEN e2.siglas
+          WHEN u1.nombre_usuario < u2.nombre_usuario
+            THEN e1.siglas
+          ELSE e2.siglas
+        END AS usuario_1_estudio,
+        CASE
+          WHEN documento.estudiante_cumplimentado_1 = u1.nombre_usuario
+            THEN e2.siglas
+          WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
+            THEN e1.siglas
+          WHEN u1.nombre_usuario < u2.nombre_usuario
+            THEN e2.siglas
+          ELSE e1.siglas
+        END AS usuario_2_estudio,
         a.nombre AS nombre_asignatura,
         a.codigo AS codigo_asignatura
       FROM permuta p
@@ -733,9 +767,19 @@ class SolicitudPermutaService {
       INNER JOIN estudios e1 ON u1.estudios_id_fk = e1.id
       INNER JOIN estudios e2 ON u2.estudios_id_fk = e2.id
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
+      LEFT JOIN LATERAL (
+        SELECT ps.estudiante_cumplimentado_1
+        FROM permutas_permuta pp
+        INNER JOIN permutas ps ON ps.id = pp.permutas_id_fk
+        WHERE pp.permuta_id_fk = p.id
+          AND ps.vigente = true
+        ORDER BY ps.id DESC
+        LIMIT 1
+      ) documento ON true
       WHERE (p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
          OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)) 
-        AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') and p.vigente = true
+        AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA')
+        AND p.vigente = true
       ORDER BY usuario_1_uvus, usuario_2_uvus, p.id
     `,
       values: [uvus],
