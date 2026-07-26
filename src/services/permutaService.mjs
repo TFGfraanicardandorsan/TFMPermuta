@@ -89,17 +89,28 @@ class PermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
-        text: ` SELECT id, estado, archivo
-              FROM permutas 
-              WHERE id in (SELECT permutas_id_fk  FROM permutas_permuta WHERE permuta_id_fk = ANY($1)) AND vigente = true`,
+        text: `SELECT DISTINCT ps.id, ps.estado, ps.archivo
+               FROM permutas ps
+               INNER JOIN permutas_permuta pp ON pp.permutas_id_fk = ps.id
+               WHERE pp.permuta_id_fk = ANY($1)
+                 AND ps.vigente = true
+               ORDER BY ps.id DESC`,
         values: [IdsPermuta],
       };
       const resultado = await conexion.query(query);
-      await conexion.end();
+
+      if (resultado.rows.length > 1) {
+        throw new Error(
+          "Las permutas seleccionadas pertenecen a documentos diferentes"
+        );
+      }
+
       return resultado.rows;
     } catch (error) {
       console.error("Error al listar permutas:", error);
-      throw new Error("Error al listar permutas");
+      throw error;
+    } finally {
+      await conexion.end();
     }
   }
 
@@ -347,7 +358,7 @@ async validarPermuta(permutaId) {
     try {
       const query = {
         text: `
- SELECT 
+    SELECT
       p.id AS permuta_id,
       a.nombre AS nombre_asignatura,
       a.codigo AS codigo_asignatura,
@@ -356,21 +367,29 @@ async validarPermuta(permutaId) {
       p.estado AS estado,
       LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
       GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
-      (SELECT estado 
-        FROM permutas 
-        WHERE id = (
-          SELECT permutas_id_fk 
-          FROM permutas_permuta 
-          WHERE permuta_id_fk = p.id
-          LIMIT 1
-        )
-      ) AS estado_permuta_asociada
+      documento.id AS documento_permuta_id,
+      documento.estado AS estado_permuta_asociada,
+      documento.estudiante_cumplimentado_1,
+      documento.estudiante_cumplimentado_2
     FROM permuta p
     INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
     INNER JOIN grupo g1 ON p.grupo_id_1_fk = g1.id
     INNER JOIN grupo g2 ON p.grupo_id_2_fk = g2.id
     INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
     INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
+    LEFT JOIN LATERAL (
+      SELECT
+        ps.id,
+        ps.estado,
+        ps.estudiante_cumplimentado_1,
+        ps.estudiante_cumplimentado_2
+      FROM permutas_permuta pp
+      INNER JOIN permutas ps ON ps.id = pp.permutas_id_fk
+      WHERE pp.permuta_id_fk = p.id
+        AND ps.vigente = true
+      ORDER BY ps.id DESC
+      LIMIT 1
+    ) documento ON true
     WHERE (
       p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
       OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
@@ -379,19 +398,43 @@ async validarPermuta(permutaId) {
     AND p.aceptada_1 = true
     AND p.aceptada_2 = true
     AND p.vigente = true
+    ORDER BY documento.id DESC NULLS LAST, p.id
         `,
         values: [uvus],
       };
 
       const resultado = await conexion.query(query);
 
-      // Agrupar las permutas por usuario_primario y usuario_secundario
+      // Cada documento es un flujo independiente. Las permutas aún sin
+      // documento se agrupan por pareja para poder generar un único borrador.
       const permutasAgrupadas = resultado.rows.reduce((acc, row) => {
-        const key = `${row.usuario_primario}-${row.usuario_secundario}`;
+        const pareja = `${row.usuario_primario}-${row.usuario_secundario}`;
+        const key = row.documento_permuta_id
+          ? `${pareja}-documento-${row.documento_permuta_id}`
+          : `${pareja}-pendiente`;
+
         if (!acc[key]) {
-          acc[key] = [];
+          const usuarioPrimario = row.usuario_primario?.trim();
+          const usuarioSecundario = row.usuario_secundario?.trim();
+          const estudiante1 = row.estudiante_cumplimentado_1?.trim();
+          const estudiante2 =
+            row.estudiante_cumplimentado_2?.trim() ||
+            (estudiante1 === usuarioPrimario
+              ? usuarioSecundario
+              : usuarioPrimario);
+
+          acc[key] = {
+            usuarios: estudiante1
+              ? [estudiante1, estudiante2]
+              : [usuarioPrimario, usuarioSecundario],
+            estudiante_cumplimentado_1: estudiante1 || null,
+            estudiante_cumplimentado_2:
+              row.estudiante_cumplimentado_2?.trim() || null,
+            permutas: [],
+          };
         }
-        acc[key].push({
+
+        acc[key].permutas.push({
           permuta_id: row.permuta_id,
           nombre_asignatura: row.nombre_asignatura,
           codigo_asignatura: row.codigo_asignatura,
@@ -403,13 +446,7 @@ async validarPermuta(permutaId) {
         return acc;
       }, {});
 
-      await conexion.end();
-
-      // Convertir el objeto agrupado en un array
-      return Object.entries(permutasAgrupadas).map(([usuarios, permutas]) => ({
-        usuarios: usuarios.split("-"),
-        permutas,
-      }));
+      return Object.values(permutasAgrupadas);
     } catch (error) {
       console.error(
         "Error al obtener las permutas agrupadas por usuario:",
