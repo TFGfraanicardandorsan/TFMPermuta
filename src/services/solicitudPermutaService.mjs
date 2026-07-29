@@ -714,21 +714,23 @@ class SolicitudPermutaService {
         -- Si ya existe documento, respetar quién inició su cumplimentación.
         COALESCE(
           documento.estudiante_cumplimentado_1,
-          LEAST(u1.nombre_usuario, u2.nombre_usuario)
+          $1
         ) AS usuario_1_uvus,
         CASE
           WHEN documento.estudiante_cumplimentado_1 = u1.nombre_usuario
             THEN u2.nombre_usuario
           WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
             THEN u1.nombre_usuario
-          ELSE GREATEST(u1.nombre_usuario, u2.nombre_usuario)
+          WHEN u1.nombre_usuario = $1
+            THEN u2.nombre_usuario
+          ELSE u1.nombre_usuario
         END AS usuario_2_uvus,
         CASE
           WHEN documento.estudiante_cumplimentado_1 = u1.nombre_usuario
             THEN u1.nombre_completo
           WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
             THEN u2.nombre_completo
-          WHEN u1.nombre_usuario < u2.nombre_usuario
+          WHEN u1.nombre_usuario = $1
             THEN u1.nombre_completo
           ELSE u2.nombre_completo
         END AS usuario_1_nombre,
@@ -737,7 +739,7 @@ class SolicitudPermutaService {
             THEN u2.nombre_completo
           WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
             THEN u1.nombre_completo
-          WHEN u1.nombre_usuario < u2.nombre_usuario
+          WHEN u1.nombre_usuario = $1
             THEN u2.nombre_completo
           ELSE u1.nombre_completo
         END AS usuario_2_nombre,
@@ -746,7 +748,7 @@ class SolicitudPermutaService {
             THEN e1.siglas
           WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
             THEN e2.siglas
-          WHEN u1.nombre_usuario < u2.nombre_usuario
+          WHEN u1.nombre_usuario = $1
             THEN e1.siglas
           ELSE e2.siglas
         END AS usuario_1_estudio,
@@ -755,7 +757,7 @@ class SolicitudPermutaService {
             THEN e2.siglas
           WHEN documento.estudiante_cumplimentado_1 = u2.nombre_usuario
             THEN e1.siglas
-          WHEN u1.nombre_usuario < u2.nombre_usuario
+          WHEN u1.nombre_usuario = $1
             THEN e2.siglas
           ELSE e1.siglas
         END AS usuario_2_estudio,

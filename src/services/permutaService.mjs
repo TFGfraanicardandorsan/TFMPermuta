@@ -119,9 +119,11 @@ class PermutaService {
     try {
       const query = {
         text: `UPDATE permutas 
-               SET estado = 'FIRMADA', archivo = $2
+               SET estado = 'FIRMADA',
+                   archivo = $2,
+                   estudiante_cumplimentado_1 = COALESCE(estudiante_cumplimentado_1, $3)
                WHERE id = $1 AND vigente = true`,
-        values: [permutaId, archivo],
+        values: [permutaId, archivo, uvus],
       };
 
       await conexion.query(query);
