@@ -711,6 +711,7 @@ class SolicitudPermutaService {
       text: `
       SELECT 
         p.id AS permuta_id,
+        documento.id AS documento_permuta_id,
         -- Si ya existe documento, respetar quién inició su cumplimentación.
         COALESCE(
           documento.estudiante_cumplimentado_1,
@@ -770,7 +771,7 @@ class SolicitudPermutaService {
       INNER JOIN estudios e2 ON u2.estudios_id_fk = e2.id
       INNER JOIN asignatura a ON p.asignatura_id_fk = a.id
       LEFT JOIN LATERAL (
-        SELECT ps.estudiante_cumplimentado_1
+        SELECT ps.id, ps.estudiante_cumplimentado_1
         FROM permutas_permuta pp
         INNER JOIN permutas ps ON ps.id = pp.permutas_id_fk
         WHERE pp.permuta_id_fk = p.id
@@ -789,9 +790,13 @@ class SolicitudPermutaService {
 
     const res = await conexion.query(query);
 
-    // Agrupar las permutas por usuario_1 y usuario_2
+    // Un mismo par de estudiantes puede tener varios documentos históricos.
+    // Cada documento debe conservarse como un flujo independiente.
     const permutasAgrupadas = res.rows.reduce((acc, row) => {
-      const key = `${row.usuario_1_uvus}-${row.usuario_2_uvus}`;
+      const pareja = `${row.usuario_1_uvus}-${row.usuario_2_uvus}`;
+      const key = row.documento_permuta_id
+        ? `${pareja}-documento-${row.documento_permuta_id}`
+        : `${pareja}-pendiente`;
       if (!acc[key]) {
         acc[key] = {
           usuarios: [

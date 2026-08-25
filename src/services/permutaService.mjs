@@ -89,19 +89,28 @@ class PermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
-        text: `SELECT DISTINCT ps.id, ps.estado, ps.archivo
+        text: `WITH ids_seleccionados AS (
+                 SELECT DISTINCT UNNEST($1::int[]) AS permuta_id
+               )
+               SELECT ps.id, ps.estado, ps.archivo
                FROM permutas ps
                INNER JOIN permutas_permuta pp ON pp.permutas_id_fk = ps.id
-               WHERE pp.permuta_id_fk = ANY($1)
-                 AND ps.vigente = true
-               ORDER BY ps.id DESC`,
+               INNER JOIN ids_seleccionados seleccion
+                 ON seleccion.permuta_id = pp.permuta_id_fk
+               WHERE ps.vigente = true
+               GROUP BY ps.id, ps.estado, ps.archivo
+               HAVING COUNT(DISTINCT pp.permuta_id_fk) = (
+                 SELECT COUNT(*) FROM ids_seleccionados
+               )
+               ORDER BY ps.id DESC
+               LIMIT 1`,
         values: [IdsPermuta],
       };
       const resultado = await conexion.query(query);
 
-      if (resultado.rows.length > 1) {
+      if (resultado.rows.length === 0) {
         throw new Error(
-          "Las permutas seleccionadas pertenecen a documentos diferentes"
+          "Las permutas seleccionadas no pertenecen a un mismo documento"
         );
       }
 
