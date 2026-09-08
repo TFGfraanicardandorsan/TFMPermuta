@@ -90,17 +90,33 @@ async obtenerDatosUsuario(uvus) {
     }
   }
 
-  async actualizarUsuario(uvus, { nombre_completo, correo, rol }) {
+  async actualizarUsuario(uvus, { nuevo_uvus, nombre_completo, correo, rol }) {
     const conexion = await database.connectPostgreSQL();
     try {
       const rolCanonico = toCanonicalRole(rol);
       await conexion.query("BEGIN");
+
+      const usuarioConNuevoUvus = await conexion.query({
+        text: `SELECT id
+               FROM usuario
+               WHERE nombre_usuario = $1
+                 AND nombre_usuario <> $2
+               LIMIT 1`,
+        values: [nuevo_uvus, uvus],
+      });
+
+      if (usuarioConNuevoUvus.rowCount > 0) {
+        const error = new Error(`Ya existe un usuario con el UVUS ${nuevo_uvus}`);
+        error.code = "UVUS_DUPLICADO";
+        throw error;
+      }
+
       const usuarioActualizado = await conexion.query({
         text: `UPDATE usuario
-               SET nombre_completo = $1, correo = $2
-               WHERE nombre_usuario = $3
+               SET nombre_usuario = $1, nombre_completo = $2, correo = $3
+               WHERE nombre_usuario = $4
                RETURNING id`,
-        values: [nombre_completo, correo, uvus],
+        values: [nuevo_uvus, nombre_completo, correo, uvus],
       });
 
       if (usuarioActualizado.rowCount === 0) {
@@ -112,6 +128,22 @@ async obtenerDatosUsuario(uvus) {
       await conexion.query({
         text: `UPDATE roles SET rol = $1 WHERE usuario_id_fk = $2`,
         values: [rolCanonico, usuarioActualizado.rows[0].id],
+      });
+
+      // Estos campos conservan el UVUS como texto en lugar de referenciar usuario.id.
+      await conexion.query({
+        text: `UPDATE permutas
+               SET estudiante_cumplimentado_1 = CASE
+                     WHEN estudiante_cumplimentado_1 = $1 THEN $2
+                     ELSE estudiante_cumplimentado_1
+                   END,
+                   estudiante_cumplimentado_2 = CASE
+                     WHEN estudiante_cumplimentado_2 = $1 THEN $2
+                     ELSE estudiante_cumplimentado_2
+                   END
+               WHERE estudiante_cumplimentado_1 = $1
+                  OR estudiante_cumplimentado_2 = $1`,
+        values: [uvus, nuevo_uvus],
       });
       await conexion.query("COMMIT");
       return "Usuario actualizado correctamente";

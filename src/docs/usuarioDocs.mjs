@@ -100,10 +100,16 @@
  *             type: object
  *             required:
  *               - uvus
+ *               - nombre_completo
+ *               - correo
+ *               - rol
  *             properties:
  *               uvus:
  *                 type: string
  *                 example: "juapergar"
+ *               nuevo_uvus:
+ *                 type: string
+ *                 example: "juapergar2"
  *               nombre_completo:
  *                 type: string
  *                 example: "Juan Pérez García"
@@ -112,7 +118,7 @@
  *                 example: "juapergar@alum.us.es"
  *               rol:
  *                 type: string
- *                 enum: [estudiante, administrador]
+ *                 enum: [estudiante, administrador, delegacion]
  *                 example: "estudiante"
  *     responses:
  *       200:
@@ -121,6 +127,8 @@
  *         description: Falta el uvus del usuario
  *       401:
  *         description: No hay usuario en la sesión
+ *       409:
+ *         description: El nuevo UVUS ya pertenece a otro usuario
  *       500:
  *         description: Error interno del servidor
  */

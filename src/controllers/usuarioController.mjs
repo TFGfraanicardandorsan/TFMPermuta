@@ -100,8 +100,11 @@ const actualizarUsuario = async (req, res) => {
     if (!uvus) {
       return res.status(400).json({ err: true, message: "Falta el uvus del usuario" });
     }
+    // Mantiene compatibilidad con clientes anteriores que todavía no envían nuevo_uvus.
+    const nuevo_uvus = req.body.nuevo_uvus ?? uvus;
     const campos = [
       GenericValidators.isString(uvus, "UVUS", 64),
+      GenericValidators.isString(nuevo_uvus, "Nuevo UVUS", 64),
       GenericValidators.isString(nombre_completo, "Nombre completo", 255),
       GenericValidators.isString(correo, "Correo", 255),
     ];
@@ -112,19 +115,29 @@ const actualizarUsuario = async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
       return res.status(400).json({ err: true, message: "El correo no tiene un formato válido" });
     }
+    if (!/^\S+$/.test(nuevo_uvus)) {
+      return res.status(400).json({ err: true, message: "El nuevo UVUS no puede contener espacios" });
+    }
     if (!isSupportedRole(rol)) {
       return res.status(400).json({ err: true, message: "El rol debe ser estudiante, administrador o delegacion" });
     }
     const result = await usuarioService.actualizarUsuario(uvus, {
+      nuevo_uvus,
       nombre_completo,
       correo,
       rol: toCanonicalRole(rol),
     });
+    if (req.session.user.nombre_usuario === uvus) {
+      req.session.user.nombre_usuario = nuevo_uvus;
+    }
     res.json({ err: false, result });
   } catch (err) {
     console.error("API actualizarUsuario ha tenido una excepción", err);
     if (err.code === "USUARIO_NO_ENCONTRADO") {
       return res.status(404).json({ err: true, message: err.message });
+    }
+    if (err.code === "UVUS_DUPLICADO") {
+      return res.status(409).json({ err: true, message: err.message });
     }
     if (err.code === "23505") {
       return res.status(409).json({ err: true, message: "El correo ya está asociado a otro usuario" });

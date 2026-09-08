@@ -53,6 +53,7 @@ test('actualizarUsuario guarda delegacion como rol canonico', async () => {
   });
 
   await usuarioService.actualizarUsuario('alice', {
+    nuevo_uvus: 'alice.nuevo',
     nombre_completo: 'Alice',
     correo: 'alice@example.com',
     rol: 'delgacion',
@@ -63,6 +64,21 @@ test('actualizarUsuario guarda delegacion como rol canonico', async () => {
   );
   assert.equal(actualizacionRol.values[0], 'delegacion');
   assert.equal(actualizacionRol.values[1], 7);
+
+  const actualizacionUsuario = consultas.find(
+    (consulta) => typeof consulta === 'object' && consulta.text.includes('UPDATE usuario'),
+  );
+  assert.deepEqual(actualizacionUsuario.values, [
+    'alice.nuevo',
+    'Alice',
+    'alice@example.com',
+    'alice',
+  ]);
+
+  const actualizacionDocumentos = consultas.find(
+    (consulta) => typeof consulta === 'object' && consulta.text.includes('UPDATE permutas'),
+  );
+  assert.deepEqual(actualizacionDocumentos.values, ['alice', 'alice.nuevo']);
 });
 
 test('actualizarUsuario revierte todos los cambios si falla la actualización del rol', async () => {
@@ -85,6 +101,7 @@ test('actualizarUsuario revierte todos los cambios si falla la actualización de
 
   await assert.rejects(
     usuarioService.actualizarUsuario('alice', {
+      nuevo_uvus: 'alice',
       nombre_completo: 'Alice',
       correo: 'alice@example.com',
       rol: 'administrador',
@@ -110,6 +127,7 @@ test('actualizarUsuario informa si el uvus no existe', async () => {
 
   await assert.rejects(
     usuarioService.actualizarUsuario('inexistente', {
+      nuevo_uvus: 'nadie',
       nombre_completo: 'Nadie',
       correo: 'nadie@example.com',
       rol: 'administrador',
@@ -117,4 +135,33 @@ test('actualizarUsuario informa si el uvus no existe', async () => {
     { code: 'USUARIO_NO_ENCONTRADO' },
   );
   assert.equal(consultas.at(-1), 'ROLLBACK');
+});
+
+test('actualizarUsuario rechaza un nuevo uvus que ya pertenece a otro usuario', async () => {
+  const consultas = [];
+  database.connectPostgreSQL = async () => ({
+    async query(query) {
+      consultas.push(query);
+      if (typeof query === 'object' && query.text.includes('SELECT id')) {
+        return { rows: [{ id: 8 }], rowCount: 1 };
+      }
+      return { rows: [] };
+    },
+    async end() {},
+  });
+
+  await assert.rejects(
+    usuarioService.actualizarUsuario('alice', {
+      nuevo_uvus: 'bob',
+      nombre_completo: 'Alice',
+      correo: 'alice@example.com',
+      rol: 'estudiante',
+    }),
+    { code: 'UVUS_DUPLICADO' },
+  );
+  assert.equal(consultas.at(-1), 'ROLLBACK');
+  assert.equal(
+    consultas.some((consulta) => typeof consulta === 'object' && consulta.text.includes('UPDATE usuario')),
+    false,
+  );
 });

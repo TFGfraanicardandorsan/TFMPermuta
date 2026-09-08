@@ -1,5 +1,18 @@
+import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import GenericValidators from "../utils/genericValidators.mjs";
+import { obtenerCursoAcademico } from "../utils/cursoAcademico.mjs";
+
+const DIRECTORIO_PROYECTO = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../.."
+);
+
+const nombrePlantillaCursoActual = () => {
+  const [inicio, fin] = obtenerCursoAcademico().split("-");
+  return `plantillaPermuta${inicio.slice(-2)}${fin.slice(-2)}.pdf`;
+};
 
 const subirArchivo = (req, res) => {
   try {
@@ -71,30 +84,33 @@ const obtenerPlantillaPermuta = (req, res) => {
         .status(401)
         .json({ err: true, message: "No hay usuario en la sesión" });
     }
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-11
+    const nombrePlantilla = nombrePlantillaCursoActual();
+    const rutaConfigurada = process.env.PLANTILLAS
+      ? path.resolve(process.env.PLANTILLAS, nombrePlantilla)
+      : null;
+    const rutaRespaldo = path.resolve(
+      DIRECTORIO_PROYECTO,
+      "modelos",
+      nombrePlantilla
+    );
+    const pdfPath = rutaConfigurada && fs.existsSync(rutaConfigurada)
+      ? rutaConfigurada
+      : rutaRespaldo;
 
-    let startYear, endYear;
-    if (month >= 8) { // September or later
-      startYear = year;
-      endYear = year + 1;
-    } else {
-      startYear = year - 1;
-      endYear = year;
+    if (!fs.existsSync(pdfPath)) {
+      console.error(`No se ha encontrado la plantilla ${nombrePlantilla}`);
+      return res.status(404).json({
+        err: true,
+        message: `No se ha instalado la plantilla ${nombrePlantilla}`,
+      });
     }
 
-    const startYY = startYear.toString().slice(-2);
-    const endYY = endYear.toString().slice(-2);
-
-    const pdfPath = path.join(
-      process.env.PLANTILLAS,
-      `plantillaPermuta${startYY}${endYY}.pdf`
-    );
     res.sendFile(pdfPath, (err) => {
       if (err) {
         console.error("No se ha encontrado el archivo:", err);
-        res.status(404).send("Archivo no encontrado");
+        if (!res.headersSent) {
+          res.status(404).send("Archivo no encontrado");
+        }
       }
     });
   } catch (error) {
