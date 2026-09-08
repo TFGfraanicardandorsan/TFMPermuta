@@ -120,6 +120,10 @@
  *                 type: string
  *                 enum: [estudiante, administrador, delegacion]
  *                 example: "estudiante"
+ *               estudio:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "Grado en Ingeniería Informática - Ingeniería del Software"
  *     responses:
  *       200:
  *         description: Usuario actualizado correctamente

@@ -72,6 +72,8 @@ test('actualizarUsuario guarda delegacion como rol canonico', async () => {
     'alice.nuevo',
     'Alice',
     'alice@example.com',
+    false,
+    null,
     'alice',
   ]);
 
@@ -164,4 +166,41 @@ test('actualizarUsuario rechaza un nuevo uvus que ya pertenece a otro usuario', 
     consultas.some((consulta) => typeof consulta === 'object' && consulta.text.includes('UPDATE usuario')),
     false,
   );
+});
+
+test('actualizarUsuario permite al administrador cambiar el grado', async () => {
+  const consultas = [];
+  database.connectPostgreSQL = async () => ({
+    async query(query) {
+      consultas.push(query);
+      if (typeof query === 'object' && query.text.includes('FROM estudios')) {
+        return { rows: [{ id: 12 }], rowCount: 1 };
+      }
+      if (typeof query === 'object' && query.text.includes('RETURNING id')) {
+        return { rows: [{ id: 7 }], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 0 };
+    },
+    async end() {},
+  });
+
+  await usuarioService.actualizarUsuario('alice', {
+    nuevo_uvus: 'alice',
+    nombre_completo: 'Alice',
+    correo: 'alice@example.com',
+    rol: 'estudiante',
+    estudio: 'GII',
+  });
+
+  const actualizacionUsuario = consultas.find(
+    (consulta) => typeof consulta === 'object' && consulta.text.includes('UPDATE usuario'),
+  );
+  assert.deepEqual(actualizacionUsuario.values, [
+    'alice',
+    'Alice',
+    'alice@example.com',
+    true,
+    12,
+    'alice',
+  ]);
 });

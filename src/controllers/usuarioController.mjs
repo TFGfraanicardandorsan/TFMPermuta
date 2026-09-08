@@ -32,11 +32,8 @@ const actualizarEstudiosUsuario = async (req,res) => {
         }
         res.send({err:false, result:await usuarioService.actualizarEstudiosUsuario(uvus, estudio)})
         } catch (err){
-            console.error('api actualizarEstudiosUsuario ha tenido una excepción', err)
-            if (err.statusCode) {
-              return res.status(err.statusCode).json({ err: true, message: err.message });
-            }
-            res.status(500).json({ err: true, message: "No se pudo actualizar el grado" })
+            console.log('api actualizarEstudiosUsuario ha tenido una excepción')
+            res.sendStatus(500)
         }
     }
 
@@ -99,7 +96,7 @@ const actualizarUsuario = async (req, res) => {
     if (!req.session.user) {
       return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
     }
-    const { uvus, nombre_completo, correo, rol } = req.body;
+    const { uvus, nombre_completo, correo, rol, estudio } = req.body;
     if (!uvus) {
       return res.status(400).json({ err: true, message: "Falta el uvus del usuario" });
     }
@@ -121,6 +118,12 @@ const actualizarUsuario = async (req, res) => {
     if (!/^\S+$/.test(nuevo_uvus)) {
       return res.status(400).json({ err: true, message: "El nuevo UVUS no puede contener espacios" });
     }
+    if (estudio !== undefined && estudio !== null) {
+      const validEstudio = GenericValidators.isString(estudio, "Grado", 100);
+      if (!validEstudio.valido) {
+        return res.status(400).json({ err: true, message: validEstudio.mensaje });
+      }
+    }
     if (!isSupportedRole(rol)) {
       return res.status(400).json({ err: true, message: "El rol debe ser estudiante, administrador o delegacion" });
     }
@@ -129,6 +132,7 @@ const actualizarUsuario = async (req, res) => {
       nombre_completo,
       correo,
       rol: toCanonicalRole(rol),
+      estudio,
     });
     if (req.session.user.nombre_usuario === uvus) {
       req.session.user.nombre_usuario = nuevo_uvus;
@@ -141,6 +145,9 @@ const actualizarUsuario = async (req, res) => {
     }
     if (err.code === "UVUS_DUPLICADO") {
       return res.status(409).json({ err: true, message: err.message });
+    }
+    if (err.code === "ESTUDIO_NO_ENCONTRADO") {
+      return res.status(400).json({ err: true, message: err.message });
     }
     if (err.code === "23505") {
       return res.status(409).json({ err: true, message: "El correo ya está asociado a otro usuario" });

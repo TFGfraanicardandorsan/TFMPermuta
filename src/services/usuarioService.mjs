@@ -2,7 +2,6 @@ import database from "../config/database.mjs";
 import { mensajeGradoSeleccionado } from "../utils/mensajesTelegram.mjs";
 import { sendMessage } from "./telegramService.mjs";
 import { toCanonicalRole } from "../utils/roles.mjs";
-import autorizacionService from "./autorizacionService.mjs";
 class UsuarioService{
 
 async obtenerDatosUsuario(uvus) {
@@ -34,78 +33,29 @@ async obtenerDatosUsuario(uvus) {
 
   async actualizarEstudiosUsuario(uvus, estudio) {
     const conexion = await database.connectPostgreSQL();
-    let esPrimeraSeleccion = false;
-    try {
-      await conexion.query("BEGIN");
-      const usuarioRes = await conexion.query({
-        text: `SELECT u.id, u.estudios_id_fk
-               FROM usuario u
-               WHERE u.nombre_usuario = $1
-               FOR UPDATE`,
-        values: [uvus],
-      });
-      if (usuarioRes.rows.length === 0) {
-        const error = new Error(`No existe el usuario ${uvus}`);
-        error.statusCode = 404;
-        throw error;
-      }
-
-      const estudioRes = await conexion.query({
-        text: `SELECT id FROM estudios WHERE nombre = $1`,
-        values: [estudio],
-      });
-      if (estudioRes.rows.length === 0) {
-        const error = new Error("El grado seleccionado no existe");
-        error.statusCode = 400;
-        throw error;
-      }
-
-      const usuario = usuarioRes.rows[0];
-      const estudioId = estudioRes.rows[0].id;
-      esPrimeraSeleccion = usuario.estudios_id_fk === null;
-
-      if (usuario.estudios_id_fk === estudioId) {
-        await conexion.query("COMMIT");
-        return "El grado seleccionado ya es el actual";
-      }
-
-      if (!esPrimeraSeleccion) {
-        const asignaturasRes = await conexion.query({
-          text: `SELECT (
-                   EXISTS (SELECT 1 FROM usuario_asignatura WHERE usuario_id_fk = $1)
-                   OR EXISTS (SELECT 1 FROM usuario_grupo WHERE usuario_id_fk = $1)
-                 ) AS tiene_datos_academicos`,
-          values: [usuario.id],
-        });
-        if (asignaturasRes.rows[0].tiene_datos_academicos) {
-          const error = new Error("Debes retirar tus asignaturas y grupos actuales antes de cambiar de grado");
-          error.statusCode = 409;
-          throw error;
-        }
-      }
-
-      await conexion.query({
-        text: `UPDATE usuario SET estudios_id_fk = $1 WHERE id = $2`,
-        values: [estudioId, usuario.id],
-      });
-      await conexion.query("COMMIT");
-
+    const queryUsuario = {
+      text: `select estudios_id_fk from usuario u where u.nombre_usuario =$1`,
+      values: [uvus],
+    };
+    const resQueryUsuario = await conexion.query(queryUsuario);
+    if (resQueryUsuario.rows[0].estudios_id_fk === null) {
+      const query = {
+        text: `Update usuario u set estudios_id_fk =(select id from estudios where nombre = $1) where u.nombre_usuario =$2`,
+        values: [estudio, uvus],
+      };
+      await conexion.query(query);
+      await conexion.end();
       // Enviar mensaje por Telegram
       try {
         const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
-        if (chatIdUsuario) {
-          await sendMessage(chatIdUsuario, mensajeGradoSeleccionado(estudio));
-        }
+        await sendMessage(chatIdUsuario, mensajeGradoSeleccionado(estudio));
       } catch (error) {
         console.error("Error al enviar el mensaje de selección de estudio:", error);
       }
-      return esPrimeraSeleccion ? "Estudios seleccionados" : "Estudios actualizados";
-    } catch (error) {
-      await conexion.query("ROLLBACK").catch(() => {});
-      throw error;
-    } finally {
-      await conexion.end();
+      return 'Estudios seleccionados';
     }
+    await conexion.end();
+    return 'Ya tienes estudios seleccionados. Ponte en contacto con el administrador si deseas cambiarlos';
   }
 
   async actualizarCorreoUsuario(uvus, nuevoCorreo) {
@@ -126,9 +76,11 @@ async obtenerDatosUsuario(uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
-        text: `SELECT u.nombre_usuario as uvus, u.nombre_completo, u.correo, r.rol
+        text: `SELECT u.nombre_usuario as uvus, u.nombre_completo, u.correo, r.rol,
+                      e.nombre AS estudio
                FROM usuario u
-               LEFT JOIN roles r ON r.usuario_id_fk = u.id`,
+               LEFT JOIN roles r ON r.usuario_id_fk = u.id
+               LEFT JOIN estudios e ON e.id = u.estudios_id_fk`,
       };
       const res = await conexion.query(query);
       return res.rows.map((usuario) => ({
@@ -140,7 +92,7 @@ async obtenerDatosUsuario(uvus) {
     }
   }
 
-  async actualizarUsuario(uvus, { nuevo_uvus, nombre_completo, correo, rol }) {
+  async actualizarUsuario(uvus, { nuevo_uvus, nombre_completo, correo, rol, estudio }) {
     const conexion = await database.connectPostgreSQL();
     try {
       const rolCanonico = toCanonicalRole(rol);
@@ -161,12 +113,30 @@ async obtenerDatosUsuario(uvus) {
         throw error;
       }
 
+      const actualizarEstudio = estudio !== undefined;
+      let estudioId = null;
+      if (actualizarEstudio && estudio !== null) {
+        const estudioEncontrado = await conexion.query({
+          text: `SELECT id FROM estudios WHERE nombre = $1`,
+          values: [estudio],
+        });
+        if (estudioEncontrado.rows.length === 0) {
+          const error = new Error(`No existe el grado ${estudio}`);
+          error.code = "ESTUDIO_NO_ENCONTRADO";
+          throw error;
+        }
+        estudioId = estudioEncontrado.rows[0].id;
+      }
+
       const usuarioActualizado = await conexion.query({
         text: `UPDATE usuario
-               SET nombre_usuario = $1, nombre_completo = $2, correo = $3
-               WHERE nombre_usuario = $4
+               SET nombre_usuario = $1,
+                   nombre_completo = $2,
+                   correo = $3,
+                   estudios_id_fk = CASE WHEN $4 THEN $5 ELSE estudios_id_fk END
+               WHERE nombre_usuario = $6
                RETURNING id`,
-        values: [nuevo_uvus, nombre_completo, correo, uvus],
+        values: [nuevo_uvus, nombre_completo, correo, actualizarEstudio, estudioId, uvus],
       });
 
       if (usuarioActualizado.rowCount === 0) {
