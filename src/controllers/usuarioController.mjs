@@ -32,8 +32,11 @@ const actualizarEstudiosUsuario = async (req,res) => {
         }
         res.send({err:false, result:await usuarioService.actualizarEstudiosUsuario(uvus, estudio)})
         } catch (err){
-            console.log('api actualizarEstudiosUsuario ha tenido una excepción')
-            res.sendStatus(500)
+            console.error('api actualizarEstudiosUsuario ha tenido una excepción', err)
+            if (err.statusCode) {
+              return res.status(err.statusCode).json({ err: true, message: err.message });
+            }
+            res.status(500).json({ err: true, message: "No se pudo actualizar el grado" })
         }
     }
 

@@ -2,6 +2,7 @@ import database from "../config/database.mjs";
 import { mensajeGradoSeleccionado } from "../utils/mensajesTelegram.mjs";
 import { sendMessage } from "./telegramService.mjs";
 import { toCanonicalRole } from "../utils/roles.mjs";
+import autorizacionService from "./autorizacionService.mjs";
 class UsuarioService{
 
 async obtenerDatosUsuario(uvus) {
@@ -33,29 +34,78 @@ async obtenerDatosUsuario(uvus) {
 
   async actualizarEstudiosUsuario(uvus, estudio) {
     const conexion = await database.connectPostgreSQL();
-    const queryUsuario = {
-      text: `select estudios_id_fk from usuario u where u.nombre_usuario =$1`,
-      values: [uvus],
-    };
-    const resQueryUsuario = await conexion.query(queryUsuario);
-    if (resQueryUsuario.rows[0].estudios_id_fk === null) {
-      const query = {
-        text: `Update usuario u set estudios_id_fk =(select id from estudios where nombre = $1) where u.nombre_usuario =$2`,
-        values: [estudio, uvus],
-      };
-      await conexion.query(query);
-      await conexion.end();
+    let esPrimeraSeleccion = false;
+    try {
+      await conexion.query("BEGIN");
+      const usuarioRes = await conexion.query({
+        text: `SELECT u.id, u.estudios_id_fk
+               FROM usuario u
+               WHERE u.nombre_usuario = $1
+               FOR UPDATE`,
+        values: [uvus],
+      });
+      if (usuarioRes.rows.length === 0) {
+        const error = new Error(`No existe el usuario ${uvus}`);
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const estudioRes = await conexion.query({
+        text: `SELECT id FROM estudios WHERE nombre = $1`,
+        values: [estudio],
+      });
+      if (estudioRes.rows.length === 0) {
+        const error = new Error("El grado seleccionado no existe");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const usuario = usuarioRes.rows[0];
+      const estudioId = estudioRes.rows[0].id;
+      esPrimeraSeleccion = usuario.estudios_id_fk === null;
+
+      if (usuario.estudios_id_fk === estudioId) {
+        await conexion.query("COMMIT");
+        return "El grado seleccionado ya es el actual";
+      }
+
+      if (!esPrimeraSeleccion) {
+        const asignaturasRes = await conexion.query({
+          text: `SELECT (
+                   EXISTS (SELECT 1 FROM usuario_asignatura WHERE usuario_id_fk = $1)
+                   OR EXISTS (SELECT 1 FROM usuario_grupo WHERE usuario_id_fk = $1)
+                 ) AS tiene_datos_academicos`,
+          values: [usuario.id],
+        });
+        if (asignaturasRes.rows[0].tiene_datos_academicos) {
+          const error = new Error("Debes retirar tus asignaturas y grupos actuales antes de cambiar de grado");
+          error.statusCode = 409;
+          throw error;
+        }
+      }
+
+      await conexion.query({
+        text: `UPDATE usuario SET estudios_id_fk = $1 WHERE id = $2`,
+        values: [estudioId, usuario.id],
+      });
+      await conexion.query("COMMIT");
+
       // Enviar mensaje por Telegram
       try {
         const chatIdUsuario = await autorizacionService.obtenerChatIdUsuario(uvus);
-        await sendMessage(chatIdUsuario, mensajeGradoSeleccionado(estudio));
+        if (chatIdUsuario) {
+          await sendMessage(chatIdUsuario, mensajeGradoSeleccionado(estudio));
+        }
       } catch (error) {
         console.error("Error al enviar el mensaje de selección de estudio:", error);
       }
-      return 'Estudios seleccionados';
+      return esPrimeraSeleccion ? "Estudios seleccionados" : "Estudios actualizados";
+    } catch (error) {
+      await conexion.query("ROLLBACK").catch(() => {});
+      throw error;
+    } finally {
+      await conexion.end();
     }
-    await conexion.end();
-    return 'Ya tienes estudios seleccionados. Ponte en contacto con el administrador si deseas cambiarlos';
   }
 
   async actualizarCorreoUsuario(uvus, nuevoCorreo) {
