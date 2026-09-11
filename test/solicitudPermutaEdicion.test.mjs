@@ -408,6 +408,7 @@ test('aceptarSolicitudPermuta comparte el advisory lock y bloquea grupos antes d
     if (texto === 'BEGIN' || texto === 'COMMIT' || /pg_advisory_xact_lock/.test(texto)) {
       return { rows: [] };
     }
+    if (/sp.bloque_id IS NOT NULL/.test(texto)) return { rows: [] };
     if (/FROM solicitud_permuta sp/.test(texto) && !/FOR UPDATE/.test(texto)) {
       return { rows: [{
         id: 7,

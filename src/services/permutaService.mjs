@@ -1,3 +1,4 @@
+import { comprobarBloquesCompletos, rechazarPermutaIndividual } from './permutaBloqueService.mjs';
 import database from "../config/database.mjs";
 import { sendMessage } from "./telegramService.mjs"
 import autorizacionService from "./autorizacionService.mjs";
@@ -9,6 +10,8 @@ class PermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query("BEGIN");
+      await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
+      await comprobarBloquesCompletos(conexion, IdsPermuta);
       const queryPermutas = {
         text: ` INSERT INTO permutas (estado, archivo ) VALUES ('FIRMADA',$1) 
                 RETURNING id`,
@@ -29,6 +32,7 @@ class PermutaService {
     } catch (error) {
       await conexion.query("ROLLBACK");
       console.error("Error al listar permutas:", error);
+      if (error.statusCode) throw error;
       throw new Error("Error al listar permutas");
     } finally {
       await conexion.end();
@@ -39,6 +43,8 @@ class PermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query("BEGIN");
+      await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
+      await comprobarBloquesCompletos(conexion, IdsPermuta);
       const queryPermutas = {
         text: ` INSERT INTO permutas (estado, estudiante_cumplimentado_1 ) VALUES ('BORRADOR', $1) 
                 RETURNING id`,
@@ -79,6 +85,7 @@ class PermutaService {
     } catch (error) {
       await conexion.query("ROLLBACK");
       console.error("Error al listar permutas:", error);
+      if (error.statusCode) throw error;
       throw new Error("Error al listar permutas");
     } finally {
       await conexion.end();
@@ -236,14 +243,7 @@ async validarPermuta(permutaId) {
 }
 
   async rechazarSolicitudPermuta(uvus, solicitud) {
-    const conexion = await database.connectPostgreSQL();
-    const update = {
-      text: `update permuta set estado = 'RECHAZADA' where id = $1 and usuario_id_1_fk = (select id from usuario where nombre_usuario = $2)`,
-      values: [solicitud, uvus],
-    };
-    await conexion.query(update);
-    await conexion.end();
-    return "Solicitud de permuta rechazada.";
+    return rechazarPermutaIndividual(uvus, solicitud);
   }
 
   async misPermutasPropuestas(uvus) {
@@ -253,6 +253,7 @@ async validarPermuta(permutaId) {
         text: `
           SELECT 
             p.id AS permuta_id,
+            a.curso, p.bloque_id, (p.bloque_id IS NOT NULL) AS en_bloque,
             a.nombre AS nombre_asignatura,
             a.codigo AS codigo_asignatura,
             g1.nombre AS grupo_solicitante,
@@ -291,6 +292,7 @@ async validarPermuta(permutaId) {
         text: `
           SELECT 
             p.id AS permuta_id,
+            a.curso, p.bloque_id, (p.bloque_id IS NOT NULL) AS en_bloque,
             a.nombre AS nombre_asignatura,
             a.codigo AS codigo_asignatura,
             g1.nombre AS grupo_solicitado,
@@ -329,6 +331,7 @@ async validarPermuta(permutaId) {
         text: `
           SELECT 
             p.id AS permuta_id,
+            a.curso, p.bloque_id, (p.bloque_id IS NOT NULL) AS en_bloque,
             a.nombre AS nombre_asignatura,
             a.codigo AS codigo_asignatura,
             g1.nombre AS grupo_1,
@@ -371,6 +374,7 @@ async validarPermuta(permutaId) {
         text: `
     SELECT
       p.id AS permuta_id,
+      a.curso, p.bloque_id, (p.bloque_id IS NOT NULL) AS en_bloque,
       a.nombre AS nombre_asignatura,
       a.codigo AS codigo_asignatura,
       g1.nombre AS grupo_1,
@@ -447,6 +451,9 @@ async validarPermuta(permutaId) {
 
         acc[key].permutas.push({
           permuta_id: row.permuta_id,
+          curso: row.curso,
+          bloque_id: row.bloque_id ?? null,
+          en_bloque: row.en_bloque === true,
           nombre_asignatura: row.nombre_asignatura,
           codigo_asignatura: row.codigo_asignatura,
           grupo_1: row.grupo_1,

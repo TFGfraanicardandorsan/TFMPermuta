@@ -48,6 +48,15 @@ TFMPermuta es una aplicación diseñada para gestionar permutas de grupos y asig
    psql -d "$DB_DATABASE" -f sql/grupo_deseado_unico.sql
    ```
 
+6. Antes de desplegar las solicitudes en bloque por curso, aplica también:
+   ```bash
+   psql -d "$DB_DATABASE" -f sql/permuta_bloques_curso.sql
+   ```
+   Las solicitudes antiguas siguen siendo individuales. Cada bloque incluye la
+   matrícula del usuario en ese curso al crearlo y exige una misma persona para
+   todas sus asignaturas. Los cursos se configuran independientemente.
+   Consulta el [contrato y prompt para el frontend](docs/frontend-permutas-bloque.md).
+
 ## Uso
 
 1. Ejecuta el servidor localmente con `npm start`.
@@ -101,6 +110,8 @@ obtención y renovación.
 - `POST /api/v1/usuario/actualizarEstudiosUsuario`: Actualiza los estudios del usuario.
 
 ### Permutas
+- `GET /api/v1/solicitudPermuta/cursos`: Obtiene los cursos y asignaturas matriculadas del usuario.
+- `POST /api/v1/solicitudPermuta/solicitarPermutaCurso`: Crea solicitudes de un curso, juntas o independientes según `en_bloque`.
 - `POST /api/v1/solicitudPermuta/solicitarPermuta`: Solicita una nueva permuta.
 - `PATCH /api/v1/solicitudPermuta/{solicitudId}/grupos-deseados`: Edita los grupos deseados de una solicitud propia; requiere al menos un ID de grupo.
 - `POST /api/v1/permutas/aceptarPermuta`: Acepta una permuta propuesta.

@@ -17,6 +17,8 @@ const crearClienteConRespuestas = (respuestas) => {
     estaCerrado: () => cerrado,
     client: {
       async query(query) {
+        // Las respuestas de estas pruebas corresponden a las operaciones de grupos.
+        if (/pg_advisory_xact_lock/.test(textoQuery(query))) return { rows: [] };
         consultas.push(query);
         const respuesta = respuestas.shift();
         if (respuesta instanceof Error) {

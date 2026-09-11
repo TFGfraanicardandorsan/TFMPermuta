@@ -14,6 +14,7 @@ const generarBorradorPermutas = async (req, res) => {
         }
         res.status(200).json({ error: false, result: await permutaService.generarBorradorPermutas(IdsPermuta, uvus) });
     } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ error: true, message: err.message });
         console.error("Error en generarBorradorPermutas:", err);
         res.status(500).json({ error: true, message: "Error al crear la generarBorradorPermutas" });
     }
@@ -111,6 +112,7 @@ const rechazarSolicitudPermuta = async (req, res) => {
         const solicitud = validId.valor;
         res.send({ err: false, result: await permutaService.rechazarSolicitudPermuta(uvus, solicitud) });
     } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api rechazarSolicitudPermuta ha tenido una excepción:', err);
         res.status(500).json({ err: true, message: 'Error interno en rechazarSolicitudPermuta', details: err.message });
     }

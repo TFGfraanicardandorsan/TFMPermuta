@@ -53,6 +53,9 @@ const solicitarPermuta = async (req, res) => {
         }
         const uvus = req.session.user.nombre_usuario;
         const { grupos_deseados } = req.body;
+        if (req.body.en_bloque !== undefined && req.body.en_bloque !== false) {
+            return res.status(400).json({ err: true, message: 'Para solicitar en bloque utiliza solicitarPermutaCurso.' });
+        }
 
         const validAsignatura = validarEnteroPositivo(req.body.asignatura, "Asignatura");
         if (!validAsignatura.valido) {
@@ -69,6 +72,25 @@ const solicitarPermuta = async (req, res) => {
         });
     } catch (err) {
         return manejarErrorServicio(res, err, 'Error interno en solicitarPermuta');
+    }
+};
+
+const solicitarPermutaCurso = async (req, res) => {
+    try {
+        if (!req.session.user) return res.status(401).json({ err: true, message: 'No hay usuario en la sesión' });
+        const result = await solicitudPermutaService.solicitarPermutaCurso(req.session.user.nombre_usuario, req.body);
+        return res.status(201).json({ err: false, result });
+    } catch (error) {
+        return manejarErrorServicio(res, error, 'Error interno al solicitar las permutas del curso');
+    }
+};
+
+const getCursosPermuta = async (req, res) => {
+    try {
+        if (!req.session.user) return res.status(401).json({ err: true, message: 'No hay usuario en la sesión' });
+        return res.json({ err: false, result: await solicitudPermutaService.getCursosPermuta(req.session.user.nombre_usuario) });
+    } catch (error) {
+        return manejarErrorServicio(res, error, 'Error interno al obtener los cursos');
     }
 };
 
@@ -157,8 +179,7 @@ const validarSolicitudPermuta = async (req,res) => {
         const solicitud = validSolicitud.valor;
         res.send({ err: false, result: await solicitudPermutaService.actualizarEstadoPermuta(solicitud, uvus) });
     } catch (err){
-        console.error('api validarSolicitudPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en validarSolicitudPermuta', details: err.message });
+        return manejarErrorServicio(res, err, 'Error interno en validarSolicitudPermuta');
     }
 }
 
@@ -200,8 +221,7 @@ const aceptarPermutaPropuesta = async (req, res) => {
         const permutaId = validPermutaId.valor;
         res.send({ err: false, result: await solicitudPermutaService.aceptarPermutaPropuesta(uvus, permutaId) });
     } catch (err) {
-        console.error('api aceptarPermutaPropuesta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en aceptarPermutaPropuesta', details: err.message });
+        return manejarErrorServicio(res, err, 'Error interno al aceptar la propuesta');
     }
 };
 
@@ -231,8 +251,7 @@ const rechazarPermutaPropuesta = async (req, res) => {
         const permutaId = validPermutaId.valor;
         res.send({ err: false, result: await solicitudPermutaService.rechazarPermutaPropuesta(uvus, permutaId)});
     } catch (err) {
-        console.error('api rechazarPermutaPropuesta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en rechazarPermutaPropuesta', details: err.message });
+        return manejarErrorServicio(res, err, 'Error interno al rechazar la propuesta');
     }
 };
 
@@ -280,6 +299,8 @@ const cancelarSolicitudPermuta = async (req, res) => {
 };
 
 export default {
+    solicitarPermutaCurso,
+    getCursosPermuta,
     solicitarPermuta,
     editarGruposDeseados,
     getSolicitudesPermutaInteresantes,

@@ -4,8 +4,8 @@ const compararIds = (a, b) => String(a).localeCompare(String(b), "es", { numeric
  * Calcula intercambios recíprocos. Una arista entre dos estudiantes contiene
  * todas las asignaturas en las que cada uno desea el grupo actual del otro.
  *
- * La solución maximiza, por este orden: asignaturas resueltas y estudiantes
- * emparejados. Los componentes grandes usan una aproximación determinista para
+ * La solución maximiza las asignaturas resueltas respetando los bloques.
+ * Los componentes grandes usan una aproximación determinista para
  * evitar un coste exponencial incontrolado.
  */
 class PermutaMatching {
@@ -13,9 +13,11 @@ class PermutaMatching {
     this.solicitudes = solicitudes;
     this.limiteComponenteExacto = limiteComponenteExacto;
     this.aristas = [];
+    this.bloques = new Map();
   }
 
   construirGrafo() {
+    this.bloques.clear();
     const porAsignaturaYGrupo = new Map();
     const solicitudesUnicas = new Map();
 
@@ -26,6 +28,13 @@ class PermutaMatching {
       const grupoDeseado = solicitud.grupoDeseado ?? solicitud.grupo_deseado;
       if ([estudianteOriginal, asignatura, grupoActual, grupoDeseado].some(valor => valor == null)) continue;
       const estudianteId = String(estudianteOriginal);
+      if (solicitud.bloque_id) {
+        const claveBloque = estudianteId + '|' + solicitud.bloque_id;
+        if (!this.bloques.has(claveBloque)) this.bloques.set(claveBloque, { estudianteId, asignaturas: new Set() });
+        const bloque = this.bloques.get(claveBloque);
+        // La lista completa procede de BD, incluso si una solicitud no es elegible.
+        for (const id of solicitud.asignaturas_bloque ?? [asignatura]) bloque.asignaturas.add(String(id));
+      }
       if (String(grupoActual) === String(grupoDeseado)) continue;
 
       const clave = `${estudianteId}|${asignatura}|${grupoActual}|${grupoDeseado}`;
@@ -61,77 +70,101 @@ class PermutaMatching {
     return this;
   }
 
+  // Cada candidato es indivisible; los conflictos son por alumno/asignatura,
+  // no por alumno, de modo que cada curso puede resolverse con otra persona.
+  crearCandidatos() {
+    const candidatos = [];
+    for (const arista of this.aristas) {
+      const disponibles = new Map(arista.asignaturas.map(id => [String(id), id]));
+      const bloques = [...this.bloques.values()].filter(b =>
+        b.estudianteId === arista.estudiante1 || b.estudianteId === arista.estudiante2);
+      const vistos = new Set();
+      for (const inicio of disponibles.keys()) {
+        if (vistos.has(inicio)) continue;
+        const requeridas = new Set([inicio]);
+        let ampliado = true;
+        while (ampliado) {
+          ampliado = false;
+          for (const bloque of bloques) {
+            if (![...bloque.asignaturas].some(id => requeridas.has(id))) continue;
+            for (const id of bloque.asignaturas) {
+              if (!requeridas.has(id)) { requeridas.add(id); ampliado = true; }
+            }
+          }
+        }
+        requeridas.forEach(id => vistos.add(id));
+        if ([...requeridas].some(id => !disponibles.has(id))) continue;
+        const asignaturas = [...requeridas].map(id => disponibles.get(id)).sort(compararIds);
+        candidatos.push({ ...arista, asignaturas,
+          recursos: new Set(asignaturas.flatMap(id => [arista.estudiante1 + '|' + id, arista.estudiante2 + '|' + id])) });
+      }
+    }
+    return candidatos.sort((a,b) => b.asignaturas.length - a.asignaturas.length
+      || compararIds(a.estudiante1,b.estudiante1) || compararIds(a.estudiante2,b.estudiante2)
+      || compararIds(a.asignaturas[0],b.asignaturas[0]));
+  }
+
   emparejar() {
     if (!this.aristas.length) this.construirGrafo();
-    const pendientes = new Set(this.aristas.flatMap(a => [String(a.estudiante1), String(a.estudiante2)]));
-    const resultado = [];
-
+    const candidatos = this.crearCandidatos();
+    const porRecurso = new Map();
+    candidatos.forEach((c,i) => c.recursos.forEach(r => {
+      if (!porRecurso.has(r)) porRecurso.set(r, []);
+      porRecurso.get(r).push(i);
+    }));
+    const pendientes = new Set(candidatos.map((_,i) => i));
+    const elegidos = [];
     while (pendientes.size) {
-      const inicio = pendientes.values().next().value;
-      const componente = new Set([inicio]);
-      const cola = [inicio];
+      const cola = [pendientes.values().next().value];
+      const componente = new Set(cola);
       while (cola.length) {
-        const actual = cola.pop();
-        for (const arista of this.aristas) {
-          const a = String(arista.estudiante1);
-          const b = String(arista.estudiante2);
-          if (a !== actual && b !== actual) continue;
-          const vecino = a === actual ? b : a;
-          if (!componente.has(vecino)) { componente.add(vecino); cola.push(vecino); }
+        const i = cola.pop();
+        for (const recurso of candidatos[i].recursos) {
+          for (const vecino of porRecurso.get(recurso)) {
+            if (!componente.has(vecino)) { componente.add(vecino); cola.push(vecino); }
+          }
         }
       }
-      componente.forEach(id => pendientes.delete(id));
-      const aristas = this.aristas.filter(a => componente.has(String(a.estudiante1)) && componente.has(String(a.estudiante2)));
-      resultado.push(...(componente.size <= this.limiteComponenteExacto
-        ? this.#resolverExacto([...componente], aristas)
-        : this.#resolverVoraz(aristas)));
+      componente.forEach(i => pendientes.delete(i));
+      const lista = [...componente].sort((a,b) => a-b).map(i => candidatos[i]);
+      elegidos.push(...(lista.length <= this.limiteComponenteExacto
+        ? this.#resolverExacto(lista) : this.#resolverVoraz(lista)));
     }
-    return resultado;
+    const parejas = new Map();
+    for (const candidato of elegidos) {
+      const clave = candidato.estudiante1 + '|' + candidato.estudiante2;
+      if (!parejas.has(clave)) parejas.set(clave, {
+        estudiante1: candidato.estudiante1, estudiante2: candidato.estudiante2, asignaturas: [] });
+      parejas.get(clave).asignaturas.push(...candidato.asignaturas);
+    }
+    return [...parejas.values()].map(p => ({ ...p, asignaturas: p.asignaturas.sort(compararIds) }))
+      .sort((a,b) => compararIds(a.estudiante1,b.estudiante1) || compararIds(a.estudiante2,b.estudiante2));
   }
 
-  #resolverExacto(vertices, aristas) {
-    const indice = new Map(vertices.map((id, i) => [id, i]));
-    const incidentes = vertices.map(() => []);
-    aristas.forEach(arista => {
-      const a = indice.get(String(arista.estudiante1));
-      const b = indice.get(String(arista.estudiante2));
-      incidentes[a].push({ arista, vecino: b });
-      incidentes[b].push({ arista, vecino: a });
-    });
+  #resolverExacto(candidatos) {
+    const conflictos = candidatos.map(a => candidatos.reduce((mask,b,i) =>
+      [...a.recursos].some(r => b.recursos.has(r)) ? mask | (1n << BigInt(i)) : mask, 0n));
     const memo = new Map();
-    const mejor = (x, y) => x.peso !== y.peso ? (x.peso > y.peso ? x : y)
-      : x.pares !== y.pares ? (x.pares > y.pares ? x : y) : x;
-    const resolver = mascara => {
-      if (mascara === 0n) return { peso: 0, pares: 0, aristas: [] };
-      const clave = mascara.toString();
-      if (memo.has(clave)) return memo.get(clave);
+    const resolver = mask => {
+      if (!mask) return { peso: 0, lista: [] };
+      if (memo.has(mask)) return memo.get(mask);
       let i = 0;
-      while ((mascara & (1n << BigInt(i))) === 0n) i++;
-      const sinI = mascara & ~(1n << BigInt(i));
-      let solucion = resolver(sinI);
-      for (const { arista, vecino } of incidentes[i]) {
-        const bitVecino = 1n << BigInt(vecino);
-        if ((sinI & bitVecino) === 0n) continue;
-        const resto = resolver(sinI & ~bitVecino);
-        solucion = mejor(solucion, {
-          peso: resto.peso + arista.asignaturas.length,
-          pares: resto.pares + 1,
-          aristas: [arista, ...resto.aristas]
-        });
-      }
-      memo.set(clave, solucion);
-      return solucion;
+      while (!(mask & (1n << BigInt(i)))) i++;
+      const sin = resolver(mask & ~(1n << BigInt(i)));
+      const resto = resolver(mask & ~conflictos[i]);
+      const con = { peso: resto.peso + candidatos[i].asignaturas.length, lista: [candidatos[i], ...resto.lista] };
+      const mejor = con.peso >= sin.peso ? con : sin;
+      memo.set(mask, mejor);
+      return mejor;
     };
-    return resolver((1n << BigInt(vertices.length)) - 1n).aristas;
+    return resolver((1n << BigInt(candidatos.length)) - 1n).lista;
   }
 
-  #resolverVoraz(aristas) {
+  #resolverVoraz(candidatos) {
     const usados = new Set();
-    return aristas.filter(arista => {
-      const a = String(arista.estudiante1);
-      const b = String(arista.estudiante2);
-      if (usados.has(a) || usados.has(b)) return false;
-      usados.add(a); usados.add(b);
+    return candidatos.filter(c => {
+      if ([...c.recursos].some(r => usados.has(r))) return false;
+      c.recursos.forEach(r => usados.add(r));
       return true;
     });
   }

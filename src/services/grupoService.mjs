@@ -15,6 +15,7 @@ class GrupoService {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query("BEGIN");
+      await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
       const resultado = await operacion(conexion);
       await conexion.query("COMMIT");
       return resultado;
@@ -177,6 +178,12 @@ class GrupoService {
         WHERE vigente = true
           AND (
             grupo_solicitante_id_fk = $1
+            OR bloque_id IN (
+              SELECT sp.bloque_id FROM solicitud_permuta sp
+              WHERE sp.grupo_solicitante_id_fk = $1 OR sp.id IN (
+                SELECT solicitud_permuta_id_fk FROM grupo_deseado WHERE grupo_id_fk = $1
+              )
+            )
             OR id IN (
               SELECT solicitud_permuta_id_fk
               FROM grupo_deseado
@@ -195,6 +202,9 @@ class GrupoService {
           AND (
             grupo_id_1_fk = $1
             OR grupo_id_2_fk = $1
+            OR bloque_id IN (
+              SELECT p.bloque_id FROM permuta p WHERE p.grupo_id_1_fk = $1 OR p.grupo_id_2_fk = $1
+            )
           )
       `,
       values: [grupo.id],
