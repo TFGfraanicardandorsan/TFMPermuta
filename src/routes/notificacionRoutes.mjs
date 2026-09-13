@@ -3,6 +3,8 @@ import notificacionController from '../controllers/notificacionController.mjs';
 import { verificarRol } from '../middleware/rolMiddleware.mjs';
 const router = Router()
 router
+.patch('/:id/lectura', notificacionController.cambiarLectura)
+.post('/marcarTodasLeidas', notificacionController.cambiarLectura)
 .post('/notificaciones', notificacionController.getNotificacionesUsuario)
 .post('/insertarNotificacion',verificarRol('administrador'), notificacionController.insertarNotificacion)
 .post(

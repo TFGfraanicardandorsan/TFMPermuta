@@ -1,3 +1,4 @@
+import eventosNotificacion from './eventosNotificacionService.mjs';
 import database from '../config/database.mjs';
 
 // Los documentos deben contener todos los miembros de cualquier bloque incluido.
@@ -19,6 +20,7 @@ export async function comprobarBloquesCompletos(conexion, ids) {
 export async function rechazarPermutaIndividual(uvus, id) {
   const conexion = await database.connectPostgreSQL();
   try {
+    await conexion.query('BEGIN');
     const { rowCount } = await conexion.query({
       text: `UPDATE permuta SET estado = 'RECHAZADA' WHERE id = $1
         AND bloque_id IS NULL AND vigente = true AND estado = 'ACEPTADA'
@@ -30,7 +32,13 @@ export async function rechazarPermutaIndividual(uvus, id) {
       error.statusCode = 409;
       throw error;
     }
+    await eventosNotificacion.registrar(conexion, { origen: 'permuta', ids: [id], evento: 'rechazada',
+      contenido: 'La permuta ha sido rechazada.' });
+    await conexion.query('COMMIT');
     return 'Solicitud de permuta rechazada.';
+  } catch (error) {
+    await conexion.query('ROLLBACK');
+    throw error;
   } finally {
     await conexion.end();
   }

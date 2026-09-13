@@ -20,6 +20,7 @@ const usarCliente = resolver => {
   const client = {
     async query(q) {
       consultas.push(q);
+      if (/INSERT INTO notificacion/.test(texto(q))) return { rows: [], rowCount: 1 };
       if (['BEGIN', 'COMMIT', 'ROLLBACK'].includes(q) || /pg_advisory_xact_lock/.test(texto(q))) return { rows: [] };
       const resultado = await resolver(q);
       assert.ok(resultado, `Consulta inesperada: ${texto(q)}`);
@@ -194,7 +195,7 @@ test('proponer guarda el bloque completo y revierte si falta un INSERT', async (
     let insertados = 0;
     const fake = usarCliente(q => {
       if (/SELECT DISTINCT sp.usuario_id_fk/.test(texto(q))) return { rows: filas };
-      if (/INSERT INTO permuta/.test(texto(q))) return { rows: [], rowCount: fallo && ++insertados === 2 ? 0 : 1 };
+      if (/INSERT INTO permuta/.test(texto(q))) return { rows: [{ id: 10 + insertados }], rowCount: fallo && ++insertados === 2 ? 0 : 1 };
     });
     if (fallo) {
       await assert.rejects(servicio.proponerPermutas(), e => e.statusCode === 409);

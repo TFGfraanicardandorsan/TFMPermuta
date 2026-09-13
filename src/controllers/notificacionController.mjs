@@ -1,5 +1,21 @@
 import notificacionService from "../services/notificacionService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
+import { SUPPORTED_ROLES, toCanonicalRole } from '../utils/roles.mjs';
+
+const cambiarLectura = async (req, res) => {
+    try {
+        if (!req.session.user) return res.status(401).json({ err: true, message: 'No hay usuario en la sesión' });
+        const todas = req.params.id === undefined;
+        const id = todas ? null : /^\d+$/.test(req.params.id) ? Number(req.params.id) : NaN;
+        const result = await notificacionService.marcarLectura(
+            req.session.user.nombre_usuario, id, todas ? true : req.body.leida
+        );
+        return res.json({ err: false, result });
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ err: true,
+            message: error.statusCode ? error.message : 'Error al guardar la lectura' });
+    }
+};
 
 const getNotificacionesUsuario = async (req, res) => {
     try {
@@ -21,6 +37,9 @@ const insertarNotificacion = async (req,res) => {
         }
         const uvus = req.session.user.nombre_usuario;
         const { contenido, receptor } = req.body;
+        if (![...SUPPORTED_ROLES, 'all'].includes(toCanonicalRole(receptor))) {
+            return res.status(400).json({ err: true, message: 'Receptor no válido' });
+        }
 
         const validContenido = GenericValidators.isString(contenido, "Contenido", 1000);
         if (!validContenido.valido) {
@@ -31,7 +50,7 @@ const insertarNotificacion = async (req,res) => {
         if (!validReceptor.valido) {
             return res.status(400).json({ err: true, message: validReceptor.mensaje });
         }
-        res.send({err:false, result: await notificacionService.crearNotificacionesUsuario(uvus, contenido, receptor)});
+        res.send({err:false, result: await notificacionService.crearNotificacionesUsuario(uvus, contenido, toCanonicalRole(receptor))});
     } catch (err){
         console.log('api insertarNotificacion ha tenido una excepción');
         res.sendStatus(500);
@@ -62,6 +81,7 @@ const notificarCierreIncidencia = async (req, res) => {
 };
 
 export default {
+    cambiarLectura,
     getNotificacionesUsuario,
     insertarNotificacion,
     notificarCierreIncidencia

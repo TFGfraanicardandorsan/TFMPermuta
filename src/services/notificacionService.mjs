@@ -1,38 +1,56 @@
 import database from "../config/database.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import { sendMessage } from "./telegramService.mjs";
+import eventosNotificacion from './eventosNotificacionService.mjs';
+
+// Una notificación personal nunca hereda la visibilidad del rol o de all.
+const VISIBILIDAD = `(n.fecha_expiracion IS NULL OR n.fecha_expiracion >= NOW()) AND (
+  n.destinatario_id_fk = u.id OR (n.destinatario_id_fk IS NULL AND (
+    n.receptor = 'all' OR EXISTS (SELECT 1 FROM roles r WHERE r.usuario_id_fk = u.id
+      AND (r.rol = n.receptor OR (r.rol IN ('delegacion', 'delgacion') AND n.receptor IN ('delegacion', 'delgacion'))))
+  )))`;
 
 class NotificacionService {
-  async getNotificacionesUsuario(uvus) {
+  async getNotificacionesUsuario(uvus, telegram = false) {
     const conexion = await database.connectPostgreSQL();
     try {
-      const query = {
-        text: `select id,contenido,fecha_creacion from notificacion n where (receptor = (select rol  from roles r where usuario_id_fk = (select id from usuario u where u.nombre_usuario =$1) ) or receptor = 'all') AND (fecha_expiracion IS NULL OR fecha_expiracion >= NOW()) order by fecha_creacion desc`,
+      const { rows } = await conexion.query({
+        text: `SELECT n.id, n.contenido, n.fecha_creacion, n.tipo, n.enlace,
+          COALESCE(l.leida, false) AS leida, l.fecha_lectura
+          FROM notificacion n JOIN usuario u ON u.nombre_usuario = $1
+          LEFT JOIN notificacion_lectura l ON l.notificacion_id_fk = n.id AND l.usuario_id_fk = u.id
+          WHERE ${VISIBILIDAD}
+          ORDER BY ${telegram ? 'n.fecha_creacion ASC, n.id ASC' : 'COALESCE(l.leida, false) ASC, n.fecha_creacion DESC, n.id DESC'}`,
         values: [uvus],
-      };
-      const res = await conexion.query(query);
-      return res.rows;
-    } catch (error) {
-      console.error("Error al obtener las notificaciones:", error);
-      throw new Error("Error al obtener las notificaciones");
-    } finally {
-      await conexion.end();
+      });
+      return rows;
+    } finally { await conexion.end(); }
+  }
+
+  async getNotificacionesUsuarioTelegram(uvus) {
+    return this.getNotificacionesUsuario(uvus, true);
+  }
+
+  async marcarLectura(uvus, id, leida) {
+    if (typeof leida !== 'boolean' || (id !== null && (!Number.isSafeInteger(id) || id <= 0 || id > 2147483647))) {
+      throw Object.assign(new Error('Indica un ID positivo y leida como booleano.'), { statusCode: 400 });
     }
-  }  async getNotificacionesUsuarioTelegram(uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
-      const query = {
-        text: `select id,contenido,fecha_creacion from notificacion n where (receptor = (select rol  from roles r where usuario_id_fk = (select id from usuario u where u.nombre_usuario =$1) ) or receptor = 'all') AND (fecha_expiracion IS NULL OR fecha_expiracion >= NOW()) order by fecha_creacion asc`,
-        values: [uvus],
-      };
-      const res = await conexion.query(query);
-      return res.rows;
-    } catch (error) {
-      console.error("Error al obtener las notificaciones:", error);
-      throw new Error("Error al obtener las notificaciones");
-    } finally {
-      await conexion.end();
-    }
+      const { rows } = await conexion.query({
+        text: `INSERT INTO notificacion_lectura (notificacion_id_fk, usuario_id_fk, leida, fecha_lectura)
+          SELECT n.id, u.id, $3, CASE WHEN $3 THEN NOW() ELSE NULL END
+          FROM notificacion n JOIN usuario u ON u.nombre_usuario = $1
+          WHERE (${VISIBILIDAD}) AND ($2::int IS NULL OR n.id = $2)
+          ON CONFLICT (notificacion_id_fk, usuario_id_fk) DO UPDATE
+          SET leida = EXCLUDED.leida,
+            fecha_lectura = CASE WHEN EXCLUDED.leida THEN COALESCE(notificacion_lectura.fecha_lectura, EXCLUDED.fecha_lectura) ELSE NULL END
+          RETURNING notificacion_id_fk AS id, leida, fecha_lectura`,
+        values: [uvus, id, leida],
+      });
+      if (id !== null && !rows.length) throw Object.assign(new Error('Notificación no disponible para el usuario.'), { statusCode: 404 });
+      return id === null ? { actualizadas: rows.length } : rows[0];
+    } finally { await conexion.end(); }
   }
 
   async crearNotificacionesUsuario(uvus, contenido, receptor) {
@@ -87,6 +105,8 @@ class NotificacionService {
   async notificarCierreIncidencia(idIncidencia, contenido) {
     const conexion = await database.connectPostgreSQL();
     try {
+      await eventosNotificacion.registrar(conexion, { origen: 'incidencia', ids: [idIncidencia],
+        evento: 'cerrada', contenido: `Incidencia #${idIncidencia} cerrada: ${contenido}` });
       // Obtener el usuario que abrió la incidencia
       const queryUsuario = {
         text: `SELECT u.nombre_usuario, u.chatid

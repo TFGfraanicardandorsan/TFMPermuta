@@ -54,6 +54,7 @@ const firmarPermuta = async (req, res) => {
         }
         res.send({ err: false, result: await permutaService.firmarPermuta(permutaId, archivo,uvus) });
     } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api firmarPermuta ha tenido una excepción:', err);
         res.status(500).json({ err: true, message: 'Error interno en firmarPermuta', details: err.message });
     }
@@ -77,6 +78,7 @@ const aceptarPermuta = async (req, res) => {
         }
         res.send({ err: false, result: await permutaService.aceptarPermuta(permutaId, archivo, uvus) });
     } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api aceptarPermuta ha tenido una excepción:', err);
         res.status(500).json({ err: true, message: 'Error interno en aceptarPermuta', details: err.message });
     }
@@ -92,8 +94,9 @@ const validarPermuta = async (req, res) => {
             return res.status(400).json({ err: true, message: validId.mensaje });
         }
         const permutaId = validId.valor;
-        res.send({ err: false, result: await permutaService.validarPermuta(permutaId) });
+        res.send({ err: false, result: await permutaService.validarPermuta(permutaId, req.session.user.nombre_usuario) });
     } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api validarPermuta ha tenido una excepción:', err);
         res.status(500).json({ err: true, message: 'Error interno en validarPermuta', details: err.message });
     }

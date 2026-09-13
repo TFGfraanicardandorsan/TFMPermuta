@@ -1,3 +1,4 @@
+import eventosNotificacion from './eventosNotificacionService.mjs';
 import { randomUUID } from 'node:crypto';
 import database from "../config/database.mjs";
 import PermutaMatching from "../algorithm/AlgoritmoCruzadoSolicitudes.mjs";
@@ -172,6 +173,8 @@ class SolicitudPermutaService {
       await conexion.query('BEGIN');
       await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
       datos = await this.crearSolicitudEnTransaccion(conexion, uvus, asignatura, grupos_deseados);
+      await eventosNotificacion.registrar(conexion, { origen: 'solicitud', ids: [datos.solicitud_id],
+        evento: 'creada', contenido: 'Tu solicitud de permuta se ha registrado.' });
       await conexion.query('COMMIT');
     } catch (error) {
       await conexion.query('ROLLBACK');
@@ -240,6 +243,9 @@ class SolicitudPermutaService {
           conexion, uvus, solicitud.asignatura, solicitud.grupos_deseados, bloqueId
         ));
       }
+      await eventosNotificacion.registrar(conexion, { origen: 'solicitud', ids: creadas.map(s => s.solicitud_id),
+        referencia: bloqueId ?? creadas.map(s => s.solicitud_id).join('-'), evento: 'creada',
+        contenido: en_bloque ? 'Tu solicitud de curso en bloque se ha registrado.' : 'Tus solicitudes del curso se han registrado.' });
       await conexion.query('COMMIT');
     } catch (error) {
       await conexion.query('ROLLBACK');
@@ -729,13 +735,13 @@ class SolicitudPermutaService {
         throw crearErrorSolicitud(409, 'Alguno de los usuarios ya tiene una permuta activa para la asignatura.');
       }
 
-      await conexion.query({
+      const nuevaPermuta = await conexion.query({
         text: `
           INSERT INTO permuta (
             solicitud_permuta_id_fk, usuario_id_1_fk, usuario_id_2_fk,
             asignatura_id_fk, grupo_id_1_fk, grupo_id_2_fk,
             estado, aceptada_1, aceptada_2
-          ) VALUES ($1, $2, $3, $4, $5, $6, 'ACEPTADA', false, true)
+          ) VALUES ($1, $2, $3, $4, $5, $6, 'ACEPTADA', false, true) RETURNING id
         `,
         values: [
           solicitudEncontrada.id,
@@ -747,6 +753,8 @@ class SolicitudPermutaService {
         ],
       });
 
+      await eventosNotificacion.registrar(conexion, { origen: 'permuta', ids: [nuevaPermuta.rows[0].id],
+        evento: 'aceptacion_inicial', contenido: 'Hay una permuta pendiente de confirmar por el otro participante.' });
       await conexion.query('COMMIT');
       transaccionIniciada = false;
       return 'Solicitud de permuta aceptada.';
@@ -767,6 +775,8 @@ class SolicitudPermutaService {
   async actualizarEstadoPermuta(solicitud, uvus) {
     const conexion = await database.connectPostgreSQL();
     try {
+      await conexion.query('BEGIN');
+      await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
       const resultado = await conexion.query({
         text: `UPDATE permuta SET estado = 'VALIDADA', aceptada_1 = true
           WHERE id = $1 AND bloque_id IS NULL AND estado = 'ACEPTADA'
@@ -777,7 +787,13 @@ class SolicitudPermutaService {
       if (!resultado.rowCount) {
         throw crearErrorSolicitud(409, 'La permuta no está disponible. Los bloques se responden desde propuestas del sistema.');
       }
+      await eventosNotificacion.registrar(conexion, { origen: 'permuta', ids: [solicitud],
+        evento: 'validada', contenido: 'Ambos participantes han confirmado la permuta. Ya podéis preparar el documento.' });
+      await conexion.query('COMMIT');
       return 'Estado de la permuta actualizado a VALIDADA.';
+    } catch (error) {
+      await conexion.query('ROLLBACK');
+      throw error;
     } finally {
       await conexion.end();
     }
@@ -989,6 +1005,9 @@ class SolicitudPermutaService {
             values: [permuta.estudiante1, permuta.estudiante2, asignatura, bloqueId]
           });
           if (resultado.rowCount !== 1) throw crearErrorSolicitud(409, 'Las solicitudes han cambiado; no se ha creado ninguna propuesta.');
+          await eventosNotificacion.registrar(conexion, { origen: 'permuta', ids: [resultado.rows[0].id],
+            referencia: bloqueId ?? resultado.rows[0].id, evento: 'propuesta',
+            contenido: bloqueId ? 'Tienes una nueva propuesta de permuta de curso en bloque.' : 'Tienes una nueva propuesta de permuta.' });
           propuestasCreadas += resultado.rowCount;
         }
       }
@@ -1049,7 +1068,7 @@ class SolicitudPermutaService {
       if (!inicial.rows.length) throw crearErrorSolicitud(409, 'La propuesta no está disponible para el usuario.');
       const { bloque_id, usuario_id } = inicial.rows[0];
       const grupo = await conexion.query({
-        text: `SELECT id, usuario_id_1_fk, usuario_id_2_fk, estado, vigente FROM permuta
+        text: `SELECT id, usuario_id_1_fk, usuario_id_2_fk, estado, vigente, aceptada_1, aceptada_2 FROM permuta
           WHERE id = $1 OR ($2::uuid IS NOT NULL AND bloque_id = $2)
           ORDER BY id FOR UPDATE`,
         values: [permutaId, bloque_id],
@@ -1059,6 +1078,10 @@ class SolicitudPermutaService {
         throw crearErrorSolicitud(409, 'El bloque completo ya no está disponible.');
       }
       const ids = grupo.rows.map(p => p.id);
+      if (aceptar && grupo.rows.every(p => p.usuario_id_1_fk === usuario_id ? p.aceptada_1 : p.aceptada_2)) {
+        await conexion.query('COMMIT');
+        return 'Ya has aceptado la permuta propuesta';
+      }
       await conexion.query({
         text: aceptar ? `UPDATE permuta SET
           aceptada_1 = aceptada_1 OR usuario_id_1_fk = $2,
@@ -1069,6 +1092,12 @@ class SolicitudPermutaService {
           : `UPDATE permuta SET estado = 'RECHAZADA' WHERE id = ANY($1::int[])`,
         values: aceptar ? [ids, usuario_id] : [ids],
       });
+      const completa = aceptar && grupo.rows.every(p => p.usuario_id_1_fk === usuario_id ? p.aceptada_2 : p.aceptada_1);
+      await eventosNotificacion.registrar(conexion, { origen: 'permuta', ids, referencia: bloque_id ?? permutaId,
+        evento: aceptar ? (completa ? 'validada' : 'aceptada:' + usuario_id) : 'rechazada',
+        contenido: !aceptar ? 'La propuesta de permuta ha sido rechazada.' : completa
+          ? 'Ambos participantes han confirmado la permuta. Ya podéis preparar el documento.'
+          : 'Un participante ha aceptado la propuesta. Falta la otra confirmación.' });
       await conexion.query('COMMIT');
       return aceptar ? 'Has aceptado la permuta propuesta' : 'Has rechazado la permuta propuesta';
     } catch (error) {
@@ -1223,6 +1252,8 @@ class SolicitudPermutaService {
         values: [solicitudesIds],
       });
 
+      await eventosNotificacion.registrar(conexion, { origen: 'solicitud', ids: solicitudesIds,
+        referencia: solicitud.bloque_id ?? solicitudId, evento: 'cancelada', contenido: 'Tu solicitud de permuta ha sido cancelada.' });
       await conexion.query('COMMIT');
       transaccionIniciada = false;
       return 'Solicitud de permuta cancelada correctamente';

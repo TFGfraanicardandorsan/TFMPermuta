@@ -22,6 +22,7 @@ const crearCliente = (resolver) => {
     client: {
       async query(query) {
         consultas.push(query);
+        if (/INSERT INTO notificacion/.test(textoQuery(query))) return { rows: [], rowCount: 1 };
         return resolver(query, consultas.length - 1) ?? { rows: [] };
       },
       async end() {
@@ -430,7 +431,7 @@ test('aceptarSolicitudPermuta comparte el advisory lock y bloquea grupos antes d
       }] };
     }
     if (/FROM permuta p/.test(texto)) return { rows: [] };
-    if (/INSERT INTO permuta/.test(texto)) return { rows: [], rowCount: 1 };
+    if (/INSERT INTO permuta/.test(texto)) return { rows: [{ id: 8 }], rowCount: 1 };
     throw new Error(`Consulta inesperada: ${texto}`);
   });
   database.connectPostgreSQL = async () => fake.client;

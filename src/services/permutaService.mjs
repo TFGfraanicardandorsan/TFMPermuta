@@ -1,3 +1,5 @@
+import eventosNotificacion from './eventosNotificacionService.mjs';
+import { cambiarEstadoDocumento } from './documentoPermutaEstadoService.mjs';
 import { comprobarBloquesCompletos, rechazarPermutaIndividual } from './permutaBloqueService.mjs';
 import database from "../config/database.mjs";
 import { sendMessage } from "./telegramService.mjs"
@@ -27,6 +29,8 @@ class PermutaService {
         };
         await conexion.query(queryPermutas_permuta);
       }
+      await eventosNotificacion.registrar(conexion, { origen: 'documento', ids: [permutasId], evento: 'FIRMADA',
+        contenido: 'Se ha creado un documento de permuta firmado.' });
       await conexion.query("COMMIT");
       return "Se ha creado la lista de permutas correctamente";
     } catch (error) {
@@ -65,6 +69,8 @@ class PermutaService {
         await conexion.query(queryPermutas_permuta_update);
         await conexion.query(queryPermutas_permuta);
       }
+      await eventosNotificacion.registrar(conexion, { origen: 'documento', ids: [permutasId], evento: 'BORRADOR',
+        contenido: 'Se ha generado el borrador de vuestro documento de permuta. El primer participante puede firmarlo.' });
       await conexion.query("COMMIT");
       // Enviar mensaje por Telegram
       try {
@@ -130,117 +136,32 @@ class PermutaService {
     }
   }
 
-  async firmarPermuta(permutaId, archivo,uvus) {
-    const conexion = await database.connectPostgreSQL();
-    try {
-      const query = {
-        text: `UPDATE permutas 
-               SET estado = 'FIRMADA',
-                   archivo = $2,
-                   estudiante_cumplimentado_1 = COALESCE(estudiante_cumplimentado_1, $3)
-               WHERE id = $1 AND vigente = true`,
-        values: [permutaId, archivo, uvus],
-      };
-
-      await conexion.query(query);
-      const querySelect = {
-        text: ` SELECT LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
-                      GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
-                      (SELECT estado FROM permutas WHERE id = ( SELECT permutas_id_fk FROM permutas_permuta WHERE permuta_id_fk = p.id LIMIT 1)) AS estado_permuta_asociada
-                FROM permuta p
-                INNER JOIN usuario u1 ON p.usuario_id_1_fk = u1.id
-                INNER JOIN usuario u2 ON p.usuario_id_2_fk = u2.id
-                WHERE ( p.usuario_id_1_fk = (SELECT id FROM usuario WHERE nombre_usuario = $1)
-                OR p.usuario_id_2_fk = (SELECT id FROM usuario WHERE nombre_usuario =$1)) 
-                AND (p.estado = 'VALIDADA' OR p.estado = 'FINALIZADA') AND p.aceptada_1 = true AND p.aceptada_2 = true AND p.vigente = true;`,
-        values: [uvus],
-      };
-      const resultado = await conexion.query(querySelect);
-      const { usuario_primario, usuario_secundario } = resultado.rows[0];
+  async notificarDocumentoTelegram(participantes, mensaje) {
+    for (const uvus of participantes) {
       try {
-        const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(usuario_primario);
-        const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(usuario_secundario);
-        await sendMessage(chatIdEstudiante1, mensajeFirmadaPermutaAlumno1(usuario_secundario));
-        await sendMessage(chatIdEstudiante2, mensajeFirmadaPermutaAlumno2(usuario_primario));
-      } catch (msgError) {
-        console.error("Error enviando mensaje de validación:", msgError);
-      }
-      return "La permuta ha sido firmada correctamente";
-    } catch (error) {
-      console.error("Error al firmar la permuta:", error);
-      throw new Error("Error al firmar la permuta");
-    } finally {
-      await conexion.end();
+        const chatId = await autorizacionService.obtenerChatIdUsuario(uvus);
+        await sendMessage(chatId, typeof mensaje === 'function' ? mensaje(uvus) : mensaje);
+      } catch (error) { console.error('Error notificando documento por Telegram:', error); }
     }
+  }
+
+  async firmarPermuta(permutaId, archivo, uvus) {
+    const { participantes, cambiado } = await cambiarEstadoDocumento(permutaId, 'FIRMADA', { archivo, uvus });
+    if (cambiado) await this.notificarDocumentoTelegram(participantes, usuario => usuario === uvus
+      ? mensajeFirmadaPermutaAlumno1(participantes.find(u => u !== uvus)) : mensajeFirmadaPermutaAlumno2(uvus));
+    return 'La permuta ha sido firmada correctamente';
   }
 
   async aceptarPermuta(permutaId, archivo, uvus) {
-    const conexion = await database.connectPostgreSQL();
-    try {
-      const query = {
-        text: `UPDATE permutas 
-               SET estado = 'ACEPTADA', archivo = $2, estudiante_cumplimentado_2 = $3
-               WHERE id = $1
-               AND vigente = true`,
-        values: [permutaId, archivo, uvus],
-      };
-
-      await conexion.query(query);
-      const querySelect = {
-        text: `SELECT estudiante_cumplimentado_1, estudiante_cumplimentado_2 FROM permutas WHERE id = $1`,
-        values: [permutaId],
-      };
-      const resultado = await conexion.query(querySelect);
-      const { estudiante_cumplimentado_1, estudiante_cumplimentado_2 } = resultado.rows[0];
-      try {
-        const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_1);
-        const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_2);
-        await sendMessage(chatIdEstudiante1, mensajeAceptadaPermuta);
-        await sendMessage(chatIdEstudiante2, mensajeAceptadaPermuta);
-      } catch (msgError) {
-        console.error("Error enviando mensaje de validación:", msgError);
-      }
-      return "La permuta ha sido aceptada correctamente";
-    } catch (error) {
-      console.error("Error al aceptar la permuta:", error);
-      throw new Error("Error al aceptar la permuta");
-    } finally {
-      await conexion.end();
-    }
+    const { participantes, cambiado } = await cambiarEstadoDocumento(permutaId, 'ACEPTADA', { archivo, uvus });
+    if (cambiado) await this.notificarDocumentoTelegram(participantes, mensajeAceptadaPermuta);
+    return 'La permuta ha sido aceptada correctamente';
   }
 
-async validarPermuta(permutaId) {
-    const conexion = await database.connectPostgreSQL();
-    try {
-      const queryUpdate = {
-        text: `UPDATE permutas 
-               SET estado = 'VALIDADA'
-               WHERE id = $1`,
-        values: [permutaId],
-      };
-      await conexion.query(queryUpdate);
-
-      const querySelect = {
-        text: `SELECT estudiante_cumplimentado_1, estudiante_cumplimentado_2 FROM permutas WHERE id = $1`,
-        values: [permutaId],
-      };
-      const resultado = await conexion.query(querySelect);
-      const { estudiante_cumplimentado_1, estudiante_cumplimentado_2 } = resultado.rows[0];
-      try {
-        const chatIdEstudiante1 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_1);
-        const chatIdEstudiante2 = await autorizacionService?.obtenerChatIdUsuario(estudiante_cumplimentado_2);
-        await sendMessage(chatIdEstudiante1, mensajeValidacionPermuta);
-        await sendMessage(chatIdEstudiante2, mensajeValidacionPermuta);
-      } catch (msgError) {
-        console.error("Error enviando mensaje de validación:", msgError);
-      }
-    } catch (error) {
-      console.error("Error al validar la permuta:", error);
-      throw new Error("Error al validar la permuta");
-    } finally {
-      await conexion.end();
-    }
-}
+  async validarPermuta(permutaId, uvus) {
+    const { participantes, cambiado } = await cambiarEstadoDocumento(permutaId, 'VALIDADA', { uvus });
+    if (cambiado) await this.notificarDocumentoTelegram(participantes, mensajeValidacionPermuta);
+  }
 
   async rechazarSolicitudPermuta(uvus, solicitud) {
     return rechazarPermutaIndividual(uvus, solicitud);

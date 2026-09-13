@@ -64,6 +64,10 @@ const options = {
             id: { type: 'integer', example: 1 },
             contenido: { type: 'string', example: 'Notificación de prueba' },
             receptor: { type: 'string', enum: ['estudiante', 'administrador', 'all'], example: 'estudiante' },
+            tipo: { type: 'string', enum: ['ADMINISTRACION', 'PERMUTA', 'DOCUMENTO', 'INCIDENCIA'] },
+            leida: { type: 'boolean', example: false },
+            fecha_lectura: { type: 'string', format: 'date-time', nullable: true },
+            enlace: { type: 'string', nullable: true, example: '/seguimiento' },
           },
         },
         Permuta: {

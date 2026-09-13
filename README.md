@@ -59,6 +59,10 @@ TFMPermuta es una aplicación diseñada para gestionar permutas de grupos y asig
 
 ## Uso
 
+Para la versión con notificaciones leídas y avisos privados del proceso, aplica
+`sql/notificaciones_lectura_eventos.sql` antes de desplegar el backend. Consulta
+[la integración y el contrato de notificaciones](docs/notificaciones.md).
+
 1. Ejecuta el servidor localmente con `npm start`.
 2. Accede a los endpoints de la API para gestionar usuarios, permutas e incidencias.
 3. Usa el bot de Telegram para interactuar con el sistema desde tu dispositivo móvil.
