@@ -14,6 +14,7 @@ router
 .post('/misPermutasPropuestasPorMi', verificarRol('estudiante'), permutasController.misPermutasPropuestasPorMi)
 .post('/obtenerPermutasValidadasPorUsuario', verificarRol('estudiante'), permutasController.obtenerPermutasValidadasPorUsuario)
 .post('/obtenerPermutasAgrupadasPorUsuario', verificarRol('estudiante'), permutasController.obtenerPermutasAgrupadasPorUsuario)
+.post('/documento/:id/recordatorio', verificarRol('estudiante'), permutasController.recordarCompletarDocumento)
 .post('/actualizarVigenciaPermutas', verificarRol('administrador'), permutasController.actualizarVigenciaPermutas)
 
 export default router;

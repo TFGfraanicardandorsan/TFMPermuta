@@ -174,6 +174,27 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
   }
 };
 
+const recordarCompletarDocumento = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
+    }
+    const validId = GenericValidators.isInteger(req.params.id, "DocumentoId");
+    if (!/^\d+$/.test(String(req.params.id ?? '')) || !validId.valido || !Number.isSafeInteger(validId.valor) || validId.valor <= 0 || validId.valor > 2147483647) {
+      return res.status(400).json({ err: true, message: "DocumentoId debe ser un entero positivo" });
+    }
+    const result = await permutaService.recordarCompletarDocumento(
+      validId.valor,
+      req.session.user.nombre_usuario
+    );
+    return res.status(200).json({ err: false, result });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
+    console.error("api recordarCompletarDocumento ha tenido una excepción:", err);
+    return res.status(500).json({ err: true, message: "Error interno al enviar el recordatorio" });
+  }
+};
+
 const actualizarVigenciaPermutas = async (req, res) => {
     try {
         if (!req.session.user) {
@@ -195,6 +216,7 @@ export default {
     misPermutasPropuestasPorMi,
     obtenerPermutasValidadasPorUsuario,
     obtenerPermutasAgrupadasPorUsuario,
+    recordarCompletarDocumento,
     generarBorradorPermutas,
     firmarPermuta,
     validarPermuta,

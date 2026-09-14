@@ -301,6 +301,12 @@ class PermutaService {
       g1.nombre AS grupo_1,
       g2.nombre AS grupo_2,
       p.estado AS estado,
+      u1.nombre_usuario AS usuario_1_uvus,
+      u1.nombre_completo AS usuario_1_nombre,
+      u1.correo AS usuario_1_correo,
+      u2.nombre_usuario AS usuario_2_uvus,
+      u2.nombre_completo AS usuario_2_nombre,
+      u2.correo AS usuario_2_correo,
       LEAST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_primario,
       GREATEST(u1.nombre_usuario, u2.nombre_usuario) AS usuario_secundario,
       documento.id AS documento_permuta_id,
@@ -363,6 +369,20 @@ class PermutaService {
             usuarios: estudiante1
               ? [estudiante1, estudiante2]
               : [usuarioPrimario, usuarioSecundario],
+            participantes_por_uvus: {
+              [row.usuario_1_uvus?.trim()]: {
+                uvus: row.usuario_1_uvus?.trim(),
+                nombre_completo: row.usuario_1_nombre,
+                correo: row.usuario_1_correo,
+              },
+              [row.usuario_2_uvus?.trim()]: {
+                uvus: row.usuario_2_uvus?.trim(),
+                nombre_completo: row.usuario_2_nombre,
+                correo: row.usuario_2_correo,
+              },
+            },
+            documento_permuta_id: row.documento_permuta_id ?? null,
+            estado_documento: row.estado_permuta_asociada ?? null,
             estudiante_cumplimentado_1: estudiante1 || null,
             estudiante_cumplimentado_2:
               row.estudiante_cumplimentado_2?.trim() || null,
@@ -379,19 +399,158 @@ class PermutaService {
           codigo_asignatura: row.codigo_asignatura,
           grupo_1: row.grupo_1,
           grupo_2: row.grupo_2,
+          usuario_1_uvus: row.usuario_1_uvus?.trim(),
+          usuario_2_uvus: row.usuario_2_uvus?.trim(),
           estado: row.estado,
           estado_permuta_asociada: row.estado_permuta_asociada,
         });
         return acc;
       }, {});
 
-      return Object.values(permutasAgrupadas);
+      return Object.values(permutasAgrupadas).map((grupo) => {
+        const participantes = grupo.usuarios.map((usuario) =>
+          grupo.participantes_por_uvus[usuario] ?? {
+            uvus: usuario,
+            nombre_completo: usuario,
+            correo: null,
+          }
+        );
+        const estado = String(grupo.estado_documento || '').toUpperCase();
+        let usuarioPendiente = null;
+        if (estado === 'BORRADOR' && grupo.estudiante_cumplimentado_1 && !grupo.estudiante_cumplimentado_2) {
+          usuarioPendiente = grupo.estudiante_cumplimentado_1;
+        } else if (estado === 'FIRMADA' && grupo.estudiante_cumplimentado_1 && !grupo.estudiante_cumplimentado_2) {
+          usuarioPendiente = grupo.usuarios.find((usuario) => usuario !== grupo.estudiante_cumplimentado_1) ?? null;
+        }
+
+        const resultadoGrupo = { ...grupo };
+        delete resultadoGrupo.participantes_por_uvus;
+        return {
+          ...resultadoGrupo,
+          participantes,
+          usuario_pendiente: usuarioPendiente,
+          puede_notificar_companero: Boolean(usuarioPendiente && usuarioPendiente !== uvus),
+        };
+      });
     } catch (error) {
       console.error(
         "Error al obtener las permutas agrupadas por usuario:",
         error
       );
       throw new Error("Error al obtener las permutas agrupadas por usuario");
+    } finally {
+      await conexion.end();
+    }
+  }
+
+  async notificarRecordatorioTelegram(uvus, mensaje) {
+    try {
+      const chatId = await autorizacionService.obtenerChatIdUsuario(uvus);
+      if (chatId === null || chatId === undefined || (typeof chatId === 'object' && chatId.err)) return false;
+      const mensajeSeguro = mensaje.replace(/[&<>]/g, (caracter) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[caracter]);
+      return await sendMessage(chatId, mensajeSeguro) === true;
+    } catch (error) {
+      console.error('Error enviando el recordatorio de permuta por Telegram:', error);
+      return false;
+    }
+  }
+
+  async recordarCompletarDocumento(documentoId, uvusSolicitante) {
+    const conexion = await database.connectPostgreSQL();
+    let confirmada = false;
+    try {
+      await conexion.query('BEGIN');
+      await conexion.query({
+        text: `SELECT pg_advisory_xact_lock(hashtext('recordatorio_documento:' || $1::text))`,
+        values: [documentoId],
+      });
+      const documentoRes = await conexion.query({
+        text: `SELECT id, estado, estudiante_cumplimentado_1, estudiante_cumplimentado_2
+          FROM permutas WHERE id = $1 AND vigente = true FOR UPDATE`,
+        values: [documentoId],
+      });
+      if (documentoRes.rowCount !== 1) {
+        throw Object.assign(new Error('El documento de permuta no está disponible.'), { statusCode: 404 });
+      }
+
+      const participantesRes = await conexion.query({
+        text: `SELECT DISTINCT u.id, u.nombre_usuario, u.nombre_completo, u.correo
+          FROM permutas_permuta pp
+          INNER JOIN permuta p ON p.id = pp.permuta_id_fk AND p.vigente = true
+          CROSS JOIN LATERAL (VALUES (p.usuario_id_1_fk), (p.usuario_id_2_fk)) participante(usuario_id)
+          INNER JOIN usuario u ON u.id = participante.usuario_id
+          WHERE pp.permutas_id_fk = $1`,
+        values: [documentoId],
+      });
+      const participantes = participantesRes.rows;
+      const solicitante = participantes.find((p) => p.nombre_usuario?.trim() === uvusSolicitante?.trim());
+      if (!solicitante) {
+        throw Object.assign(new Error('No participas en este documento de permuta.'), { statusCode: 403 });
+      }
+      if (participantes.length !== 2) {
+        throw Object.assign(new Error('No se ha podido determinar la pareja de esta permuta.'), { statusCode: 409 });
+      }
+
+      const documento = documentoRes.rows[0];
+      const estado = String(documento.estado || '').toUpperCase();
+      const primero = documento.estudiante_cumplimentado_1?.trim();
+      const segundo = documento.estudiante_cumplimentado_2?.trim();
+      let uvusPendiente = null;
+      if (estado === 'BORRADOR' && primero && !segundo) {
+        uvusPendiente = primero;
+      } else if (estado === 'FIRMADA' && primero && !segundo) {
+        uvusPendiente = participantes.find((p) => p.nombre_usuario?.trim() !== primero)?.nombre_usuario?.trim() ?? null;
+      }
+      if (!uvusPendiente) {
+        throw Object.assign(new Error('El documento no tiene ninguna parte pendiente que pueda notificarse.'), { statusCode: 409 });
+      }
+      if (uvusPendiente === uvusSolicitante?.trim()) {
+        throw Object.assign(new Error('Tu parte del documento es la que está pendiente.'), { statusCode: 409 });
+      }
+
+      const pendiente = participantes.find((p) => p.nombre_usuario?.trim() === uvusPendiente);
+      if (!pendiente) {
+        throw Object.assign(new Error('No se ha podido determinar quién debe completar el documento.'), { statusCode: 409 });
+      }
+      const prefijoClave = `documento:${documentoId}:recordatorio:${pendiente.id}:`;
+      const reciente = await conexion.query({
+        text: `SELECT 1 FROM notificacion
+          WHERE destinatario_id_fk = $1
+            AND clave_evento LIKE $2
+            AND fecha_creacion > NOW() - INTERVAL '15 minutes'
+          LIMIT 1`,
+        values: [pendiente.id, `${prefijoClave}%`],
+      });
+      if (reciente.rowCount > 0) {
+        throw Object.assign(new Error('Ya se ha enviado un recordatorio recientemente. Espera 15 minutos para volver a intentarlo.'), { statusCode: 429 });
+      }
+
+      const nombreSolicitante = solicitante.nombre_completo?.trim() || solicitante.nombre_usuario?.trim();
+      const mensaje = `${nombreSolicitante} quiere que termines el proceso de permuta que tiene contigo. Rellena el documento cuando te sea posible.`;
+      await conexion.query({
+        text: `INSERT INTO notificacion
+          (usuario_id_fk, contenido, receptor, destinatario_id_fk, tipo, enlace, clave_evento)
+          VALUES ($1, $2, 'personal', $3, 'DOCUMENTO', '/permutasAceptadas', $4)`,
+        values: [solicitante.id, mensaje, pendiente.id, `${prefijoClave}${new Date().toISOString()}`],
+      });
+      await conexion.query('COMMIT');
+      confirmada = true;
+
+      const telegramEnviado = await this.notificarRecordatorioTelegram(uvusPendiente, mensaje);
+      return {
+        notificacionSistema: true,
+        telegramEnviado,
+        destinatario: {
+          uvus: uvusPendiente,
+          nombre_completo: pendiente.nombre_completo,
+        },
+        proximoRecordatorioMinutos: 15,
+      };
+    } catch (error) {
+      if (!confirmada) await conexion.query('ROLLBACK');
+      if (error.statusCode) throw error;
+      console.error('Error al recordar la cumplimentación de la permuta:', error);
+      throw new Error('No se pudo enviar el recordatorio de la permuta.');
     } finally {
       await conexion.end();
     }

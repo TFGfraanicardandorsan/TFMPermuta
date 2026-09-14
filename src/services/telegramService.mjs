@@ -224,7 +224,7 @@ export const sendMessage = async (chatId, text, parseMode = "HTML", markup = nul
   try {
     if (!chatId || chatId === null || chatId === undefined || chatId === '') {
       console.error("Error: chatId es requerido para enviar un mensaje");
-      return;
+      return false;
     }
     const body = { chat_id: chatId, text, parse_mode: parseMode };
     if (markup) {
@@ -239,9 +239,12 @@ export const sendMessage = async (chatId, text, parseMode = "HTML", markup = nul
     if (!response.ok) {
       const error = await response.text();
       console.error("Telegram API error:", error);
+      return false;
     }
+    return true;
   } catch (err) {
     console.error("Error enviando mensaje:", err);
+    return false;
   }
 };
 

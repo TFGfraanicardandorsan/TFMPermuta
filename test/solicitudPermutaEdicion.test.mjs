@@ -400,7 +400,19 @@ test('las solicitudes interesantes excluyen solo permutas activas y solicitudes 
   assert.match(textoQuery(query), /sp\.estado = 'SOLICITADA'/);
   assert.match(textoQuery(query), /NOT EXISTS/);
   assert.match(textoQuery(query), /p\.vigente = true/);
+  assert.match(textoQuery(query), /solicitante\.nombre_completo AS estudiante_nombre/);
   assert.deepEqual(query.values[2], ['PROPUESTA', 'ACEPTADA', 'VALIDADA', 'FINALIZADA']);
+});
+
+test('las propuestas óptimas incluyen el nombre del otro estudiante', async () => {
+  const fake = crearCliente(() => ({ rows: [] }));
+  database.connectPostgreSQL = async () => fake.client;
+
+  await solicitudPermutaService.getPermutasPropuestasSistema('alumno');
+
+  assert.match(textoQuery(fake.consultas[0]), /AS companero_nombre/);
+  assert.match(textoQuery(fake.consultas[0]), /INNER JOIN usuario u1/);
+  assert.match(textoQuery(fake.consultas[0]), /INNER JOIN usuario u2/);
 });
 
 test('aceptarSolicitudPermuta comparte el advisory lock y bloquea grupos antes de la solicitud', async () => {

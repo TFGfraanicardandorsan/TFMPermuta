@@ -299,12 +299,14 @@ class SolicitudPermutaService {
         gd.grupo_id_fk AS grupo_deseado_id,
         gd_grupo.nombre AS grupo_deseado,
         a.codigo AS codigo_asignatura,
-        a.siglas AS siglas_asignatura
+        a.siglas AS siglas_asignatura,
+        solicitante.nombre_completo AS estudiante_nombre
       FROM solicitud_permuta sp
       INNER JOIN grupo_deseado gd ON sp.id = gd.solicitud_permuta_id_fk
       INNER JOIN grupo g ON sp.grupo_solicitante_id_fk = g.id AND g.habilitado = true
       INNER JOIN grupo gd_grupo ON gd.grupo_id_fk = gd_grupo.id AND gd_grupo.habilitado = true
       INNER JOIN asignatura a ON sp.id_asignatura_fk = a.id
+      INNER JOIN usuario solicitante ON solicitante.id = sp.usuario_id_fk
       WHERE sp.id_asignatura_fk = ANY($1)
       AND sp.vigente = true
       AND sp.estado = 'SOLICITADA'
@@ -1075,9 +1077,12 @@ class SolicitudPermutaService {
             CASE WHEN p.usuario_id_1_fk = u.id THEN g2.nombre ELSE g1.nombre END AS grupo_destino,
             CASE WHEN p.usuario_id_1_fk = u.id THEN p.aceptada_1 ELSE p.aceptada_2 END AS aceptada_por_mi,
             CASE WHEN p.usuario_id_1_fk = u.id THEN p.aceptada_2 ELSE p.aceptada_1 END AS aceptada_por_otro,
+            CASE WHEN p.usuario_id_1_fk = u.id THEN u2.nombre_completo ELSE u1.nombre_completo END AS companero_nombre,
             p.estado
           FROM permuta p
           INNER JOIN usuario u ON u.nombre_usuario = $1
+          INNER JOIN usuario u1 ON u1.id = p.usuario_id_1_fk
+          INNER JOIN usuario u2 ON u2.id = p.usuario_id_2_fk
           INNER JOIN asignatura a ON a.id = p.asignatura_id_fk
           INNER JOIN grupo g1 ON g1.id = p.grupo_id_1_fk
           INNER JOIN grupo g2 ON g2.id = p.grupo_id_2_fk
