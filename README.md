@@ -121,6 +121,16 @@ obtención y renovación.
 - `POST /api/v1/permutas/aceptarPermuta`: Acepta una permuta propuesta.
 - `POST /api/v1/permutas/rechazarSolicitudPermuta`: Rechaza una solicitud de permuta.
 
+### Administración de permutas
+- `POST /api/v1/admin/permutas/panel`: Devuelve el resumen operativo, solicitudes y permutas para el panel.
+- `POST /api/v1/admin/permutas/buscar-parejas`: Previsualiza el emparejamiento óptimo sin escribir en la base de datos.
+- `POST /api/v1/admin/permutas/generar-propuestas`: Calcula y crea las propuestas óptimas disponibles.
+- `POST /api/v1/admin/permutas/solicitudes/{id}/cancelar`: Cancela una solicitud y propaga el cambio a sus bloques, permutas y documentos.
+- `POST /api/v1/admin/permutas/permutas/{id}/cancelar`: Cancela una permuta indicando el participante que lo solicita; mantiene disponible al otro usuario.
+- `POST /api/v1/admin/permutas/retirar-vigencia`: Retira en una única transacción la vigencia de solicitudes, permutas y documentos.
+
+Todas estas rutas requieren rol `administrador`, sesión autenticada y token CSRF. Las cancelaciones bloquean el emparejamiento automático durante la transacción para evitar propuestas concurrentes incoherentes.
+
 ### Incidencias
 - `POST /api/v1/incidencia/crearIncidencia`: Crea una nueva incidencia.
 - `POST /api/v1/incidencia/obtenerIncidencias`: Obtiene todas las incidencias.

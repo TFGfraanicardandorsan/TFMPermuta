@@ -935,40 +935,81 @@ class SolicitudPermutaService {
     // Convertir el objeto agrupado en una lista de listas
     return Object.values(permutasAgrupadas);
   }
+  async obtenerSolicitudesElegibles(conexion) {
+    return conexion.query(`
+      SELECT DISTINCT sp.usuario_id_fk AS estudiante_id,
+        sp.id AS solicitud_id,
+        sp.id_asignatura_fk AS asignatura,
+        a.codigo AS asignatura_codigo, a.nombre AS asignatura_nombre,
+        a.curso, sp.bloque_id,
+        u.nombre_usuario AS estudiante_uvus,
+        u.nombre_completo AS estudiante_nombre,
+        ARRAY(SELECT miembro.id_asignatura_fk FROM solicitud_permuta miembro
+          WHERE miembro.bloque_id = sp.bloque_id) AS asignaturas_bloque,
+        sp.grupo_solicitante_id_fk AS grupo_actual,
+        gd.grupo_id_fk AS grupo_deseado
+      FROM solicitud_permuta sp
+      INNER JOIN usuario u ON u.id = sp.usuario_id_fk
+      INNER JOIN asignatura a ON a.id = sp.id_asignatura_fk
+      INNER JOIN grupo_deseado gd ON gd.solicitud_permuta_id_fk = sp.id
+      INNER JOIN grupo actual ON actual.id = sp.grupo_solicitante_id_fk
+      INNER JOIN grupo deseado ON deseado.id = gd.grupo_id_fk
+      WHERE sp.estado = 'SOLICITADA' AND sp.vigente = true
+        AND actual.habilitado = true AND deseado.habilitado = true
+        AND EXISTS (SELECT 1 FROM usuario_grupo ug WHERE ug.usuario_id_fk = sp.usuario_id_fk
+          AND ug.grupo_id_fk = sp.grupo_solicitante_id_fk)
+        AND EXISTS (SELECT 1 FROM usuario_asignatura ua WHERE ua.usuario_id_fk = sp.usuario_id_fk
+          AND ua.asignatura_id_fk = sp.id_asignatura_fk)
+        AND actual.asignatura_id_fk = sp.id_asignatura_fk
+        AND deseado.asignatura_id_fk = sp.id_asignatura_fk
+        AND NOT EXISTS (
+          SELECT 1 FROM permuta p
+          WHERE p.vigente = true
+            AND p.estado IN ('PROPUESTA', 'ACEPTADA', 'VALIDADA', 'FINALIZADA')
+            AND p.asignatura_id_fk = sp.id_asignatura_fk
+            AND sp.usuario_id_fk IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
+        )
+    `);
+  }
+
+  async buscarParejasOptimas() {
+    const conexion = await database.connectPostgreSQL();
+    try {
+      const solicitudesRes = await this.obtenerSolicitudesElegibles(conexion);
+      const emparejamientos = new PermutaMatching(solicitudesRes.rows).construirGrafo().emparejar();
+      const usuarios = new Map(solicitudesRes.rows.map((fila) => [String(fila.estudiante_id), {
+        id: fila.estudiante_id,
+        uvus: fila.estudiante_uvus,
+        nombre: fila.estudiante_nombre,
+      }]));
+      const asignaturas = new Map(solicitudesRes.rows.map((fila) => [String(fila.asignatura), {
+        id: fila.asignatura,
+        codigo: fila.asignatura_codigo,
+        nombre: fila.asignatura_nombre,
+        curso: fila.curso,
+      }]));
+      return {
+        solicitudesAnalizadas: new Set(solicitudesRes.rows.map((fila) => fila.solicitud_id)).size,
+        parejas: emparejamientos.map((pareja) => ({
+          estudiante1: usuarios.get(String(pareja.estudiante1)),
+          estudiante2: usuarios.get(String(pareja.estudiante2)),
+          asignaturas: pareja.asignaturas.map((id) => asignaturas.get(String(id))),
+        })),
+        asignaturasResueltas: emparejamientos.reduce(
+          (total, pareja) => total + pareja.asignaturas.length, 0
+        ),
+      };
+    } finally {
+      await conexion.end();
+    }
+  }
+
   async proponerPermutas() {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query('BEGIN');
       await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
-      const solicitudesRes = await conexion.query(`
-        SELECT DISTINCT sp.usuario_id_fk AS estudiante_id,
-          sp.id_asignatura_fk AS asignatura,
-          a.curso, sp.bloque_id,
-          ARRAY(SELECT miembro.id_asignatura_fk FROM solicitud_permuta miembro
-            WHERE miembro.bloque_id = sp.bloque_id) AS asignaturas_bloque,
-          sp.grupo_solicitante_id_fk AS grupo_actual,
-          gd.grupo_id_fk AS grupo_deseado
-        FROM solicitud_permuta sp
-        INNER JOIN asignatura a ON a.id = sp.id_asignatura_fk
-        INNER JOIN grupo_deseado gd ON gd.solicitud_permuta_id_fk = sp.id
-        INNER JOIN grupo actual ON actual.id = sp.grupo_solicitante_id_fk
-        INNER JOIN grupo deseado ON deseado.id = gd.grupo_id_fk
-        WHERE sp.estado = 'SOLICITADA' AND sp.vigente = true
-          AND actual.habilitado = true AND deseado.habilitado = true
-          AND EXISTS (SELECT 1 FROM usuario_grupo ug WHERE ug.usuario_id_fk = sp.usuario_id_fk
-            AND ug.grupo_id_fk = sp.grupo_solicitante_id_fk)
-          AND EXISTS (SELECT 1 FROM usuario_asignatura ua WHERE ua.usuario_id_fk = sp.usuario_id_fk
-            AND ua.asignatura_id_fk = sp.id_asignatura_fk)
-          AND actual.asignatura_id_fk = sp.id_asignatura_fk
-          AND deseado.asignatura_id_fk = sp.id_asignatura_fk
-          AND NOT EXISTS (
-            SELECT 1 FROM permuta p
-            WHERE p.vigente = true
-              AND p.estado IN ('PROPUESTA', 'ACEPTADA', 'VALIDADA', 'FINALIZADA')
-              AND p.asignatura_id_fk = sp.id_asignatura_fk
-              AND sp.usuario_id_fk IN (p.usuario_id_1_fk, p.usuario_id_2_fk)
-          )
-      `);
+      const solicitudesRes = await this.obtenerSolicitudesElegibles(conexion);
 
       const emparejamientos = new PermutaMatching(solicitudesRes.rows).construirGrafo().emparejar();
       let propuestasCreadas = 0;

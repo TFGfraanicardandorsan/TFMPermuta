@@ -1,5 +1,6 @@
 import solicitudPermutaService from "../services/solicitudPermutaService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
+import adminPermutasService from "../services/adminPermutasService.mjs";
 
 const MAX_INT_POSTGRES = 2_147_483_647;
 const MAX_GRUPOS_DESEADOS = 100;
@@ -271,7 +272,7 @@ const actualizarLaVigenciaSolicitud = async (req,res) => {
         if (!req.session.user) {
             return res.status(401).json({ err: true, message: "No hay usuario en la sesión" });
         }
-        res.send({err:false, result:await solicitudPermutaService.actualizarLaVigenciaSolicitud()})
+        res.send({err:false, result:await adminPermutasService.retirarVigenciaGlobal(req.body?.motivo || '')})
         } catch (err){
             console.error('api actualizarLaVigenciaSolicitud ha tenido una excepción:', err);
             res.status(500).json({ err: true, message: 'Error interno en actualizarLaVigenciaSolicitud', details: err.message });
@@ -291,7 +292,9 @@ const cancelarSolicitudPermuta = async (req, res) => {
             return res.status(400).json({ err: true, message: validSolicitud.mensaje });
         }
         const esAdmin = req.session.user.rol === "administrador";
-        const result = await solicitudPermutaService.cancelarSolicitudPermuta(uvus, validSolicitud.valor, esAdmin);
+        const result = esAdmin
+            ? await adminPermutasService.cancelarSolicitud(validSolicitud.valor, req.body?.motivo || '')
+            : await solicitudPermutaService.cancelarSolicitudPermuta(uvus, validSolicitud.valor, false);
         res.send({ err: false, result });
     } catch (err) {
         return manejarErrorServicio(res, err, 'Error interno en cancelarSolicitudPermuta');
