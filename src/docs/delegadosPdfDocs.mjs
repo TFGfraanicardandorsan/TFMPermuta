@@ -2,7 +2,7 @@
  * @swagger
  * tags:
  *   name: Delegados
- *   description: Certificados y correos para Delegación de Alumnos
+ *   description: Certificados y correos para Delegación de Estudiantes
  */
 
 /**

@@ -13,6 +13,7 @@ import delegadosController from '../src/controllers/delegadosController.mjs';
 import delegadosRouter from '../src/routes/delegadosRoutes.mjs';
 import { buildCertificateZip, buildPdfDocuments, readSubmission } from '../src/services/delegadosService.mjs';
 import { saveCertificateDocuments } from '../src/services/delegadosStorageService.mjs';
+import { certificatePurposeParagraph } from '../src/services/delegadosPdfService.mjs';
 
 test('delegados expone POST /firmar-lote mediante el controlador de firma por lotes', () => {
   const route = delegadosRouter.stack.find((layer) => layer.route?.path === '/firmar-lote')?.route;
@@ -96,6 +97,15 @@ test('buildPdfDocuments generates PDFs and ZIP archive', async () => {
 
   const archive = await buildCertificateZip(documents);
   assert.ok(archive.subarray(0, 2).equals(Buffer.from('PK')));
+});
+
+test('el certificado usa el nombre actual de la delegación y omite la expresión con fecha', () => {
+  const texto = certificatePurposeParagraph('Delegado de Centro');
+
+  assert.match(texto, /Delegación de Estudiantes/);
+  assert.doesNotMatch(texto, /Delegación de Alumnos/i);
+  assert.doesNotMatch(texto, /con fecha/i);
+  assert.match(texto, /firma el presente documento\.$/);
 });
 
 test('saveCertificateDocuments stores PDFs by delegate type folder', async () => {

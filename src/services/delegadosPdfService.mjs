@@ -37,7 +37,7 @@ export async function buildCertificatePdf(row, signer, requestDate) {
     },
     info: {
       Title: `Certificado ${row.nombre}`,
-      Author: 'Delegación de Alumnos',
+      Author: 'Delegación de Estudiantes',
     },
   });
   const pdfPromise = collectPdf(doc);
@@ -83,7 +83,7 @@ function drawCenterCertificate(doc, row, signer, requestDate, fonts) {
     });
 
   doc
-    .text(purposeParagraph(signer), doc.page.margins.left, doc.y + 30, {
+    .text(certificatePurposeParagraph(signer), doc.page.margins.left, doc.y + 30, {
       width: contentWidth,
       align: 'justify',
     });
@@ -124,7 +124,7 @@ function drawAcademicCertificate(doc, row, signer, requestDate, fonts) {
   doc
     .font(fonts.regular)
     .fontSize(12.5)
-    .text(purposeParagraph(signer), left, doc.y + 70, {
+    .text(certificatePurposeParagraph(signer), left, doc.y + 70, {
       width: contentWidth,
       align: 'justify',
     });
@@ -204,11 +204,11 @@ function academicParagraph(row) {
   return `El estudiante, ${row.nombre}, con DNI: ${row.dni} ha sido DELEGADO DE GRUPO en el grado de ${groupDegreeLabel(row.grado)}.`;
 }
 
-function purposeParagraph(signer) {
+export function certificatePurposeParagraph(signer) {
   return (
     'Y para que conste a tal efecto su ratificación y posterior emisión de los créditos ECTS ' +
     `correspondientes por ello, el Delegado de Centro: ${signer.trim().toUpperCase()}, ` +
-    'en nombre de la Delegación de Alumnos, firma el presente documento con fecha,'
+    'en nombre de la Delegación de Estudiantes, firma el presente documento.'
   );
 }
 
