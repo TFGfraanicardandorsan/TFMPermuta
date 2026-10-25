@@ -1,5 +1,14 @@
 # CERTS
 src/config/certsSAML/*
+src/config/certs/*
+*.key
+*.p12
+*.pfx
+**/privkey*.pem
+**/privateKey*.pem
+storage/
+uploads/
+.security-tmp/
 
 # Logs
 logs
@@ -77,6 +86,8 @@ web_modules/
 
 # dotenv environment variable files
 .env
+.env.*
+!.envSample
 .env.development.local
 .env.test.local
 .env.production.local

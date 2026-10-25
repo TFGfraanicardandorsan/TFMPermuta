@@ -1,16 +1,51 @@
-PORT= 
+﻿NODE_ENV=production
+PORT=3000
+BIND_HOST=127.0.0.1
+# Si el proxy está en el mismo equipo; no usar true ni 1.
+TRUST_PROXY=loopback
+PUBLIC_BASE_URL=https://permutas.eii.us.es
+FRONTEND_ORIGINS=https://permutas.eii.us.es
+ENABLE_API_DOCS=false
 
-DB_HOST=''
-DB_DATABASE= ''
-DB_PORT= 
-DB_USER=''
-DB_PASS=''
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=tfmpermuta
+DB_USER=tfmpermuta_app
+DB_PASS=
+# Activar con CA válida cuando PostgreSQL esté en otra máquina.
+DB_SSL=false
+DB_SSL_CA=
 
-SSL_PASSPHRASE= ''
-SSL_KEY_PATH=''
-SSL_CERT_PATH=''
+# Generar con node scripts/rotate-security-secrets.mjs (con .env creado).
+SESSION_SECRET=
+# Clave nueva; la clave anteriormente versionada será rechazada.
+SSL_KEY_PATH=/etc/tfmpermuta/tls/privkey.pem
+SSL_CERT_PATH=/etc/tfmpermuta/tls/fullchain.pem
+SSL_PASSPHRASE=
+SIMPLESAML_AUTH_URL=https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp
+SIMPLESAML_COOKIE_NAMES=SimpleSAMLSessionID,PHPSESSID
 
-# Propuestas automáticas: 15 minutos por defecto
+BUZON=/var/lib/tfmpermuta/buzon
+ARCHIVADOR=/var/lib/tfmpermuta/archivador
+PROYECTO_DOCENTE=/var/lib/tfmpermuta/proyecto-docente
+PLANTILLAS=/var/lib/tfmpermuta/plantillas
+DELEGADOS_CERTIFICADOS_DIR=/var/lib/tfmpermuta/delegados
+PDF_FOLDER=/var/lib/tfmpermuta/archivador
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+ADMIN_CHAT_ID=
+EMAIL_USERNAME=
+EMAIL_PASSWORD=
+SMTP_HOST=smtp.office365.com
+SMTP_PORT=587
+SMTP_ALLOWED_HOSTS=smtp.office365.com
+SMTP_USER=
+SMTP_PASSWORD=
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_REDIRECT_URI=https://permutas.eii.us.es/api/v1/delegados/microsoft/callback
+
 PROPUESTAS_PERMUTA_HABILITADAS=true
-PROPUESTAS_PERMUTA_AL_INICIO=true
-PROPUESTAS_PERMUTA_INTERVALO_MS=900000
+PROPUESTAS_PERMUTA_AL_INICIO=false
+PROPUESTAS_PERMUTA_INTERVALO_MS=300000

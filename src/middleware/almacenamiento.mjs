@@ -1,49 +1,22 @@
-import multer from "multer";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
+import multer from 'multer';
+import path from 'node:path';
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_BYTES, files: 1, fields: 4, parts: 5, fieldSize: 1024 },
+  fileFilter(req, file, cb) {
     const tipo = req.body.tipo;
-    let uploadPath;
-    if (tipo === "buzon") {
-      uploadPath = process.env.BUZON;
-    } else if (tipo === "archivador") {
-      uploadPath = process.env.ARCHIVADOR;
-    } else if (tipo === "proyectoDocente") {
-      uploadPath = process.env.PROYECTO_DOCENTE;
-    } else if (tipo === "plantilla") {
-      uploadPath = process.env.PLANTILLAS;
-    } else {
-      return cb(new Error("Tipo de carpeta no válido"));
+    if (!['buzon', 'archivador', 'proyectoDocente', 'plantilla'].includes(tipo)) {
+      return cb(Object.assign(new Error('Indica tipo antes del archivo.'), { statusCode: 400 }));
     }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    if (req.body.tipo === "plantilla") {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth(); // 0-11
-
-      let startYear, endYear;
-      if (month >= 8) { // September or later
-        startYear = year;
-        endYear = year + 1;
-      } else {
-        startYear = year - 1;
-        endYear = year;
-      }
-
-      const startYY = startYear.toString().slice(-2);
-      const endYY = endYear.toString().slice(-2);
-
-      cb(null, `plantillaPermuta${startYY}${endYY}.pdf`);
-    } else {
-      const extension = path.extname(file.originalname);
-      cb(null, uuidv4() + extension);
+    if (['plantilla', 'proyectoDocente'].includes(tipo) && req.session?.user?.rol !== 'administrador') {
+      return cb(Object.assign(new Error('Solo administración puede modificar este archivo.'), { statusCode: 403 }));
     }
+    const ext = path.extname(file.originalname).toLowerCase();
+    const valid = (ext === '.pdf' && file.mimetype === 'application/pdf')
+      || (tipo === 'buzon' && ext === '.png' && file.mimetype === 'image/png');
+    return cb(valid ? null : Object.assign(new Error('Tipo de archivo no permitido.'), { statusCode: 400 }), valid);
   },
 });
-
-const upload = multer({ storage });
 export default upload;

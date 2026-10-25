@@ -1,5 +1,9 @@
 # TFMPermuta
 
+Antes de desplegar los parches de seguridad, sigue la [guía de seguridad y comandos del servidor](docs/seguridad-servidor.md).
+Requieren rotar la clave TLS que estuvo versionada, aplicar `sql/seguridad_sesiones_archivos.sql`,
+configurar los secretos nuevos y adaptar los endpoints de intercambio de AutoFirma a POST con CSRF.
+
 TFMPermuta es una aplicación diseñada para gestionar permutas de grupos y asignaturas en un entorno académico. Permite a los estudiantes solicitar, aceptar y gestionar permutas, mientras que los administradores pueden supervisar y validar estas solicitudes.
 
 ## Tabla de Contenidos

@@ -46,7 +46,11 @@ export function buildEmailConfig({ sender, password, host, port }, { requirePass
   if (!cleanHost) {
     errors.push('Indica el servidor SMTP.');
   }
-  if (!Number.isInteger(cleanPort) || cleanPort <= 0 || cleanPort > 65535) {
+  const allowedHosts = (process.env.SMTP_ALLOWED_HOSTS || DEFAULT_SMTP_HOST).split(',').map(h => h.trim().toLowerCase());
+  if (!allowedHosts.includes(cleanHost.toLowerCase())) {
+    errors.push('Servidor SMTP no autorizado por la configuración del servidor.');
+  }
+  if (![465, 587].includes(cleanPort)) {
     errors.push('El puerto SMTP no es válido.');
   }
 
@@ -122,6 +126,11 @@ export async function sendCertificateEmails(config, emails) {
     port: config.port,
     secure: config.port === 465,
     requireTLS: config.port !== 465,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
+    disableFileAccess: true,
+    disableUrlAccess: true,
     auth: {
       user: config.sender,
       pass: config.password,

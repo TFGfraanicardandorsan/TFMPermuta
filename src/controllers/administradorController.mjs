@@ -8,7 +8,7 @@ const obtenerEstadisticasPermutas = async (req, res)=> {
       const estadisticas = await administradorService.obtenerEstadisticasPermutas();
       res.status(200).json({ success: true, data: estadisticas });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Error al obtener estadísticas de permutas', error: error.message });
+      res.status(500).json({ success: false, message: 'Error al obtener estadísticas de permutas' });
     }
   }
 
@@ -20,7 +20,7 @@ const obtenerEstadisticasSolicitudes = async (req, res)=> {
     const estadisticas = await administradorService.obtenerEstadisticasSolicitudes();
     res.status(200).json({ success: true, data: estadisticas });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas de solicitudes', error: error.message });
+    res.status(500).json({ success: false, message: 'Error al obtener estadísticas de solicitudes' });
   }
 }
 

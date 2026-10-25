@@ -133,7 +133,7 @@ const getSolicitudesPermutaInteresantes = async (req,res) => {
         res.send({err:false, result:await solicitudPermutaService.getSolicitudesPermutaInteresantes(uvus)})
         } catch (err){
             console.error('api getSolicitudesPermutaInteresantes ha tenido una excepción:', err);
-            res.status(500).json({ err: true, message: 'Error interno en getSolicitudesPermutaInteresantes', details: err.message });
+            res.status(500).json({ err: true, message: 'Error interno en getSolicitudesPermutaInteresantes' });
         }
     }
 
@@ -146,7 +146,7 @@ const getMisSolicitudesPermuta = async (req,res) => {
         res.send({err:false, result:await solicitudPermutaService.getMisSolicitudesPermuta(uvus)})
         } catch (err){
             console.error('api getMisSolicitudesPermuta ha tenido una excepción:', err);
-            res.status(500).json({ err: true, message: 'Error interno en getMisSolicitudesPermuta', details: err.message });
+            res.status(500).json({ err: true, message: 'Error interno en getMisSolicitudesPermuta' });
         }
     }
 
@@ -193,7 +193,7 @@ const verListaPermutas = async (req,res) => {
         res.send({err:false, result:await solicitudPermutaService.verListaPermutas(uvus)})
         } catch (err){
             console.error('api verListaPermutas ha tenido una excepción:', err);
-            res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
+            res.status(500).json({ err: true, message: 'Error interno en verListaPermutas' });
         }
     }
 
@@ -205,7 +205,7 @@ const proponerPermutas = async (req, res) => {
         res.send({err: false, result: await solicitudPermutaService.proponerPermutas()});
     } catch (err) {
         console.error('api proponerPermutas ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en proponerPermutas', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en proponerPermutas' });
     }
 }
 
@@ -235,7 +235,7 @@ const getPermutasPropuestasSistema = async (req, res) => {
         res.send({ err: false, result: await solicitudPermutaService.getPermutasPropuestasSistema(uvus) });
     } catch (err) {
         console.error('api getPermutasPropuestasSistema ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en getPermutasPropuestasSistema', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en getPermutasPropuestasSistema' });
     }
 };
 
@@ -264,7 +264,7 @@ const getTodasSolicitudesPermuta = async (req,res) => {
         res.send({err:false, result:await solicitudPermutaService.getTodasSolicitudesPermuta()})
         } catch (err){
             console.error('api verListaPermutas ha tenido una excepción:', err);
-            res.status(500).json({ err: true, message: 'Error interno en verListaPermutas', details: err.message });
+            res.status(500).json({ err: true, message: 'Error interno en verListaPermutas' });
         }
     };
 const actualizarLaVigenciaSolicitud = async (req,res) => {
@@ -275,7 +275,7 @@ const actualizarLaVigenciaSolicitud = async (req,res) => {
         res.send({err:false, result:await adminPermutasService.retirarVigenciaGlobal(req.body?.motivo || '')})
         } catch (err){
             console.error('api actualizarLaVigenciaSolicitud ha tenido una excepción:', err);
-            res.status(500).json({ err: true, message: 'Error interno en actualizarLaVigenciaSolicitud', details: err.message });
+            res.status(500).json({ err: true, message: 'Error interno en actualizarLaVigenciaSolicitud' });
         }
             
 };

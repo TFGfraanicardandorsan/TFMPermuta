@@ -35,11 +35,12 @@ test('listarPermutas selecciona el documento común más reciente', async () => 
   const fake = crearCliente([documento]);
   database.connectPostgreSQL = async () => fake.client;
 
-  const resultado = await permutaService.listarPermutas([10, 11]);
+  const resultado = await permutaService.listarPermutas([10, 11], 'alumno1');
   const query = fake.consultas[0];
 
   assert.deepEqual(resultado, [documento]);
-  assert.deepEqual(query.values, [[10, 11]]);
+  assert.deepEqual(query.values, [[10, 11], 'alumno1']);
+  assert.match(query.text, /u.nombre_usuario = \$2/);
   assert.match(query.text, /HAVING COUNT\(DISTINCT pp\.permuta_id_fk\)/);
   assert.match(query.text, /ORDER BY ps\.id DESC\s+LIMIT 1/);
   assert.equal(fake.estaCerrado(), true);
@@ -51,7 +52,7 @@ test('listarPermutas rechaza IDs que no comparten documento', async () => {
   console.error = () => {};
 
   await assert.rejects(
-    permutaService.listarPermutas([10, 20]),
+    permutaService.listarPermutas([10, 20], 'alumno1'),
     /no pertenecen a un mismo documento/
   );
   assert.equal(fake.estaCerrado(), true);

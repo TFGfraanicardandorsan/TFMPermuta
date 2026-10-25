@@ -1,4 +1,5 @@
 import database from "../config/database.mjs";
+import { exigirArchivoPropio } from './archivoService.mjs';
 import { formatearNuevaIncidencia } from "../utils/formateadorIncidenciasBot.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import { sendMessage } from "./telegramService.mjs";
@@ -193,6 +194,7 @@ class IncidenciaService {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query('BEGIN');
+      if (fileId) await exigirArchivoPropio(conexion, 'buzon', fileId, uvus);
       const queryIncidencia = {
         text: ` INSERT INTO incidencia (fecha_creacion, descripcion,tipo_incidencia,estado_incidencia,archivo) 
                 VALUES (NOW(),$1,$2,'abierta',$3)

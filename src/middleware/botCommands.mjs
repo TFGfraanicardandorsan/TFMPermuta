@@ -3,6 +3,7 @@ export const setBotCommands = async () => {
   try {
     const response = await fetch(`${getTelegramApiUrl()}/setMyCommands`, {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         commands: [

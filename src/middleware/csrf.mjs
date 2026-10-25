@@ -26,7 +26,7 @@ export const createCsrfProtection = ({ ignoredPaths = [], allowedOrigins = [] } 
     }
 
     if (
-      req.get('Sec-Fetch-Site') === 'cross-site'
+      (req.get('Origin') || req.get('Sec-Fetch-Site') === 'cross-site')
       && !trustedOrigins.has(req.get('Origin'))
     ) {
       return rejectCsrf(res);

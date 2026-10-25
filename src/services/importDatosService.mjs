@@ -1,5 +1,5 @@
 import fs from 'fs';
-import csv from 'csv-parser';
+import { parse } from 'csv-parse';
 import database from '../config/database.mjs';
 import grupoService from './grupoService.mjs';
 
@@ -8,7 +8,8 @@ class ImportDatosService {
   return new Promise((resolve, reject) => {
     const asignaturas = [];
     fs.createReadStream(rutaArchivo)
-      .pipe(csv())
+      .on('error', reject)
+      .pipe(parse({ columns: true, bom: true, max_record_size: 8192, to: 1001 }))
       .on('data', (row) => {
         asignaturas.push({
           nombre: row['Asignatura'],
@@ -20,8 +21,10 @@ class ImportDatosService {
         });
       })
       .on('end', async () => {
-        const conexion = await database.connectPostgreSQL();
+        let conexion;
         try {
+          if (asignaturas.length > 1000) throw new Error('El CSV no puede superar 1000 filas.');
+          conexion = await database.connectPostgreSQL();
           await conexion.query("BEGIN");
           for (const asignatura of asignaturas) {
             // Obtener el id del estudio por siglas
@@ -78,6 +81,9 @@ class ImportDatosService {
             const gruposDeshabilitados = gruposActuales.filter(grupo => !grupo.habilitado);
             const numActual = gruposHabilitados.length;
             const numDeseado = parseInt(asignatura.numeroGrupos, 10);
+            if (!/^\d+$/.test(asignatura.numeroGrupos || '') || numDeseado < 0 || numDeseado > 100) {
+              throw new Error('Número de grupos fuera de rango.');
+            }
 
             // Rehabilitar grupos si faltan, e insertar solo si no hay grupos deshabilitados reutilizables.
             if (numActual < numDeseado) {
@@ -122,10 +128,10 @@ class ImportDatosService {
           await conexion.query("COMMIT");
           resolve();
         } catch (err) {
-          await conexion.query("ROLLBACK");
+          if (conexion) await conexion.query("ROLLBACK");
           reject(err);
         } finally {
-          await conexion.end();
+          if (conexion) await conexion.end();
         }
       })
       .on('error', (err) => reject(err));

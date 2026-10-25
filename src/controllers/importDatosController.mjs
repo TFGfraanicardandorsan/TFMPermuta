@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: 'uploads/', limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 2, parts: 3 } });
 
 class ImportDatosController {
   importarAsignaturasDesdeCSVHandler(req, res) {
@@ -17,10 +17,11 @@ class ImportDatosController {
       const rutaArchivo = path.resolve(req.file.path);
       try {
         await importDatosService.importarAsignaturasDesdeCSV(rutaArchivo);
-        fs.unlinkSync(rutaArchivo); // Borra el archivo temporal tras importar
         res.status(200).json({ mensaje: 'Importación completada correctamente' });
       } catch (error) {
-        res.status(500).json({ error: 'Error al importar asignaturas', detalle: error.message });
+        res.status(500).json({ error: 'Error al importar asignaturas' });
+      } finally {
+        await fs.promises.unlink(rutaArchivo).catch(() => {});
       }
     });
   }

@@ -5,31 +5,34 @@
   "type": "module",
   "main": "app.mjs",
   "scripts": {
-    "test": "node --test"
+    "start": "node src/app.mjs",
+    "test": "node --test",
+    "security:check": "node scripts/security-check.mjs"
+  },
+  "engines": {
+    "node": "^22.23.4 || ^24.22.1 || >=26.12.1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "archiver": "^8.0.0",
+    "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
-    "csv-parse": "^6.2.1",
+    "csv-parse": "^7.0.3",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "express": "^4.21.1",
-    "express-session": "^1.18.1",
-    "jsonwebtoken": "^9.0.2",
-    "jwk-to-pem": "^2.0.6",
-    "multer": "^1.4.5-lts.1",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "multer": "^2.5.0",
     "node-fetch": "^3.3.2",
-    "nodemailer": "^7.0.3",
-    "passport": "^0.7.0",
-    "passport-saml": "^3.2.4",
+    "nodemailer": "^10.2.1",
     "pdfkit": "^0.18.0",
     "pg": "^8.13.1",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
-    "uuid": "^11.0.2"
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0"

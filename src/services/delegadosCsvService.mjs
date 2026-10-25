@@ -63,6 +63,7 @@ export function parseCsvUpload(data, today = new Date()) {
       relax_column_count: true,
       skip_empty_lines: true,
       trim: true,
+      max_record_size: 8192,
     });
   } catch (error) {
     throw new CSVValidationError([`El CSV no se pudo leer: ${error.message}`]);
@@ -73,6 +74,7 @@ export function parseCsvUpload(data, today = new Date()) {
   }
 
   const [headers, ...rawRows] = table;
+  if (rawRows.length > 1000) throw new CSVValidationError(['El CSV no puede superar 1000 filas.']);
   const headerMap = buildHeaderMap(headers);
   const errors = missingHeaderErrors(headerMap);
   const rows = [];

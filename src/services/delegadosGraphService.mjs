@@ -78,6 +78,7 @@ export async function exchangeAuthorizationCode(config, code, codeVerifier = '')
   if (codeVerifier) body.set('code_verifier', codeVerifier);
 
   const response = await fetch(config.tokenEndpoint, {
+    signal: AbortSignal.timeout(15_000),
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -96,6 +97,7 @@ export async function exchangeAuthorizationCode(config, code, codeVerifier = '')
 
 export async function fetchGraphProfile(accessToken) {
   const response = await fetch(`${GRAPH_API_ROOT}/me?$select=displayName,mail,userPrincipalName`, {
+    signal: AbortSignal.timeout(15_000),
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
@@ -130,6 +132,7 @@ export async function sendGraphCertificateEmails(accessToken, sender, emails) {
     try {
       validateAttachment(email.pdfBytes);
       const response = await fetch(endpoint, {
+        signal: AbortSignal.timeout(30_000),
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,

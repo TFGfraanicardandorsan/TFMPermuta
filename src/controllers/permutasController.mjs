@@ -29,8 +29,9 @@ const listarPermutas = async (req, res) => {
         if (!Array.isArray(IdsPermuta) || IdsPermuta.some(id => !GenericValidators.isInteger(id, "PermutaId").valido)) {
             return res.status(400).json({ error: true, message: "IdsPermuta debe ser un array de enteros" });
         }
-        res.status(200).json({ error: false, result: await permutaService.listarPermutas(IdsPermuta) });
+        res.status(200).json({ error: false, result: await permutaService.listarPermutas(IdsPermuta, req.session.user.nombre_usuario) });
     } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ error: true, message: err.message });
         console.error("Error en listarPermutas:", err);
         res.status(500).json({ error: true, message: "Error al listarPermutas" });
     }
@@ -56,7 +57,7 @@ const firmarPermuta = async (req, res) => {
     } catch (err) {
         if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api firmarPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en firmarPermuta', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en firmarPermuta' });
     }
 };
 
@@ -80,7 +81,7 @@ const aceptarPermuta = async (req, res) => {
     } catch (err) {
         if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api aceptarPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en aceptarPermuta', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en aceptarPermuta' });
     }
 };
 
@@ -98,7 +99,7 @@ const validarPermuta = async (req, res) => {
     } catch (err) {
         if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api validarPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en validarPermuta', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en validarPermuta' });
     }
 };
 
@@ -117,7 +118,7 @@ const rechazarSolicitudPermuta = async (req, res) => {
     } catch (err) {
         if (err.statusCode) return res.status(err.statusCode).json({ err: true, message: err.message });
         console.error('api rechazarSolicitudPermuta ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en rechazarSolicitudPermuta', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en rechazarSolicitudPermuta' });
     }
 };
 
@@ -131,7 +132,7 @@ const misPermutasPropuestas = async (req, res) => {
         res.status(200).json({ err: false, result: await permutaService.misPermutasPropuestas(uvus) });
     } catch (err) {
         console.error('api misPermutasPropuestas ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en misPermutasPropuestas', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en misPermutasPropuestas' });
     }
 };
 
@@ -144,7 +145,7 @@ const misPermutasPropuestasPorMi = async (req, res) => {
         res.status(200).json({ err: false, result: await permutaService.misPermutasPropuestasPorMi(uvus) });
     } catch (err) {
         console.error('api misPermutasPropuestasPorMi ha tenido una excepción:', err);
-        res.status(500).json({ err: true, message: 'Error interno en misPermutasPropuestasPorMi', details: err.message });
+        res.status(500).json({ err: true, message: 'Error interno en misPermutasPropuestasPorMi' });
     }
 };
 
@@ -157,7 +158,7 @@ const obtenerPermutasValidadasPorUsuario = async (req, res) => {
     res.status(200).json({ err: false, result: await permutaService.obtenerPermutasValidadasPorUsuario(uvus)});
   } catch (err) {
     console.error("api obtenerPermutasValidadasPorUsuario ha tenido una excepción:", err);
-    res.status(500).json({ err: true, message: "Error interno en obtenerPermutasValidadasPorUsuario", details: err.message});
+    res.status(500).json({ err: true, message: "Error interno en obtenerPermutasValidadasPorUsuario"});
   }
 };
 
@@ -170,7 +171,7 @@ const obtenerPermutasAgrupadasPorUsuario = async (req, res) => {
     res.status(200).json({ err: false, result: await permutaService.obtenerPermutasAgrupadasPorUsuario(uvus)});
   } catch (err) {
     console.error("api obtenerPermutasAgrupadasPorUsuario ha tenido una excepción:", err);
-    res.status(500).json({ err: true, message: "Error interno en obtenerPermutasAgrupadasPorUsuario", details: err.message });
+    res.status(500).json({ err: true, message: "Error interno en obtenerPermutasAgrupadasPorUsuario" });
   }
 };
 
@@ -204,7 +205,7 @@ const actualizarVigenciaPermutas = async (req, res) => {
         res.status(200).json({ err: false, result });
     } catch (err) {
         console.error("api actualizarVigenciaPermutasYSolicitudes ha tenido una excepción:", err);
-        res.status(500).json({ err: true, message: "Error interno en actualizarVigenciaPermutasYSolicitudes", details: err.message });
+        res.status(500).json({ err: true, message: "Error interno en actualizarVigenciaPermutasYSolicitudes" });
     }
 };
 

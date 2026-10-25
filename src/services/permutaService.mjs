@@ -7,13 +7,18 @@ import autorizacionService from "./autorizacionService.mjs";
 import { mensajeFirmadaPermutaAlumno1, mensajeFirmadaPermutaAlumno2,mensajeAceptadaPermuta, mensajeValidacionPermuta,mensajeBorradorPermuta } from "../utils/mensajesTelegram.mjs";
 import email from "../utils/email.mjs";
 import usuarioService from "./usuarioService.mjs";
+import { autorizarNuevoDocumento, validarIdsDocumento } from './documentoAutorizacionService.mjs';
+import { exigirArchivoPropio } from './archivoService.mjs';
 class PermutaService {
-  async crearListaPermutas(archivo, IdsPermuta) {
+  async crearListaPermutas(archivo, IdsPermuta, uvus) {
+    validarIdsDocumento(IdsPermuta, uvus);
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query("BEGIN");
       await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
       await comprobarBloquesCompletos(conexion, IdsPermuta);
+      await autorizarNuevoDocumento(conexion, IdsPermuta, uvus);
+      await exigirArchivoPropio(conexion, 'archivador', archivo, uvus);
       const queryPermutas = {
         text: ` INSERT INTO permutas (estado, archivo ) VALUES ('FIRMADA',$1) 
                 RETURNING id`,
@@ -44,11 +49,13 @@ class PermutaService {
   }
 
   async generarBorradorPermutas(IdsPermuta, uvus) {
+    validarIdsDocumento(IdsPermuta, uvus);
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query("BEGIN");
       await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
       await comprobarBloquesCompletos(conexion, IdsPermuta);
+      await autorizarNuevoDocumento(conexion, IdsPermuta, uvus);
       const queryPermutas = {
         text: ` INSERT INTO permutas (estado, estudiante_cumplimentado_1 ) VALUES ('BORRADOR', $1) 
                 RETURNING id`,
@@ -82,7 +89,6 @@ class PermutaService {
       // Enviar mensaje por email
       try{
         const usuarioDatos = await usuarioService.obtenerDatosUsuario(uvus);
-        console.log("Datos usuario para email de borrador de permuta:", usuarioDatos);
         await email.sendEmailToStudentsDocumentoPermuta(usuarioDatos, 'Borrador de Permuta Generado', "plantillaEmailDocumentoPermuta.ejs");
       }catch(msgError){
         console.error("Error enviando email de borrador de permuta:", msgError);
@@ -98,7 +104,8 @@ class PermutaService {
     }
   }
 
-  async listarPermutas(IdsPermuta) {
+  async listarPermutas(IdsPermuta, uvus) {
+    validarIdsDocumento(IdsPermuta, uvus);
     const conexion = await database.connectPostgreSQL();
     try {
       const query = {
@@ -111,13 +118,18 @@ class PermutaService {
                INNER JOIN ids_seleccionados seleccion
                  ON seleccion.permuta_id = pp.permuta_id_fk
                WHERE ps.vigente = true
+                 AND NOT EXISTS (
+                   SELECT 1 FROM permutas_permuta pp2 JOIN permuta p ON p.id = pp2.permuta_id_fk
+                   WHERE pp2.permutas_id_fk = ps.id AND NOT EXISTS (
+                     SELECT 1 FROM usuario u WHERE u.nombre_usuario = $2 AND u.activo = true
+                       AND u.id IN (p.usuario_id_1_fk, p.usuario_id_2_fk)))
                GROUP BY ps.id, ps.estado, ps.archivo
                HAVING COUNT(DISTINCT pp.permuta_id_fk) = (
                  SELECT COUNT(*) FROM ids_seleccionados
                )
                ORDER BY ps.id DESC
                LIMIT 1`,
-        values: [IdsPermuta],
+        values: [IdsPermuta, uvus],
       };
       const resultado = await conexion.query(query);
 

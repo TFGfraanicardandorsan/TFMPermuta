@@ -15,11 +15,14 @@ class Email {
             host: 'smtp.office365.com',
             port: 587,
             secure: false,
+            requireTLS: true,
+            connectionTimeout: 10_000,
+            socketTimeout: 30_000,
             auth: {
                 user: userName,
                 pass: passWord,
             },
-            tls: { rejectUnauthorized: true } // false para desarrollo en producción debería ser true para verificar certificados
+            tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' }
         });
         this.pdfFolder = process.env.PDF_FOLDER || path.join(process.cwd(), 'tmp')
         this.templatesFolder = path.join(__dirname);

@@ -471,7 +471,11 @@ const afirmaStorage = async (req, res) => {
     return res.status(400).type('text/plain').send('ERR-03:=Datos no validos');
   }
 
-  putExchange(exchangeId, data);
+  try {
+    putExchange(exchangeId, data, req.sessionID);
+  } catch (error) {
+    return res.status(error.statusCode || 500).type('text/plain').send('ERR-03:=Intercambio no disponible');
+  }
   return res.type('text/plain').send('OK');
 };
 
@@ -486,7 +490,7 @@ const afirmaRetrieve = async (req, res) => {
     return res.status(400).type('text/plain').send('ERR-02:=Identificador no valido');
   }
 
-  const data = popExchange(exchangeId);
+  const data = popExchange(exchangeId, req.sessionID);
   if (data === null) {
     return res.type('text/plain').send('ERR-06');
   }

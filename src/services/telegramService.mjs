@@ -9,8 +9,17 @@ import autorizacionService from "./autorizacionService.mjs";
 
 export const getTelegramApiUrl = () => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 
-const estadosRegistro = {}; // userId => 'esperando_datos' Variables auxiliares para gestionar "estado" de usuarios en registro
+const estadosRegistro = {}; // Registro temporal acotado; Telegram ya autentica el webhook.
+const caducidadRegistro = new Map();
+const cleanupRegistro = setInterval(() => {
+  for (const [id, expiry] of caducidadRegistro) {
+    if (expiry <= Date.now()) { delete estadosRegistro[id]; caducidadRegistro.delete(id); }
+  }
+}, 60_000);
+cleanupRegistro.unref();
 export const handleIncomingMessage = async (message) => {
+  if (message?.chat?.type !== 'private' || !Number.isSafeInteger(message.from?.id)
+    || message.chat.id !== message.from.id || typeof message.text !== 'string') return;
   const chatId = message.chat.id;
   const userId = message.from.id;
   const text = message.text;
@@ -21,7 +30,7 @@ export const handleIncomingMessage = async (message) => {
    
     if (uvus) {
       usuarioExistente = await autorizacionService?.verificarSiExisteUsuario(uvus);
-      delete estadosRegistro[userId];
+      if (estadosRegistro[userId] === 'esperando_datos') delete estadosRegistro[userId];
     }
   } catch (error) {
     console.error("Error al verificar si existe el usuario en Telegram:", error);
@@ -37,6 +46,8 @@ export const handleIncomingMessage = async (message) => {
           await sendMessage(chatId, bienvenida);
         }
       } else {
+        if (caducidadRegistro.size >= 1000 && !caducidadRegistro.has(userId)) return;
+        caducidadRegistro.set(userId, Date.now() + 15 * 60_000);
         const bienvenida = `¡Hola ${message.from.first_name}! 🤖
 
 Has solicitado acceso a la aplicación de Permutas ETSII.
@@ -232,6 +243,7 @@ export const sendMessage = async (chatId, text, parseMode = "HTML", markup = nul
     }
     const response = await fetch(`${getTelegramApiUrl()}/sendMessage`, {
       method: "POST",
+      signal: AbortSignal.timeout(10_000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
@@ -243,7 +255,7 @@ export const sendMessage = async (chatId, text, parseMode = "HTML", markup = nul
     }
     return true;
   } catch (err) {
-    console.error("Error enviando mensaje:", err);
+    console.error("Error enviando mensaje:", err.name);
     return false;
   }
 };
@@ -267,6 +279,7 @@ export const sendDocument = async (chatId, documentBuffer, filename, caption = "
 
     const response = await fetch(`${getTelegramApiUrl()}/sendDocument`, {
       method: "POST",
+      signal: AbortSignal.timeout(30_000),
       body: form,
     });
 
@@ -278,17 +291,26 @@ export const sendDocument = async (chatId, documentBuffer, filename, caption = "
 
     return { ok: true };
   } catch (err) {
-    console.error("Error enviando documento:", err);
-    return { ok: false, error: err.message };
+    console.error("Error enviando documento:", err.name);
+    return { ok: false, error: 'No se pudo enviar el documento.' };
   }
 };
 
 
 export const handleCallbackQuery = async (callbackQuery) => {
-  const chatId = callbackQuery.message.chat.id;
-  const callbackData = callbackQuery.data;
-  const [accion, uvus] = callbackData.split('_');
+  const chatId = callbackQuery?.message?.chat?.id;
+  const senderId = callbackQuery?.from?.id;
+  if (!Number.isSafeInteger(chatId) || !Number.isSafeInteger(senderId)
+    || String(chatId) !== process.env.ADMIN_CHAT_ID) return;
+  const match = /^(aceptar|rechazar)_([A-Za-z0-9._-]{1,64})$/.exec(callbackQuery.data || '');
+  if (!match) return;
+  const [, accion, uvus] = match;
   try {
+    // Autorizar a quien pulsa, no solo al chat donde aparece el botón.
+    const actor = await autorizacionService.verificarSiExisteUsuarioEnTelegram(senderId, senderId);
+    if (typeof actor !== 'string') return;
+    const admin = await autorizacionService.verificarSiExisteUsuario(actor);
+    if (admin?.rol !== 'administrador') return;
     if (accion === 'aceptar') {
       const solicitud = await autorizacionService?.consultarSolicitudAltaUsuario(uvus);
       if (!solicitud) {

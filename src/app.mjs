@@ -1,10 +1,18 @@
+import 'dotenv/config';
 import express from 'express';
 import session from 'express-session';
-import passport from '../src/middleware/passport.mjs';
+import connectPgSimple from 'connect-pg-simple';
+import pg from 'pg';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
+import { databaseConfig } from './config/database.mjs';
+import { securityConfig } from './config/security.mjs';
+import { loadTlsOptions } from './config/tls.mjs';
+import { refreshSessionUser, securityErrorHandler, verifyTelegramWebhook } from './middleware/security.mjs';
+import { verificarRol } from './middleware/rolMiddleware.mjs';
 import dotenv from 'dotenv'
 import cors from 'cors'
 import https from 'https'
-import fs from 'fs'
 import autorizacionRouter from './routes/autorizacionRoutes.mjs'
 import usuarioRouter from './routes/usuarioRoutes.mjs'
 import estudioRouter from './routes/estudiosRoutes.mjs'
@@ -28,21 +36,18 @@ import { swaggerUi, swaggerSpec } from './config/swagger.mjs';
 import { iniciarPropuestasPermutaPeriodicas } from './services/propuestaPermutaScheduler.mjs';
 
 dotenv.config();
-if (!process.env.SESSION_SECRET) {
-    throw new Error('SESSION_SECRET es obligatoria para proteger las sesiones.');
-}
+const { frontendOrigins, trustProxy } = securityConfig();
 
 const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', trustProxy);
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
+app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+app.use(rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
+app.use('/api/v1/autorizacion/saml', rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false }));
+app.use('/api/v1/telegram/webhook', verifyTelegramWebhook);
 
-await setBotCommands(); // Establecer los comandos del bot de Telegram
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '30mb' })); // Middleware nativo para JSON
-app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '30mb' })) // Middleware nativo para formularios URL encoded
-
-const frontendOrigins = (process.env.FRONTEND_ORIGINS
-    || 'https://permutas.eii.us.es,https://permutas.eii.us.es:3033,http://localhost:3033,http://127.0.0.1:3033')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+if (process.env.TELEGRAM_BOT_TOKEN) await setBotCommands();
 
 app.use(cors({
     origin: frontendOrigins,
@@ -52,11 +57,12 @@ app.use(cors({
     credentials: true,
 }));
 
-// Swagger docs
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 // Middleware 
+const PgSessionStore = connectPgSimple(session);
+const sessionPool = new pg.Pool({ ...databaseConfig(), max: 5 });
+sessionPool.on('error', (error) => console.error('Error del almacén de sesiones:', error.code));
 app.use(session({
+    store: new PgSessionStore({ pool: sessionPool, tableName: 'web_session', createTableIfMissing: false }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
@@ -69,19 +75,28 @@ app.use(session({
       },
 }));
 
-// Inicializar Passport 
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(refreshSessionUser);
+
+if (process.env.ENABLE_API_DOCS === 'true') {
+    app.use('/api-docs', verificarRol('administrador'), swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
 app.get('/api/v1/csrf-token', issueCsrfToken);
 app.use(createCsrfProtection({
     allowedOrigins: frontendOrigins,
     ignoredPaths: [
         '/api/v1/telegram/webhook',
-        '/api/v1/delegados/afirma-signature-storage/StorageService',
-        '/api/v1/delegados/afirma-signature-retriever/RetrieveService',
     ],
 }));
+
+// Los cuerpos grandes solo se aceptan después de autenticar y comprobar CSRF.
+app.use('/api/v1/delegados', verificarRol(['administrador', 'delegacion']),
+    rateLimit({ windowMs: 60_000, limit: 20, keyGenerator: req => req.session.user.nombre_usuario,
+        standardHeaders: 'draft-8', legacyHeaders: false }),
+    express.json({ limit: '18mb', inflate: false }),
+    express.urlencoded({ extended: false, limit: '18mb', parameterLimit: 30, inflate: false }));
+app.use(express.json({ limit: '256kb', inflate: false }));
+app.use(express.urlencoded({ extended: false, limit: '256kb', parameterLimit: 100, inflate: false }));
 
 app.use('/api/v1/autorizacion', autorizacionRouter )
 app.use('/api/v1/usuario', usuarioRouter)
@@ -100,24 +115,17 @@ app.use('/api/v1/telegram',telegramRouter)
 app.use('/api/v1/delegados', delegadosRouter)
 app.use('/api/v1/feedback', feedbackRouter)
 app.use('/api/v1/admin/permutas', adminPermutasRouter)
+app.use(securityErrorHandler);
 
 // Configurar el servidor con HTTPS
-const resolveCertPath = (envPath, fallbackPaths) => {
-    if (envPath) return envPath;
-    return fallbackPaths.find((candidate) => fs.existsSync(candidate)) || fallbackPaths[0];
-};
-const keyPath = resolveCertPath(process.env.SSL_KEY_PATH, ['./src/config/certs/key.pem', './src/config/certs/privkey.pem']);
-const certPath = resolveCertPath(process.env.SSL_CERT_PATH, ['./src/config/certs/cert.pem', './src/config/certs/fullchain.pem']);
-const options = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath),
-    passphrase: process.env.SSL_PASSPHRASE
-};
+const options = loadTlsOptions();
 
 const server = https.createServer(options, app);
+server.requestTimeout = 30_000;
+server.headersTimeout = 15_000;
+server.keepAliveTimeout = 5_000;
 const port = process.env.PORT || 3000;
-server.listen(port, () => {
+server.listen(port, process.env.BIND_HOST || '127.0.0.1', () => {
     iniciarPropuestasPermutaPeriodicas();
     console.log(`Servidor corriendo en https://localhost:${port}`);
-    console.log(`Se están utilizando las claves ${keyPath} y ${certPath}`);
 });

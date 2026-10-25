@@ -9,7 +9,11 @@ const rolesDelegacion = ['administrador', 'delegacion'];
 const uploadCsv = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: Number(process.env.DELEGADOS_CSV_MAX_BYTES || 2 * 1024 * 1024),
+    fileSize: 2 * 1024 * 1024,
+    files: 1,
+    fields: 20,
+    parts: 21,
+    fieldSize: 4096,
   },
 });
 
@@ -31,7 +35,7 @@ router
   .post('/microsoft/logout', verificarRol(rolesDelegacion), delegadosController.logoutMicrosoft)
   .post('/enviarCertificadosGraph', verificarRol(rolesDelegacion), uploadCsv.any(), delegadosController.enviarCertificadosGraph)
   .post('/enviarCertificadoFirmadoGraph', verificarRol(rolesDelegacion), delegadosController.enviarCertificadoFirmadoGraph)
-  .all('/afirma-signature-storage/StorageService', verificarRol(rolesDelegacion), delegadosController.afirmaStorage)
-  .all('/afirma-signature-retriever/RetrieveService', verificarRol(rolesDelegacion), delegadosController.afirmaRetrieve);
+  .post('/afirma-signature-storage/StorageService', verificarRol(rolesDelegacion), delegadosController.afirmaStorage)
+  .post('/afirma-signature-retriever/RetrieveService', verificarRol(rolesDelegacion), delegadosController.afirmaRetrieve);
 
 export default router;

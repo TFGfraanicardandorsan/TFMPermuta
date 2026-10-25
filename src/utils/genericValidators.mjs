@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 class GenericValidators {
   /**
    * Valida que un valor sea un string no vacío y no supere la longitud máxima.
@@ -35,8 +37,8 @@ class GenericValidators {
     if (valor === null || valor === undefined) {
       return { valido: false, mensaje: `${nombreCampo} no puede ser nulo` };
     }
-    const num = Number.parseInt(valor, 10);
-    if (isNaN(num)) {
+    const num = Number(valor);
+    if (!['number', 'string'].includes(typeof valor) || !/^-?\d+$/.test(String(valor)) || !Number.isSafeInteger(num)) {
       return { valido: false, mensaje: `${nombreCampo} debe ser un entero` };
     }
     return { valido: true, valor: num };

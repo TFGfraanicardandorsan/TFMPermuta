@@ -102,6 +102,7 @@ const clienteDocumento = ({ previo = 'BORRADOR', falloAviso = false } = {}) => c
   const t = text(q);
   if (/SELECT \* FROM permutas/.test(t)) return { rows: [{ id: 42, estado: previo, estudiante_cumplimentado_1: 'primero' }] };
   if (/SELECT DISTINCT u.nombre_usuario/.test(t)) return { rows: [{ nombre_usuario: 'primero' }, { nombre_usuario: 'segundo' }] };
+  if (/FROM archivo_subido/.test(t)) return { rows: [{ permitido: 1 }] };
   if (/UPDATE permutas/.test(t)) return { rows: [], rowCount: 1 };
   if (/INSERT INTO notificacion/.test(t)) {
     if (falloAviso) throw new Error('Fallo de persistencia del aviso');
@@ -112,7 +113,7 @@ const clienteDocumento = ({ previo = 'BORRADOR', falloAviso = false } = {}) => c
 for (const [previo, estado, uvus] of [['BORRADOR', 'FIRMADA', 'primero'], ['FIRMADA', 'ACEPTADA', 'segundo'], ['ACEPTADA', 'VALIDADA', 'primero']]) {
   test(`la transición ${previo} → ${estado} y su aviso se confirman juntos`, async () => {
     const fake = clienteDocumento({ previo });
-    const result = await cambiarEstadoDocumento(42, estado, { uvus, archivo: 'archivo.pdf' });
+    const result = await cambiarEstadoDocumento(42, estado, { uvus, archivo: '12345678-1234-1234-1234-123456789abc.pdf' });
     assert.deepEqual(result.participantes, ['primero', 'segundo']);
     assert.equal(result.cambiado, true);
     assert.match(text(fake.consultas.at(-2)), /INSERT INTO notificacion/);
@@ -128,7 +129,7 @@ test('un reintento de firma no crea otro evento ni modifica el documento', async
 
 test('si no se puede guardar el aviso, la firma se revierte', async () => {
   const fake = clienteDocumento({ falloAviso: true });
-  await assert.rejects(cambiarEstadoDocumento(42, 'FIRMADA', { uvus: 'primero' }), /Fallo de persistencia/);
+  await assert.rejects(cambiarEstadoDocumento(42, 'FIRMADA', { uvus: 'primero', archivo: '12345678-1234-1234-1234-123456789abc.pdf' }), /Fallo de persistencia/);
   assert.equal(fake.consultas.at(-1), 'ROLLBACK');
   assert.equal(fake.consultas.includes('COMMIT'), false);
 });

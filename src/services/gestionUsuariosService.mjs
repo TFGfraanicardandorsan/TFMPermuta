@@ -1,6 +1,6 @@
 import database from "../config/database.mjs";
 
-class gestionUsuariosService{
+class GestionUsuariosService{
     async actualizarRolUsuario(uvus, nuevoRol) {
         const conexion = await database.connectPostgreSQL();
         try {
@@ -69,5 +69,5 @@ async desactivarUsuario(uvus) {
   }
 
 }
-const gestionUsuariosService = new gestionUsuariosService();
+const gestionUsuariosService = new GestionUsuariosService();
 export default gestionUsuariosService;

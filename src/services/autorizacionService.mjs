@@ -3,8 +3,8 @@ import { toCanonicalRole } from "../utils/roles.mjs";
 
 class AutorizacionService{
   async verificarSiExisteUsuario(uvus){
+    const conexion = await database.connectPostgreSQL();
     try{
-      const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` SELECT u.nombre_completo, u.nombre_usuario, r.rol
                 FROM usuario u
@@ -13,7 +13,6 @@ class AutorizacionService{
                 values: [uvus],
       };
       const res = await conexion.query(query);
-      await conexion.end();
       if (!res.rows[0]) return undefined;
       return {
         ...res.rows[0],
@@ -21,7 +20,9 @@ class AutorizacionService{
       };
     } catch (error){
       console.error('Error al verificar si existe el usuario:', error);
-      return { err: true, errmsg: 'Error al verificar si existe el usuario' };
+      throw new Error('No se pudo comprobar la autorización.');
+    } finally {
+      await conexion.end();
     }
   }
 
@@ -32,7 +33,7 @@ class AutorizacionService{
         text: ` SELECT u.nombre_usuario
                 FROM usuario u
                 WHERE u.userId = $1 
-                    AND u.chatId = $2`,
+                    AND u.chatId = $2 AND u.activo = true`,
         values: [userId, chatId],
       };
       const res = await conexion.query(query);
@@ -44,7 +45,7 @@ class AutorizacionService{
       }
     } catch (error){
       console.error('Error al verificar si existe el usuario en Telegram:', error);
-      return { err: true, errmsg: 'Error al verificar si existe el usuario en Telegram' };
+      throw new Error('No se pudo comprobar la autorización de Telegram.');
     }
   }
 
