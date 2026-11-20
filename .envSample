@@ -6,6 +6,9 @@ TRUST_PROXY=loopback
 PUBLIC_BASE_URL=https://permutas.eii.us.es
 FRONTEND_ORIGINS=https://permutas.eii.us.es
 ENABLE_API_DOCS=false
+# Peticiones por minuto: por IP (alto, el campus comparte IP pública) y por usuario autenticado.
+RATE_LIMIT_IP_PER_MIN=3000
+RATE_LIMIT_USER_PER_MIN=300
 
 DB_HOST=127.0.0.1
 DB_PORT=5432

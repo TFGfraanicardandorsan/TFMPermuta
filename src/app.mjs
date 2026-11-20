@@ -43,7 +43,9 @@ app.disable('x-powered-by');
 app.set('trust proxy', trustProxy);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
 app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
-app.use(rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
+// Límite por IP generoso: muchos estudiantes comparten IP pública (eduroam/NAT del campus).
+// El límite fino se aplica por usuario tras cargar la sesión (ver más abajo).
+app.use(rateLimit({ windowMs: 60_000, limit: Number(process.env.RATE_LIMIT_IP_PER_MIN || 3000), standardHeaders: 'draft-8', legacyHeaders: false }));
 app.use('/api/v1/autorizacion/saml', rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false }));
 app.use('/api/v1/telegram/webhook', verifyTelegramWebhook);
 
@@ -76,6 +78,16 @@ app.use(session({
 }));
 
 app.use(refreshSessionUser);
+
+// Límite por usuario autenticado; las peticiones anónimas solo cuentan para el límite por IP.
+app.use(rateLimit({
+    windowMs: 60_000,
+    limit: Number(process.env.RATE_LIMIT_USER_PER_MIN || 300),
+    skip: req => !req.session?.user?.nombre_usuario,
+    keyGenerator: req => `u:${req.session.user.nombre_usuario}`,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+}));
 
 if (process.env.ENABLE_API_DOCS === 'true') {
     app.use('/api-docs', verificarRol('administrador'), swaggerUi.serve, swaggerUi.setup(swaggerSpec));

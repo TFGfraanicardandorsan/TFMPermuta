@@ -1,5 +1,6 @@
 import multer from 'multer';
 import path from 'node:path';
+import { admitePng } from '../services/archivoService.mjs';
 
 export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 const upload = multer({
@@ -15,7 +16,7 @@ const upload = multer({
     }
     const ext = path.extname(file.originalname).toLowerCase();
     const valid = (ext === '.pdf' && file.mimetype === 'application/pdf')
-      || (tipo === 'buzon' && ext === '.png' && file.mimetype === 'image/png');
+      || (admitePng(tipo) && ext === '.png' && file.mimetype === 'image/png');
     return cb(valid ? null : Object.assign(new Error('Tipo de archivo no permitido.'), { statusCode: 400 }), valid);
   },
 });

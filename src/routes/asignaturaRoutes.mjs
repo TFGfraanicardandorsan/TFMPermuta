@@ -10,5 +10,6 @@ router
 .post('/asigaturasPermutablesUsuario', verificarRol('estudiante'), asignaturaController.asignaturaPermutableUsuario)
 .post('/obtenerAsignaturasNoMatriculadas',verificarRol('estudiante'),asignaturaController.obtenerAsignaturasNoMatriculadas)
 .post('/crearAsignatura', verificarRol('administrador'), asignaturaController.crearAsignatura)
+.post('/admin/panel', verificarRol('administrador'), asignaturaController.obtenerPanelAdmin)
 .post('/verAsignatura', verificarRol('delegacion'), asignaturaController.verAsignatura);
 export default router;

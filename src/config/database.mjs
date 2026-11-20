@@ -24,6 +24,16 @@ class Database {
     await client.connect();
     return client;
   }
+
+  // Ejecuta una única consulta y cierra siempre la conexión, también si la consulta falla.
+  async consultar(query) {
+    const client = await this.connectPostgreSQL();
+    try {
+      return await client.query(query);
+    } finally {
+      await client.end();
+    }
+  }
 }
 const database = new Database();
 export default database;

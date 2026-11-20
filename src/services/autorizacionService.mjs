@@ -28,7 +28,6 @@ class AutorizacionService{
 
   async verificarSiExisteUsuarioEnTelegram(userId,chatId){
     try{
-      const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` SELECT u.nombre_usuario
                 FROM usuario u
@@ -36,8 +35,7 @@ class AutorizacionService{
                     AND u.chatId = $2 AND u.activo = true`,
         values: [userId, chatId],
       };
-      const res = await conexion.query(query);
-      await conexion.end();
+      const res = await database.consultar(query);
       if (res.rows.length > 0) {
         return res.rows[0].nombre_usuario;
       } else {
@@ -51,13 +49,11 @@ class AutorizacionService{
 
     async obtenerChatIdUsuario(uvus){
     try{
-      const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` SELECT chatid FROM usuario WHERE nombre_usuario = $1`,
         values: [uvus],
       };
-      const res = await conexion.query(query);
-      await conexion.end();
+      const res = await database.consultar(query);
       if (res.rows.length > 0) {
         return res.rows[0].chatid;
       } else {
@@ -71,15 +67,13 @@ class AutorizacionService{
 
   async consultarSolicitudAltaUsuario(uvusEnviado){
     try{
-      const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` SELECT uvus, correo, nombre_completo, chat_id, user_id
                 FROM alta_usuario_bot 
                 WHERE uvus = $1`,
         values: [uvusEnviado],
       };
-      const res = await conexion.query(query);
-      await conexion.end();
+      const res = await database.consultar(query);
       if (res.rows.length > 0) {
         return res.rows[0];
       } else {
@@ -93,15 +87,13 @@ class AutorizacionService{
 
   async insertarSolicitudAltaUsuario(uvusEnviado,nombreCompleto,chatId,correo){
     try{
-      const conexion = await database.connectPostgreSQL();
       if (correo!=null) correo = `${uvusEnviado}@alum.us.es`;
       const query = {
         text: ` INSERT INTO alta_usuario_bot (uvus, correo, nombre_completo, chat_id, user_id)
                 VALUES ($1, $2, $3, $4, $5)`,
         values: [uvusEnviado,correo,nombreCompleto, chatId,chatId],
       };
-      await conexion.query(query);
-      await conexion.end();
+      await database.consultar(query);
       return 'Se ha insertado la solicitud de alta correctamente';
     } catch (error){
       console.error('Error al insertar la solicitud de alta:', error);
@@ -140,15 +132,13 @@ class AutorizacionService{
 
   async eliminarSolicitudAltaUsuario(uvus){
     try{
-      const conexion = await database.connectPostgreSQL();
       const query = {
         text: ` DELETE
                 FROM alta_usuario_bot
                 WHERE uvus = $1`,
         values: [uvus],
       };
-      await conexion.query(query);
-      await conexion.end();
+      await database.consultar(query);
       return 'Se ha eliminado el alta de usuario correctamente'
     } catch (error){
       console.error('Error al eliminar el alta de usuario:', error);
@@ -157,13 +147,11 @@ class AutorizacionService{
   }
 
   async obtenerUvusPorChatId(chatId) {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: `SELECT nombre_usuario FROM usuario WHERE chat_id = $1`,
       values: [chatId],
     };
-    const res = await conexion.query(query);
-    await conexion.end();
+    const res = await database.consultar(query);
     return res.rows[0]?.nombre_usuario || null;
   }
 }

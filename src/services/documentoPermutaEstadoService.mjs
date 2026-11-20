@@ -1,6 +1,6 @@
 import database from '../config/database.mjs';
 import eventosNotificacion from './eventosNotificacionService.mjs';
-import { exigirArchivoPropio } from './archivoService.mjs';
+import { exigirArchivoPropio, TIPO_DOCUMENTO_PERMUTA } from './archivoService.mjs';
 
 const transiciones = {
   FIRMADA: { previo: 'BORRADOR', contenido: 'El documento tiene la primera firma. Falta la firma del otro participante.' },
@@ -39,7 +39,7 @@ export async function cambiarEstadoDocumento(id, estado, { uvus, archivo } = {})
       throw Object.assign(new Error('El documento no está en el estado necesario.'), { statusCode: 409 });
     }
     if (estado === 'FIRMADA' || estado === 'ACEPTADA') {
-      await exigirArchivoPropio(conexion, 'archivador', archivo, uvus);
+      await exigirArchivoPropio(conexion, TIPO_DOCUMENTO_PERMUTA, archivo, uvus);
     }
     await conexion.query({
       text: `UPDATE permutas SET estado = $2, archivo = COALESCE($3, archivo),

@@ -8,7 +8,7 @@ import { mensajeFirmadaPermutaAlumno1, mensajeFirmadaPermutaAlumno2,mensajeAcept
 import email from "../utils/email.mjs";
 import usuarioService from "./usuarioService.mjs";
 import { autorizarNuevoDocumento, validarIdsDocumento } from './documentoAutorizacionService.mjs';
-import { exigirArchivoPropio } from './archivoService.mjs';
+import { exigirArchivoPropio, TIPO_DOCUMENTO_PERMUTA } from './archivoService.mjs';
 class PermutaService {
   async crearListaPermutas(archivo, IdsPermuta, uvus) {
     validarIdsDocumento(IdsPermuta, uvus);
@@ -18,7 +18,7 @@ class PermutaService {
       await conexion.query("SELECT pg_advisory_xact_lock(hashtext('proponer_permutas_optimas'))");
       await comprobarBloquesCompletos(conexion, IdsPermuta);
       await autorizarNuevoDocumento(conexion, IdsPermuta, uvus);
-      await exigirArchivoPropio(conexion, 'archivador', archivo, uvus);
+      await exigirArchivoPropio(conexion, TIPO_DOCUMENTO_PERMUTA, archivo, uvus);
       const queryPermutas = {
         text: ` INSERT INTO permutas (estado, archivo ) VALUES ('FIRMADA',$1) 
                 RETURNING id`,

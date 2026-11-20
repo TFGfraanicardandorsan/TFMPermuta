@@ -1,6 +1,13 @@
 import asignaturaService from "../services/asignaturaService.mjs";
 import GenericValidators from "../utils/genericValidators.mjs";
 
+const MAX_INT_POSTGRES = 2_147_483_647;
+const enteroPositivo = (valor) => {
+    const numero = typeof valor === 'number' ? valor
+        : typeof valor === 'string' && /^\d+$/.test(valor.trim()) ? Number(valor.trim()) : Number.NaN;
+    return Number.isSafeInteger(numero) && numero > 0 && numero <= MAX_INT_POSTGRES ? numero : null;
+};
+
 const obtenerAsignaturasMiEstudioUsuario = async (req,res) => {
     try {
         if (!req.session.user) {
@@ -69,19 +76,36 @@ const crearAsignatura = async (req, res) => {
             return res.status(400).json({ err: true, message: "El curso debe ser PRIMERO, SEGUNDO, TERCERO o CUARTO" });
         }
 
-        const validCodigo = GenericValidators.isInteger(codigo, "Código");
-        if (!validCodigo.valido) return res.status(400).json({ err: true, message: validCodigo.mensaje });
-        const codigoValido = validCodigo.valor;
+        // isInteger acepta "12abc"; aquí exigimos enteros positivos estrictos que quepan en un INTEGER de PostgreSQL.
+        const codigoValido = enteroPositivo(codigo);
+        if (!codigoValido) return res.status(400).json({ err: true, message: "El código debe ser un entero positivo" });
 
-        const validEstudiosId = GenericValidators.isInteger(estudios_id, "Estudios ID");
-        if (!validEstudiosId.valido) return res.status(400).json({ err: true, message: validEstudiosId.mensaje });
-        const estudiosIdValido = validEstudiosId.valor;
+        const estudiosIdValido = enteroPositivo(estudios_id);
+        if (!estudiosIdValido) return res.status(400).json({ err: true, message: "Selecciona un grado válido" });
 
-        const nuevaAsignatura = await asignaturaService.crearAsignatura({ nombre, siglas, curso, codigo:codigoValido, estudios_id:estudiosIdValido });
+        const nuevaAsignatura = await asignaturaService.crearAsignatura({
+            nombre: nombre.trim(),
+            siglas: siglas.trim().toUpperCase(),
+            curso,
+            codigo: codigoValido,
+            estudios_id: estudiosIdValido
+        });
         res.status(201).json({ err: false, result: nuevaAsignatura });
     } catch (err) {
+        if (err.statusCode && err.statusCode < 500) {
+            return res.status(err.statusCode).json({ err: true, message: err.message });
+        }
         console.log('API crearAsignatura ha tenido una excepción:', err);
-        res.sendStatus(500);
+        res.status(500).json({ err: true, message: "Error interno al crear la asignatura" });
+    }
+};
+
+const obtenerPanelAdmin = async (_req, res) => {
+    try {
+        res.json({ err: false, result: await asignaturaService.obtenerPanelAdmin() });
+    } catch (err) {
+        console.log('API obtenerPanelAdmin de asignaturas ha tenido una excepción:', err);
+        res.status(500).json({ err: true, message: "Error interno al cargar las asignaturas" });
     }
 };
 
@@ -111,5 +135,6 @@ export default {
     asignaturaPermutableUsuario,
     obtenerAsignaturasNoMatriculadas,
     crearAsignatura,
+    obtenerPanelAdmin,
     verAsignatura
 }

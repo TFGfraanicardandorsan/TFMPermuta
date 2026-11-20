@@ -1,5 +1,12 @@
 import database from '../config/database.mjs';
 
+// El front guarda los documentos de permuta en 'buzon' y los adjuntos de incidencias en 'archivador'.
+// Los archivos históricos ya están en esos directorios, así que la autorización sigue esa convención.
+export const TIPO_DOCUMENTO_PERMUTA = 'buzon';
+export const TIPO_ADJUNTO_INCIDENCIA = 'archivador';
+// Solo los adjuntos de incidencias admiten capturas PNG; los documentos de permuta son siempre PDF.
+export const admitePng = (tipo) => tipo === TIPO_ADJUNTO_INCIDENCIA;
+
 export const FILE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(pdf|png)$/i;
 const denied = () => Object.assign(new Error('Archivo no disponible.'), { statusCode: 404 });
 
@@ -32,11 +39,11 @@ export async function puedeLeerArchivo(tipo, nombre, user) {
     const { rows } = await db.query({
       text: `SELECT 1 FROM usuario u WHERE u.nombre_usuario = $3 AND u.activo = true AND (
         EXISTS (SELECT 1 FROM archivo_subido a WHERE a.tipo = $1 AND a.nombre = $2 AND a.propietario_id = u.id)
-        OR ($1 = 'archivador' AND EXISTS (
+        OR ($1 = 'buzon' AND EXISTS (
           SELECT 1 FROM permutas d JOIN permutas_permuta pp ON pp.permutas_id_fk = d.id
           JOIN permuta p ON p.id = pp.permuta_id_fk
           WHERE d.archivo = $2 AND u.id IN (p.usuario_id_1_fk, p.usuario_id_2_fk)))
-        OR ($1 = 'buzon' AND EXISTS (
+        OR ($1 = 'archivador' AND EXISTS (
           SELECT 1 FROM incidencia i JOIN incidencia_usuario iu ON iu.id = i.id
           WHERE i.archivo = $2 AND u.id IN (iu.usuario_id_fk, iu.usuario_id_mantenimiento_fk)))
       )`,

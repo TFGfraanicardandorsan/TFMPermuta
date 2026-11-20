@@ -3,33 +3,46 @@ class AsignaturaUsuarioService {
 
   async actualizarAsignaturasUsuario(uvus, asignatura) {
     const conexion = await database.connectPostgreSQL();
-    const query = {
-      text: `select count(*) from usuario_asignatura where asignatura_id_fk = (select id from asignatura where codigo = $2) 
-      and usuario_id_fk = (select u.id from usuario u where u.nombre_usuario =$1)`,
-      values: [uvus, asignatura],
-    };
-    const res = await conexion.query(query);
-    if (res.rows[0].count > 0) {
-      await conexion.end();
-      return 'El usuario ya está en la asignatura';
-    }
     try {
+      await conexion.query("BEGIN");
+      // Serializa las altas del mismo usuario para que dos peticiones simultáneas no dupliquen la fila.
+      await conexion.query({
+        text: "SELECT pg_advisory_xact_lock(hashtext('usuario_asignatura'), hashtext($1))",
+        values: [uvus],
+      });
       const query = {
-        text: `insert into usuario_asignatura values (
-              (select u.id from usuario u where u.nombre_usuario =$1),  (select id from asignatura where codigo = $2))`,
+        text: `select count(*) from usuario_asignatura where asignatura_id_fk = (select id from asignatura where codigo = $2)
+        and usuario_id_fk = (select u.id from usuario u where u.nombre_usuario =$1)`,
         values: [uvus, asignatura],
       };
-      await conexion.query(query);
-      await conexion.end();
-      return 'Usuario insertado en la asignatura correctamente';
+      const res = await conexion.query(query);
+      if (res.rows[0].count > 0) {
+        await conexion.query("COMMIT");
+        return 'El usuario ya está en la asignatura';
+      }
+      try {
+        const query = {
+          text: `insert into usuario_asignatura values (
+                (select u.id from usuario u where u.nombre_usuario =$1),  (select id from asignatura where codigo = $2))`,
+          values: [uvus, asignatura],
+        };
+        await conexion.query(query);
+        await conexion.query("COMMIT");
+        return 'Usuario insertado en la asignatura correctamente';
+      } catch (err) {
+        await conexion.query("ROLLBACK").catch(() => {});
+        console.error(err);
+        return 'Se ha producido un error al insertar el usuario en la asignatura';
+      }
     } catch (err) {
-      console.error(err);
-      return 'Se ha producido un error al insertar el usuario en la asignatura';
+      await conexion.query("ROLLBACK").catch(() => {});
+      throw err;
+    } finally {
+      await conexion.end();
     }
   }
 
   async obtenerAsignaturasUsuario(uvus) {
-    const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: ` select nombre as asignatura, codigo 
@@ -37,8 +50,7 @@ class AsignaturaUsuarioService {
               where id in (select asignatura_id_fk from usuario_asignatura where usuario_id_fk = (select u.id from usuario u where u.nombre_usuario = $1))`,
         values: [uvus],
       };
-      const res = await conexion.query(query);
-      await conexion.end();
+      const res = await database.consultar(query);
       return res.rows;
     } catch (err) {
       console.error(err);
@@ -90,7 +102,6 @@ class AsignaturaUsuarioService {
   }
 
   async asignaturasSinGrupoUsuario(uvus) {
-    const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: `select nombre as asignatura, codigo 
@@ -98,8 +109,7 @@ class AsignaturaUsuarioService {
                    where id not in (select asignatura_id_fk from usuario_asignatura where usuario_id_fk = (select u.id from usuario u where u.nombre_usuario = $1))`,
         values: [uvus],
       };
-      const res = await conexion.query(query);
-      await conexion.end();
+      const res = await database.consultar(query);
       return res.rows;
     } catch (err) {
       console.error(err);
@@ -108,7 +118,6 @@ class AsignaturaUsuarioService {
   }
 
   async asignaturasSinGrupoUsuario(uvus) {
-    const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: `SELECT EXISTS (
@@ -126,8 +135,7 @@ class AsignaturaUsuarioService {
             ) as result`,
         values: [uvus],
       };
-      const res = await conexion.query(query);
-      await conexion.end();
+      const res = await database.consultar(query);
       return { result: res.rows[0].result };
     } catch (err) {
       console.error(err);

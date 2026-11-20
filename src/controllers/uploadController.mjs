@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from 'node:crypto';
-import { FILE_ID_RE, registrarArchivo, puedeLeerArchivo } from '../services/archivoService.mjs';
+import { FILE_ID_RE, registrarArchivo, puedeLeerArchivo, admitePng } from '../services/archivoService.mjs';
 import { obtenerCursoAcademico } from "../utils/cursoAcademico.mjs";
 
 const DIRECTORIO_PROYECTO = path.resolve(
@@ -36,7 +36,7 @@ const subirArchivo = async (req, res) => {
     const ext = path.extname(req.file.originalname).toLowerCase();
     const buffer = req.file.buffer;
     const isPdf = ext === '.pdf' && buffer.subarray(0, 5).equals(Buffer.from('%PDF-'));
-    const isPng = tipo === 'buzon' && ext === '.png'
+    const isPng = admitePng(tipo) && ext === '.png'
       && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
     if (!isPdf && !isPng) return res.status(400).json({ err: true, message: 'Contenido de archivo no válido.' });
     if (!directories[tipo]) throw new Error('Directorio de almacenamiento no configurado.');

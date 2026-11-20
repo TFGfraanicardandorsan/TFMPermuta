@@ -259,6 +259,7 @@ class SolicitudPermutaService {
 
   async getSolicitudesPermutaInteresantes(uvus) {
     const conexion = await database.connectPostgreSQL();
+    try {
 
     // Obtener las asignaturas en las que el usuario está matriculado
     const asignaturasUsuarioQuery = {
@@ -278,7 +279,6 @@ class SolicitudPermutaService {
     const asignaturasUsuario = await conexion.query(asignaturasUsuarioQuery);
 
     if (asignaturasUsuario.rows.length === 0) {
-      await conexion.end();
       return 'El usuario no está matriculado en ninguna asignatura.';
     }
 
@@ -334,12 +334,13 @@ class SolicitudPermutaService {
       values: [asignaturaUsuario, uvus, ESTADOS_PERMUTA_ACTIVA],
     };
     const res = await conexion.query(query);
-    await conexion.end();
     return res.rows;
+    } finally {
+      await conexion.end();
+    }
   }
 
   async getMisSolicitudesPermuta(uvus) {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: `
       SELECT 
@@ -376,7 +377,7 @@ class SolicitudPermutaService {
       values: [uvus, ESTADOS_PERMUTA_ACTIVA],
     };
 
-    const res = await conexion.query(query);
+    const res = await database.consultar(query);
 
     // Agrupar los resultados por solicitud
     const solicitudesAgrupadas = res.rows.reduce((acc, row) => {
@@ -404,7 +405,6 @@ class SolicitudPermutaService {
       return acc;
     }, []);
 
-    await conexion.end();
     return solicitudesAgrupadas;
   }
 
@@ -803,20 +803,17 @@ class SolicitudPermutaService {
 
   async actualizarEstadoSolicitudPermuta(solicitud) {
 
-    const conexion = await database.connectPostgreSQL();
     const updateSolicitud = {
       text: `UPDATE solicitud_permuta 
            SET estado = 'EMPAREJADA' 
            WHERE id = (select solicitud_permuta_id_fk from permuta where id = $1)`,
       values: [solicitud],
     };
-    await conexion.query(updateSolicitud);
-    await conexion.end();
+    await database.consultar(updateSolicitud);
     return 'Estado de la solicitud de permuta actualizado a EMPAREJADA.';
   }
 
   async verListaPermutas(uvus) {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: `
       SELECT 
@@ -898,7 +895,7 @@ class SolicitudPermutaService {
       values: [uvus],
     };
 
-    const res = await conexion.query(query);
+    const res = await database.consultar(query);
 
     // Un mismo par de estudiantes puede tener varios documentos históricos.
     // Cada documento debe conservarse como un flujo independiente.
@@ -932,7 +929,6 @@ class SolicitudPermutaService {
       return acc;
     }, {});
 
-    await conexion.end();
 
     // Convertir el objeto agrupado en una lista de listas
     return Object.values(permutasAgrupadas);
@@ -1163,7 +1159,6 @@ class SolicitudPermutaService {
   }
 
   async getTodasSolicitudesPermuta() {
-    const conexion = await database.connectPostgreSQL();
     try {
       const query = {
         text: `
@@ -1188,7 +1183,7 @@ class SolicitudPermutaService {
       `,
       };
 
-      const res = await conexion.query(query);
+      const res = await database.consultar(query);
 
       // Agrupar las solicitudes por solicitud_id
       const solicitudesAgrupadas = res.rows.reduce((acc, row) => {
@@ -1219,10 +1214,8 @@ class SolicitudPermutaService {
         return acc;
       }, []);
 
-      await conexion.end();
       return solicitudesAgrupadas;
     } catch (error) {
-      await conexion.end();
       throw new Error('Error al obtener las solicitudes de permuta: ' + error.message);
     }
   }

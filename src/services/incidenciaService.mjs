@@ -1,5 +1,5 @@
 import database from "../config/database.mjs";
-import { exigirArchivoPropio } from './archivoService.mjs';
+import { exigirArchivoPropio, TIPO_ADJUNTO_INCIDENCIA } from './archivoService.mjs';
 import { formatearNuevaIncidencia } from "../utils/formateadorIncidenciasBot.mjs";
 import autorizacionService from "./autorizacionService.mjs";
 import { sendMessage } from "./telegramService.mjs";
@@ -7,17 +7,14 @@ import { formatearFecha } from "../utils/formateadorFechas.mjs";
 
 class IncidenciaService {
   async obtenerIncidencias() {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: `select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia from incidencia order by fecha_creacion asc`,
     };
-    const res = await conexion.query(query);
-    await conexion.end();
+    const res = await database.consultar(query);
     return res.rows;
   }
 
   async obtenerIncidenciasAsignadasUsuario(uvus) {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: ` SELECT id,fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
               FROM incidencia 
@@ -25,26 +22,22 @@ class IncidenciaService {
               ORDER BY fecha_creacion DESC`,
       values: [uvus],
     };
-    const res = await conexion.query(query);
-    await conexion.end();
+    const res = await database.consultar(query);
     return res.rows;
   }
 
   async obtenerIncidenciasAsignadas() {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: ` select fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
                   where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk in (select id from usuario where nombre_usuario IS NOT NULL))
                   order by fecha_creacion asc`,
     };
-    const res = await conexion.query(query);
-    await conexion.end();
+    const res = await database.consultar(query);
     return res.rows;
   }
 
   async obtenerIncidenciasAsignadasAdmin(uvus) {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: ` select id,fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
@@ -52,20 +45,17 @@ class IncidenciaService {
                   order by fecha_creacion asc`,
       values: [uvus],
     };
-    const res = await conexion.query(query);
-    await conexion.end();
+    const res = await database.consultar(query);
     return res.rows;
   }
   async obtenerIncidenciasSinAsignar() {
-    const conexion = await database.connectPostgreSQL();
     const query = {
       text: ` select id, fecha_creacion, descripcion,tipo_incidencia,estado_incidencia 
                   from incidencia 
                   where id in (select id from incidencia_usuario where usuario_id_mantenimiento_fk IS NULL)
                   order by fecha_creacion asc`,
     };
-    const res = await conexion.query(query);
-    await conexion.end();
+    const res = await database.consultar(query);
     return res.rows;
   }
 
@@ -194,7 +184,7 @@ class IncidenciaService {
     const conexion = await database.connectPostgreSQL();
     try {
       await conexion.query('BEGIN');
-      if (fileId) await exigirArchivoPropio(conexion, 'buzon', fileId, uvus);
+      if (fileId) await exigirArchivoPropio(conexion, TIPO_ADJUNTO_INCIDENCIA, fileId, uvus);
       const queryIncidencia = {
         text: ` INSERT INTO incidencia (fecha_creacion, descripcion,tipo_incidencia,estado_incidencia,archivo) 
                 VALUES (NOW(),$1,$2,'abierta',$3)
