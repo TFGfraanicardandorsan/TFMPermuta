@@ -24,9 +24,14 @@ SESSION_SECRET=
 # Clave nueva; la clave anteriormente versionada será rechazada.
 SSL_KEY_PATH=/etc/tfmpermuta/tls/privkey.pem
 SSL_CERT_PATH=/etc/tfmpermuta/tls/fullchain.pem
+# Solo mientras no haya certificado nuevo: aceptar explícitamente la clave que estuvo en Git
+# (su huella SPKI SHA-256). Quitar en cuanto se instale el certificado reemitido.
+# TLS_ACCEPT_EXPOSED_KEY_SHA256=59b4812d8af74ef8853ef95eda9a3a7115ffa7c7844ce7245fb71afbf2459c7f
 SSL_PASSPHRASE=
 SIMPLESAML_AUTH_URL=https://permutas.eii.us.es/simplesaml/module.php/core/authenticate.php?as=default-sp
-SIMPLESAML_COOKIE_NAMES=SimpleSAMLSessionID,PHPSESSID
+SIMPLESAML_COOKIE_NAMES=SimpleSAMLSessionID,SimpleSAML,SimpleSAMLAuthToken,PHPSESSID
+# Opcional: por defecto se deduce as_login.php?AuthId=default-sp a partir de SIMPLESAML_AUTH_URL.
+# SIMPLESAML_LOGIN_URL=
 
 BUZON=/var/lib/tfmpermuta/buzon
 ARCHIVADOR=/var/lib/tfmpermuta/archivador

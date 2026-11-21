@@ -21,7 +21,7 @@ await check('Node.js con correcciones de octubre de 2026', () => {
 });
 await check('Sesiones, CORS, proxy y webhook', () => securityConfig());
 await check('URLs de SSO', () => ssoConfig());
-await check('Certificado y clave TLS nueva fuera del repositorio', () => loadTlsOptions());
+await check('Certificado y clave TLS: rutas, correspondencia y vigencia', () => loadTlsOptions());
 await check('Directorios privados y separados', () => {
   const names = ['BUZON', 'ARCHIVADOR', 'PROYECTO_DOCENTE', 'PLANTILLAS', 'DELEGADOS_CERTIFICADOS_DIR'];
   const directories = names.map(name => {

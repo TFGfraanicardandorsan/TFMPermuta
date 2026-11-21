@@ -5,9 +5,9 @@ import { isSupportedRole } from '../utils/roles.mjs';
 
 export const iniciarSesion = async (req, res, next) => {
   try {
-    const { endpoint, base } = ssoConfig();
-    endpoint.searchParams.set('ReturnTo', new URL('/api/v1/autorizacion/saml/session', base).href);
-    return res.redirect(303, endpoint.href);
+    const { loginEndpoint, base } = ssoConfig();
+    loginEndpoint.searchParams.set('ReturnTo', new URL('/api/v1/autorizacion/saml/session', base).href);
+    return res.redirect(303, loginEndpoint.href);
   } catch (error) { return next(error); }
 };
 

@@ -7,6 +7,14 @@ import { createHash, createPrivateKey, createPublicKey, X509Certificate } from '
 const COMPROMISED_SPKI = '59b4812d8af74ef8853ef95eda9a3a7115ffa7c7844ce7245fb71afbf2459c7f';
 const projectRoot = fs.realpathSync(fileURLToPath(new URL('../../', import.meta.url)));
 
+export function checkTlsKeyExposure(fingerprint, env = process.env) {
+  if (fingerprint !== COMPROMISED_SPKI) return;
+  if (env.TLS_ACCEPT_EXPOSED_KEY_SHA256 !== fingerprint) {
+    throw new Error('La clave TLS estuvo publicada en Git. Emite un certificado con una clave nueva.');
+  }
+  return 'Se conserva una clave TLS expuesta por aceptación explícita de su huella. El riesgo de suplantación sigue pendiente.';
+}
+
 export function loadTlsOptions(env = process.env) {
   const { SSL_KEY_PATH: keyPath, SSL_CERT_PATH: certPath, SSL_PASSPHRASE: passphrase } = env;
   if (!keyPath || !certPath || !path.isAbsolute(keyPath) || !path.isAbsolute(certPath)) {
@@ -20,9 +28,7 @@ export function loadTlsOptions(env = process.env) {
   const key = fs.readFileSync(realKeyPath);
   const cert = fs.readFileSync(certPath);
   const publicKey = createPublicKey(createPrivateKey({ key, passphrase })).export({ type: 'spki', format: 'der' });
-  if (createHash('sha256').update(publicKey).digest('hex') === COMPROMISED_SPKI) {
-    throw new Error('La clave TLS estuvo publicada en Git. Emite un certificado con una clave nueva.');
-  }
+  const exposureWarning = checkTlsKeyExposure(createHash('sha256').update(publicKey).digest('hex'), env);
   const certificate = new X509Certificate(cert);
   if (!publicKey.equals(certificate.publicKey.export({ type: 'spki', format: 'der' }))) {
     throw new Error('El certificado TLS y la clave privada no corresponden.');
@@ -30,5 +36,6 @@ export function loadTlsOptions(env = process.env) {
   if (Date.parse(certificate.validTo) <= Date.now() || Date.parse(certificate.validFrom) > Date.now()) {
     throw new Error('El certificado TLS no está dentro de su período de validez.');
   }
+  if (exposureWarning) console.warn(`ADVERTENCIA TLS: ${exposureWarning}`);
   return { key, cert, passphrase, minVersion: 'TLSv1.2' };
 }
