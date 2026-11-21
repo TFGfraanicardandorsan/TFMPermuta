@@ -338,7 +338,8 @@ class GrupoService {
         g.id, 
         g.nombre AS numGrupo, 
         a.nombre AS nombreAsignatura, 
-        a.codigo AS codAsignatura 
+        a.codigo AS codAsignatura,
+        a.curso -- la selección de grupos del front agrupa por curso
       FROM 
         grupo g 
       LEFT JOIN 
