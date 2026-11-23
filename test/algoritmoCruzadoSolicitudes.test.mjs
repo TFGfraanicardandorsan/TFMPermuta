@@ -44,7 +44,7 @@ test('un bloque no se reparte entre dos personas ni produce coincidencias parcia
     solicitud(2, 10, 200, 100), solicitud(3, 11, 201, 101),
   ];
   assert.deepEqual(resolver(datos), []);
-  assert.deepEqual(resolver(datos, { limiteComponenteExacto: 0 }), []);
+  assert.deepEqual(resolver(datos, { limiteTrabajo: 0 }), []);
 });
 
 test('un único usuario puede exigir el bloque y el otro tener solicitudes individuales', () => {
@@ -92,6 +92,97 @@ test('elige el óptimo entre bloques rivales sin reutilizar asignaturas', () => 
   assert.equal(resultado.reduce((n,p) => n + p.asignaturas.length, 0), 4);
   const recursos = resultado.flatMap(p => p.asignaturas.flatMap(a => [p.estudiante1 + '|' + a, p.estudiante2 + '|' + a]));
   assert.equal(new Set(recursos).size, recursos.length);
-  const voraz = resolver(datos, { limiteComponenteExacto: 0 });
-  assert.deepEqual(voraz, [{ estudiante1: '1', estudiante2: '2', asignaturas: [10, 11, 12] }]);
+  // Sin presupuesto se completa una única rama voraz: válida, pero sin garantía.
+  const algoritmo = new PermutaMatching(datos, { limiteTrabajo: 0 });
+  const voraz = algoritmo.emparejar();
+  const recursosVoraz = voraz.flatMap(p => p.asignaturas.flatMap(a => [p.estudiante1 + '|' + a, p.estudiante2 + '|' + a]));
+  assert.equal(new Set(recursosVoraz).size, recursosVoraz.length);
+  assert.equal(algoritmo.estadisticas.optimoGarantizado, false);
+});
+
+const asignaturas = resultado => resultado.reduce((n, p) => n + p.asignaturas.length, 0);
+
+test('con el mismo número de asignaturas prefiere menos parejas (documentos)', () => {
+  // 1 puede cambiar la 10 con 2 o con 3, pero la 11 solo con 3: basta un documento.
+  const datos = [
+    solicitud(1, 10, 100, 200), solicitud(2, 10, 200, 100), solicitud(3, 10, 200, 100),
+    solicitud(1, 11, 101, 201), solicitud(3, 11, 201, 101),
+  ];
+  const algoritmo = new PermutaMatching(datos);
+  assert.deepEqual(algoritmo.emparejar(), [{ estudiante1: '1', estudiante2: '3', asignaturas: [10, 11] }]);
+  assert.equal(algoritmo.estadisticas.documentos, 1);
+  assert.equal(algoritmo.estadisticas.optimoGarantizado, true);
+});
+
+test('nunca sacrifica asignaturas para ahorrar documentos', () => {
+  // Con 1-3 en ambas (1 documento) quedaría 2 sin cambiar: se prefieren 3 asignaturas en 2 documentos.
+  const datos = [
+    solicitud(1, 10, 100, 200), solicitud(2, 10, 200, 100), solicitud(3, 10, 200, 100),
+    solicitud(1, 11, 101, 201), solicitud(3, 11, 201, 101),
+    solicitud(4, 12, 300, 400), solicitud(3, 12, 400, 300), solicitud(4, 10, 100, 200),
+  ];
+  const algoritmo = new PermutaMatching(datos);
+  const resultado = algoritmo.emparejar();
+  assert.equal(asignaturas(resultado), 4);
+  assert.equal(algoritmo.estadisticas.documentos, 3);
+});
+
+test('agrupa intercambios masivos entre dos grupos en el mínimo de parejas', () => {
+  // 6 alumnos de A→B y 6 de B→A en tres asignaturas: 18 cambios en 6 documentos.
+  const datos = [];
+  for (let e = 1; e <= 6; e++) for (const a of [10, 11, 12]) {
+    datos.push(solicitud(e, a, a * 10, a * 10 + 1), solicitud(e + 100, a, a * 10 + 1, a * 10));
+  }
+  const algoritmo = new PermutaMatching(datos);
+  const resultado = algoritmo.emparejar();
+  assert.equal(asignaturas(resultado), 18);
+  assert.equal(resultado.length, 6);
+  assert.equal(algoritmo.estadisticas.optimoGarantizado, true);
+});
+
+test('coincide con la fuerza bruta en instancias aleatorias pequeñas', () => {
+  let semilla = 42;
+  const azar = n => Math.floor((semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648 * n);
+  const fuerzaBruta = candidatos => {
+    let mejor = [-1, 0];
+    const recorrer = (i, usados, elegidos) => {
+      if (i === candidatos.length) {
+        const total = elegidos.reduce((n, c) => n + c.asignaturas.length, 0);
+        const parejas = new Set(elegidos.map(c => c.estudiante1 + '|' + c.estudiante2)).size;
+        if (total > mejor[0] || (total === mejor[0] && parejas < mejor[1])) mejor = [total, parejas];
+        return;
+      }
+      recorrer(i + 1, usados, elegidos);
+      const c = candidatos[i];
+      if ([...c.recursos].every(r => !usados.has(r))) {
+        recorrer(i + 1, new Set([...usados, ...c.recursos]), [...elegidos, c]);
+      }
+    };
+    recorrer(0, new Set(), []);
+    return mejor;
+  };
+  let comprobadas = 0;
+  for (let caso = 0; caso < 300; caso++) {
+    const datos = [];
+    const grupos = 2 + azar(2);
+    for (let e = 1; e <= 4 + azar(8); e++) {
+      const pedidas = [...new Set([10 + azar(3), 10 + azar(3), 10 + azar(3)].slice(0, 1 + azar(3)))];
+      const bloque = pedidas.length > 1 && azar(3) === 0 ? pedidas.slice(0, 2) : null;
+      for (const a of pedidas) {
+        const actual = azar(grupos);
+        const deseado = (actual + 1 + azar(grupos - 1)) % grupos;
+        datos.push({ ...solicitud(e, a, a * 10 + actual, a * 10 + deseado),
+          ...(bloque?.includes(a) ? { bloque_id: 'b' + e, asignaturas_bloque: bloque } : {}) });
+      }
+    }
+    const candidatos = new PermutaMatching(datos).construirGrafo().crearCandidatos();
+    if (candidatos.length > 18) continue;
+    const algoritmo = new PermutaMatching(datos);
+    algoritmo.emparejar();
+    const { asignaturasResueltas, documentos, optimoGarantizado } = algoritmo.estadisticas;
+    assert.deepEqual([asignaturasResueltas, documentos], fuerzaBruta(candidatos), `caso ${caso}`);
+    assert.equal(optimoGarantizado, true);
+    comprobadas++;
+  }
+  assert.ok(comprobadas > 200);
 });

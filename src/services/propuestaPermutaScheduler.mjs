@@ -20,7 +20,9 @@ export function iniciarPropuestasPermutaPeriodicas({
     ejecutando = true;
     try {
       const resultado = await proponer();
-      logger.info(`Propuestas de permuta óptima generadas: ${resultado.propuestasCreadas}`);
+      const { documentos, optimoGarantizado } = resultado.estadisticas ?? {};
+      logger.info(`Propuestas de permuta óptima generadas: ${resultado.propuestasCreadas}`
+        + (documentos != null ? ` (${documentos} parejas/documentos, óptimo ${optimoGarantizado ? 'garantizado' : 'no demostrado'})` : ''));
     } catch (error) {
       logger.error('Error al generar propuestas de permuta óptima:', error);
     } finally {

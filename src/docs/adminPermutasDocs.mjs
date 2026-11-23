@@ -21,7 +21,12 @@
  *     tags: [Administración de permutas]
  *     security: [{ cookieAuth: [], csrfToken: [] }]
  *     responses:
- *       200: { description: Parejas, solicitudes analizadas y asignaturas resolubles }
+ *       200:
+ *         description: >-
+ *           Parejas, solicitudes analizadas, asignaturas resolubles y documentos
+ *           (uno por pareja). El algoritmo maximiza asignaturas y, con ese
+ *           máximo, minimiza documentos; optimoGarantizado indica si se ha
+ *           demostrado el óptimo y cotaMinimaDocumentos acota la mejora posible.
  * /admin/permutas/generar-propuestas:
  *   post:
  *     summary: Calcula y persiste las propuestas óptimas disponibles

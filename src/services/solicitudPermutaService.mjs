@@ -974,7 +974,8 @@ class SolicitudPermutaService {
     const conexion = await database.connectPostgreSQL();
     try {
       const solicitudesRes = await this.obtenerSolicitudesElegibles(conexion);
-      const emparejamientos = new PermutaMatching(solicitudesRes.rows).construirGrafo().emparejar();
+      const algoritmo = new PermutaMatching(solicitudesRes.rows).construirGrafo();
+      const emparejamientos = algoritmo.emparejar();
       const usuarios = new Map(solicitudesRes.rows.map((fila) => [String(fila.estudiante_id), {
         id: fila.estudiante_id,
         uvus: fila.estudiante_uvus,
@@ -993,9 +994,11 @@ class SolicitudPermutaService {
           estudiante2: usuarios.get(String(pareja.estudiante2)),
           asignaturas: pareja.asignaturas.map((id) => asignaturas.get(String(id))),
         })),
-        asignaturasResueltas: emparejamientos.reduce(
-          (total, pareja) => total + pareja.asignaturas.length, 0
-        ),
+        asignaturasResueltas: algoritmo.estadisticas.asignaturasResueltas,
+        // Se genera un documento por cada pareja de estudiantes.
+        documentos: algoritmo.estadisticas.documentos,
+        optimoGarantizado: algoritmo.estadisticas.optimoGarantizado,
+        cotaMinimaDocumentos: algoritmo.estadisticas.cotaMinimaDocumentos,
       };
     } finally {
       await conexion.end();
@@ -1009,7 +1012,8 @@ class SolicitudPermutaService {
       await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
       const solicitudesRes = await this.obtenerSolicitudesElegibles(conexion);
 
-      const emparejamientos = new PermutaMatching(solicitudesRes.rows).construirGrafo().emparejar();
+      const algoritmo = new PermutaMatching(solicitudesRes.rows).construirGrafo();
+      const emparejamientos = algoritmo.emparejar();
       let propuestasCreadas = 0;
       for (const permuta of emparejamientos) {
         const bloquesPorCurso = new Map();
@@ -1051,7 +1055,7 @@ class SolicitudPermutaService {
         }
       }
       await conexion.query('COMMIT');
-      return { emparejamientos, propuestasCreadas };
+      return { emparejamientos, propuestasCreadas, estadisticas: algoritmo.estadisticas };
     } catch (error) {
       await conexion.query('ROLLBACK');
       throw error;
