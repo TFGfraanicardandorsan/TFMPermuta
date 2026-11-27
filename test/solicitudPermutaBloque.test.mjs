@@ -21,6 +21,7 @@ const usarCliente = resolver => {
     async query(q) {
       consultas.push(q);
       if (/INSERT INTO notificacion/.test(texto(q))) return { rows: [], rowCount: 1 };
+      if (/parejas_pendientes_documento/.test(texto(q))) return { rows: [] };
       if (['BEGIN', 'COMMIT', 'ROLLBACK'].includes(q) || /pg_advisory_xact_lock/.test(texto(q))) return { rows: [] };
       const resultado = await resolver(q);
       assert.ok(resultado, `Consulta inesperada: ${texto(q)}`);

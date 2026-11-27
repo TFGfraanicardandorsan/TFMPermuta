@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import PermutaMatching from '../src/algorithm/AlgoritmoCruzadoSolicitudes.mjs';
+import { emparejarEnSegundoPlano } from '../src/algorithm/emparejamientoEnSegundoPlano.mjs';
 
 const solicitud = (estudianteId, asignatura, grupoActual, grupoDeseado) =>
   ({ estudianteId, asignatura, grupoActual, grupoDeseado });
@@ -185,4 +186,65 @@ test('coincide con la fuerza bruta en instancias aleatorias pequeñas', () => {
     comprobadas++;
   }
   assert.ok(comprobadas > 200);
+});
+
+test('prefiere completar parejas con permutas pendientes de documento', () => {
+  const datos = [solicitud(1, 10, 100, 200), solicitud(2, 10, 200, 100), solicitud(3, 10, 200, 100)];
+  const sinPendientes = new PermutaMatching(datos);
+  assert.deepEqual(sinPendientes.emparejar().map(p => p.estudiante2), ['2']);
+  assert.equal(sinPendientes.estadisticas.documentos, 1);
+  const conPendientes = new PermutaMatching(datos, { parejasAbiertas: [['3', '1']] });
+  assert.deepEqual(conPendientes.emparejar().map(p => p.estudiante2), ['3']);
+  assert.equal(conPendientes.estadisticas.documentos, 0);
+  assert.equal(conPendientes.estadisticas.parejas, 1);
+});
+
+test('una pareja pendiente rompe la simetría entre alumnos idénticos', () => {
+  // 2 y 3 tienen solicitudes idénticas, pero solo 3 comparte ya documento con 1.
+  const datos = [10, 11].flatMap(a => [solicitud(1, a, a * 10, a * 10 + 1),
+    solicitud(2, a, a * 10 + 1, a * 10), solicitud(3, a, a * 10 + 1, a * 10)]);
+  const algoritmo = new PermutaMatching(datos, { parejasAbiertas: ['1|3'] });
+  assert.deepEqual(algoritmo.emparejar(), [{ estudiante1: '1', estudiante2: '3', asignaturas: [10, 11] }]);
+  assert.equal(algoritmo.estadisticas.documentos, 0);
+});
+
+const instanciaDensa = (alumnos, semilla) => {
+  const azar = n => Math.floor((semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648 * n);
+  const datos = [];
+  for (let e = 1; e <= alumnos; e++) {
+    const sentido = azar(2);
+    for (const a of [10, 11, 12, 13]) {
+      if (azar(3) === 0) continue;
+      const g = azar(5) ? sentido : 1 - sentido;
+      datos.push(solicitud(e, a, a * 10 + g, a * 10 + 1 - g));
+    }
+  }
+  return datos;
+};
+
+test('la mejora por vecindarios nunca empeora y respeta los recursos', () => {
+  const datos = instanciaDensa(60, 7);
+  const base = new PermutaMatching(datos, { limiteTrabajo: 0, limiteMejora: 0 });
+  const resultadoBase = base.emparejar();
+  const mejorado = new PermutaMatching(datos, { limiteTrabajo: 0, limiteMejora: 5e7 });
+  const resultado = mejorado.emparejar();
+  assert.equal(base.estadisticas.optimoGarantizado, false);
+  assert.ok(asignaturas(resultado) >= asignaturas(resultadoBase));
+  assert.ok(asignaturas(resultado) > asignaturas(resultadoBase) || resultado.length <= resultadoBase.length);
+  assert.ok(mejorado.estadisticas.mejorasLocales > 0);
+  const recursos = resultado.flatMap(p => p.asignaturas.flatMap(a => [p.estudiante1 + '|' + a, p.estudiante2 + '|' + a]));
+  assert.equal(new Set(recursos).size, recursos.length);
+});
+
+test('el cálculo en segundo plano da el mismo resultado que el síncrono', async () => {
+  const datos = instanciaDensa(30, 11);
+  const sincrono = new PermutaMatching(datos, { parejasAbiertas: [['1', '2']] });
+  const esperado = sincrono.emparejar();
+  const { emparejamientos, estadisticas } = await emparejarEnSegundoPlano(datos, { parejasAbiertas: [['1', '2']] });
+  assert.deepEqual(emparejamientos, esperado);
+  assert.equal(estadisticas.documentos, sincrono.estadisticas.documentos);
+});
+
+test('el cálculo en segundo plano respeta el tiempo máximo', async () => {
+  await assert.rejects(emparejarEnSegundoPlano(instanciaDensa(300, 3), {}, { tiempoMaximoMs: 1 }), /superó/);
 });

@@ -18,12 +18,25 @@ const compararIds = (a, b) => String(a).localeCompare(String(b), "es", { numeric
  * solicitudes idénticas). `limiteTrabajo` es un presupuesto global y
  * determinista (≈ operaciones elementales). Al agotarse, la rama en curso se
  * completa de forma voraz y `estadisticas.optimoGarantizado` pasa a false; en
- * ese caso `cotaAsignaturas` y `cotaMinimaDocumentos` acotan lo que se pierde.
+ * ese caso `cotaAsignaturas` y `cotaMinimaDocumentos` acotan lo que se pierde,
+ * y una fase de mejora (`limiteMejora`) vuelve a resolver de forma exacta
+ * vecindarios de la solución mientras encuentre mejoras.
+ *
+ * `parejasAbiertas` son parejas que ya tienen permutas pendientes de
+ * documento: añadirles asignaturas no genera un documento nuevo, así que el
+ * algoritmo las considera abiertas desde el principio.
  */
+const clavePareja = (a, b) => [String(a), String(b)].sort(compararIds).join('|');
+
 class PermutaMatching {
-  constructor(solicitudes = [], { limiteTrabajo = 3e8 } = {}) {
+  constructor(solicitudes = [], { limiteTrabajo = 1.5e8, limiteMejora = 1.5e8, tamanoVecindario = 16,
+    parejasAbiertas = [] } = {}) {
+    this.tamanoVecindario = tamanoVecindario;
     this.solicitudes = solicitudes;
     this.limiteTrabajo = limiteTrabajo;
+    this.limiteMejora = limiteMejora;
+    this.parejasAbiertas = new Set([...parejasAbiertas].map(par =>
+      Array.isArray(par) ? clavePareja(par[0], par[1]) : clavePareja(...String(par).split('|'))));
     this.aristas = [];
     this.bloques = new Map();
     this.grupos = new Map();
@@ -152,19 +165,31 @@ class PermutaMatching {
     if (!this.grafoConstruido) this.construirGrafo();
     const candidatos = this.crearCandidatos();
     const elegidos = [];
-    this.trabajo = 0;
+    const busqueda = { usado: 0, limite: this.limiteTrabajo };
+    const mejora = { usado: 0, limite: this.limiteMejora };
     const estadisticas = { componentes: 0, nodos: 0, optimoGarantizado: true,
-      cotaAsignaturas: 0, cotaMinimaDocumentos: 0 };
+      cotaAsignaturas: 0, cotaMinimaDocumentos: 0, mejorasLocales: 0 };
+    const tocados = new Set([...this.parejasAbiertas].flatMap(par => par.split('|')));
     // De menor a mayor: el presupuesto es global y los pequeños quedan demostrados.
     const componentes = this.#componentes(candidatos).sort((a, b) => a.length - b.length);
+    const pendientesDeMejora = [];
     for (const componente of componentes) {
-      const resultado = this.#resolverComponente(componente);
-      elegidos.push(...resultado.elegidos);
+      const resultado = this.#resolverComponente(componente, busqueda, tocados);
       estadisticas.componentes++;
       estadisticas.nodos += resultado.nodos;
-      if (!resultado.optimo) estadisticas.optimoGarantizado = false;
+      if (!resultado.optimo) {
+        estadisticas.optimoGarantizado = false;
+        pendientesDeMejora.push([componente, resultado]);
+      } else {
+        elegidos.push(...resultado.elegidos);
+      }
       estadisticas.cotaAsignaturas += resultado.cotaAsignaturas;
       estadisticas.cotaMinimaDocumentos += resultado.cotaMinimaDocumentos;
+    }
+    for (const [componente, resultado] of pendientesDeMejora) {
+      const mejorado = this.#mejorarComponente(componente, resultado.elegidos, mejora, tocados);
+      estadisticas.mejorasLocales += mejorado.mejoras;
+      elegidos.push(...mejorado.elegidos);
     }
 
     const parejas = new Map();
@@ -179,9 +204,86 @@ class PermutaMatching {
     this.estadisticas = {
       ...estadisticas,
       asignaturasResueltas: resultado.reduce((n, p) => n + p.asignaturas.length, 0),
-      documentos: resultado.length,
+      parejas: resultado.length,
+      // Las parejas que ya tenían permutas pendientes comparten documento.
+      documentos: resultado.filter(p => !this.parejasAbiertas.has(clavePareja(p.estudiante1, p.estudiante2))).length,
+      trabajo: busqueda.usado + mejora.usado,
     };
     return resultado;
+  }
+
+  /**
+   * Búsqueda de vecindario grande: libera las parejas de un grupo de alumnos
+   * cercanos, mantiene fijo el resto y vuelve a resolver ese trozo de forma
+   * exacta. Solo acepta cambios que mejoran (más asignaturas o menos parejas).
+   */
+  #mejorarComponente(candidatos, elegidosIniciales, presupuesto, tocadosExternos) {
+    let tamano = this.tamanoVecindario;
+    const clave = c => c.estudiante1 + '|' + c.estudiante2;
+    const vecinos = new Map();
+    for (const c of candidatos) {
+      for (const [a, b] of [[c.estudiante1, c.estudiante2], [c.estudiante2, c.estudiante1]]) {
+        if (!vecinos.has(a)) vecinos.set(a, new Set());
+        vecinos.get(a).add(b);
+      }
+    }
+    const alumnos = [...vecinos.keys()].sort(compararIds);
+    let elegidos = [...elegidosIniciales];
+    let mejoras = 0;
+    // Vecindario adaptativo: si una vuelta completa no mejora, se amplía.
+    let huboMejora = true;
+    while (presupuesto.usado < presupuesto.limite) {
+      if (!huboMejora) {
+        if (tamano >= alumnos.length) break;
+        tamano = Math.ceil(tamano * 1.5);
+      }
+      huboMejora = false;
+      for (const semilla of alumnos) {
+        if (presupuesto.usado >= presupuesto.limite) break;
+        // Preparar el vecindario recorre el componente: también consume presupuesto.
+        presupuesto.usado += 4 * (candidatos.length + elegidos.length);
+        // Región: la semilla, sus compañeros actuales y, después, sus posibles compañeros.
+        const companeros = new Map();
+        for (const c of elegidos) {
+          for (const [a, b] of [[c.estudiante1, c.estudiante2], [c.estudiante2, c.estudiante1]]) {
+            if (!companeros.has(a)) companeros.set(a, new Set());
+            companeros.get(a).add(b);
+          }
+        }
+        const region = new Set([semilla]);
+        const cola = [semilla];
+        while (cola.length && region.size < tamano) {
+          const actual = cola.shift();
+          const siguientes = [...(companeros.get(actual) ?? []), ...[...vecinos.get(actual)].sort(compararIds)];
+          for (const otro of siguientes) {
+            if (region.size >= tamano) break;
+            if (!region.has(otro)) { region.add(otro); cola.push(otro); }
+          }
+        }
+        const dentro = c => region.has(c.estudiante1) && region.has(c.estudiante2);
+        const fijos = elegidos.filter(c => !dentro(c));
+        const liberados = elegidos.filter(dentro);
+        const ocupados = new Set(fijos.flatMap(c => [...c.recursos]));
+        const sub = candidatos.filter(c => dentro(c) && [...c.recursos].every(r => !ocupados.has(r)));
+        if (!sub.length) continue;
+        const tocados = new Set([...tocadosExternos, ...fijos.flatMap(c => [c.estudiante1, c.estudiante2])]);
+        const local = { usado: 0, limite: Math.min(presupuesto.limite - presupuesto.usado, presupuesto.limite / 20) };
+        const resultado = this.#resolverComponente(sub, local, tocados);
+        presupuesto.usado += local.usado;
+        const valorar = lista => [
+          lista.reduce((n, c) => n + c.asignaturas.length, 0),
+          new Set(lista.map(clave).filter(k => !this.parejasAbiertas.has(k))).size,
+        ];
+        const [asigAntes, parejasAntes] = valorar(liberados);
+        const [asigDespues, parejasDespues] = valorar(resultado.elegidos);
+        if (asigDespues > asigAntes || (asigDespues === asigAntes && parejasDespues < parejasAntes)) {
+          elegidos = [...fijos, ...resultado.elegidos];
+          mejoras++;
+          huboMejora = true;
+        }
+      }
+    }
+    return { elegidos, mejoras };
   }
 
   // Dos candidatos dependen entre sí si comparten un recurso (alumno|asignatura)
@@ -205,7 +307,7 @@ class PermutaMatching {
     return [...grupos.values()];
   }
 
-  #resolverComponente(candidatos) {
+  #resolverComponente(candidatos, presupuesto, tocadosExternos = new Set()) {
     const C = candidatos.length;
     const indice = (mapa, clave) => {
       if (!mapa.has(clave)) mapa.set(clave, mapa.size);
@@ -280,6 +382,10 @@ class PermutaMatching {
     const bloqueos = new Int32Array(C);     // recursos no libres de cada candidato
     const toques = new Int32Array(E);       // recursos no libres de cada alumno
     const usosPar = new Int32Array(P);
+    // Parejas con permutas pendientes: ya abiertas, no cuestan documento.
+    for (const [par, p] of pares) if (this.parejasAbiertas.has(par)) usosPar[p] = 1;
+    // Un alumno con compromisos previos ya no es intercambiable con otro idéntico.
+    for (const [id, e] of estudiantes) if (tocadosExternos.has(id)) toques[e] = 1;
     // Memoria auxiliar reutilizada en cada nodo
     const opcionesRecurso = new Int32Array(R);
     const pesoPar = new Int32Array(P);
@@ -312,9 +418,9 @@ class PermutaMatching {
     let mejorValor = -Infinity;
     let mejorSeleccion = [];
     let nodos = 0;
-    let trabajo = this.trabajo;
+    let trabajo = presupuesto.usado;
     let optimo = true;
-    const limite = this.limiteTrabajo;
+    const limite = presupuesto.limite;
     const costeNodo = C + R + P + S + 1;
 
     const bloquear = r => {
@@ -531,7 +637,7 @@ class PermutaMatching {
     };
 
     buscar(0, 0);
-    this.trabajo = trabajo;
+    presupuesto.usado = trabajo;
     // Si la búsqueda termina, el óptimo está demostrado y la cota es la solución.
     const valorCota = optimo ? mejorValor : cotaRaiz;
     const cotaAsignaturas = Math.ceil(valorCota / M);

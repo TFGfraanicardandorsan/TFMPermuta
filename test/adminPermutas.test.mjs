@@ -20,6 +20,7 @@ const usarCliente = (resolver) => {
         return { rows: [], rowCount: 0 };
       }
       if (/INSERT INTO notificacion/.test(sql)) return { rows: [], rowCount: 1 };
+      if (/parejas_pendientes_documento/.test(sql)) return { rows: [] };
       const resultado = await resolver(consulta);
       assert.ok(resultado, `Consulta inesperada: ${sql}`);
       return resultado;
@@ -69,6 +70,48 @@ test('buscar parejas óptimas devuelve una previsualización legible y no escrib
   assert.equal(resultado.parejas[0].estudiante1.uvus, 'ana');
   assert.equal(resultado.parejas[0].asignaturas[0].nombre, 'Cálculo');
   assert.equal(consultas.some((consulta) => /INSERT|UPDATE|DELETE/.test(texto(consulta))), false);
+});
+
+test('las parejas con permutas pendientes de documento no cuentan como documento nuevo', async () => {
+  const fila = (estudiante_id, uvus, asignatura, grupo_actual, grupo_deseado) => ({
+    solicitud_id: estudiante_id * 1000 + asignatura, estudiante_id, estudiante_uvus: uvus, estudiante_nombre: uvus,
+    asignatura, asignatura_codigo: asignatura, asignatura_nombre: 'A' + asignatura, curso: 'PRIMERO',
+    bloque_id: null, grupo_actual, grupo_deseado });
+  database.connectPostgreSQL = async () => ({
+    async query(consulta) {
+      const sql = texto(consulta);
+      // 1 puede cambiar la 100 con 2 o con 3; con 3 ya tiene una permuta pendiente de documento.
+      if (/parejas_pendientes_documento/.test(sql)) return { rows: [{ estudiante1: 1, estudiante2: 3 }] };
+      if (/SELECT DISTINCT sp.usuario_id_fk/.test(sql)) return { rows: [
+        fila(1, 'ana', 100, 10, 20), fila(2, 'luis', 100, 20, 10), fila(3, 'eva', 100, 20, 10),
+      ] };
+      assert.fail(`Consulta inesperada: ${sql}`);
+    },
+    async end() {},
+  });
+  const resultado = await solicitudPermutaService.buscarParejasOptimas();
+  assert.equal(resultado.parejas[0].estudiante2.uvus, 'eva');
+  assert.equal(resultado.documentos, 0);
+});
+
+test('proponer calcula fuera del bloqueo y recalcula si los datos cambian', async () => {
+  const fila = (estudiante_id, grupo_actual, grupo_deseado) => ({ solicitud_id: estudiante_id, estudiante_id,
+    asignatura: 100, curso: 'PRIMERO', bloque_id: null, grupo_actual, grupo_deseado });
+  let lecturas = 0;
+  const consultas = usarCliente((consulta) => {
+    const sql = texto(consulta);
+    if (/SELECT DISTINCT sp.usuario_id_fk/.test(sql)) {
+      // Entre el cálculo y el bloqueo, la solicitud de 2 se retira y aparece 3.
+      return { rows: ++lecturas === 1 ? [fila(1, 10, 20), fila(2, 20, 10)] : [fila(1, 10, 20), fila(3, 20, 10)] };
+    }
+    if (/INSERT INTO permuta/.test(sql)) return { rows: [{ id: 50 }], rowCount: 1 };
+  });
+  const resultado = await solicitudPermutaService.proponerPermutas();
+  const sqls = consultas.map(texto);
+  assert.ok(sqls.findIndex(q => /SELECT DISTINCT sp.usuario_id_fk/.test(q)) < sqls.indexOf('BEGIN'));
+  assert.deepEqual(consultas.find(q => /INSERT INTO permuta/.test(texto(q))).values.slice(0, 3), ['1', '3', 100]);
+  assert.equal(resultado.propuestasCreadas, 1);
+  assert.equal(sqls.at(-1), 'COMMIT');
 });
 
 test('cancelar una permuta amplía su bloque y sincroniza documentos y solicitudes del solicitante', async () => {

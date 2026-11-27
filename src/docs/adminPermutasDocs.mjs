@@ -24,7 +24,8 @@
  *       200:
  *         description: >-
  *           Parejas, solicitudes analizadas, asignaturas resolubles y documentos
- *           (uno por pareja). El algoritmo maximiza asignaturas y, con ese
+ *           nuevos (uno por pareja; las parejas con permutas pendientes de
+ *           documento lo comparten y no cuentan). El algoritmo maximiza asignaturas y, con ese
  *           máximo, minimiza documentos; optimoGarantizado indica si se ha
  *           demostrado el óptimo y cotaMinimaDocumentos acota la mejora posible.
  * /admin/permutas/generar-propuestas:

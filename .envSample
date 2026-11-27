@@ -57,3 +57,5 @@ MICROSOFT_REDIRECT_URI=https://permutas.eii.us.es/api/v1/delegados/microsoft/cal
 PROPUESTAS_PERMUTA_HABILITADAS=true
 PROPUESTAS_PERMUTA_AL_INICIO=false
 PROPUESTAS_PERMUTA_INTERVALO_MS=300000
+# Red de seguridad del cálculo de emparejamientos (se ejecuta en un worker_thread)
+EMPAREJAMIENTO_TIEMPO_MAXIMO_MS=60000

@@ -1,7 +1,7 @@
 import eventosNotificacion from './eventosNotificacionService.mjs';
 import { randomUUID } from 'node:crypto';
 import database from "../config/database.mjs";
-import PermutaMatching from "../algorithm/AlgoritmoCruzadoSolicitudes.mjs";
+import { emparejarEnSegundoPlano } from "../algorithm/emparejamientoEnSegundoPlano.mjs";
 import { mensajeSolicitudPermuta } from "../utils/mensajesTelegram.mjs";
 import { sendMessage } from "./telegramService.mjs";
 import autorizacionService from "./autorizacionService.mjs";
@@ -970,50 +970,91 @@ class SolicitudPermutaService {
     `);
   }
 
+  // Parejas con permutas activas aún sin documento: las nuevas asignaturas
+  // pueden ir en ese mismo documento, así que no cuestan uno nuevo.
+  async obtenerParejasPendientesDocumento(conexion) {
+    const resultado = await conexion.query(`
+      SELECT DISTINCT /* parejas_pendientes_documento */
+        p.usuario_id_1_fk AS estudiante1, p.usuario_id_2_fk AS estudiante2
+      FROM permuta p
+      WHERE p.vigente = true AND p.estado IN ('PROPUESTA', 'ACEPTADA', 'VALIDADA')
+        AND NOT EXISTS (
+          SELECT 1 FROM permutas_permuta pp
+          INNER JOIN permutas d ON d.id = pp.permutas_id_fk
+          WHERE pp.permuta_id_fk = p.id AND d.vigente = true
+        )
+    `);
+    return resultado.rows.map(fila => [String(fila.estudiante1), String(fila.estudiante2)]);
+  }
+
+  async leerEntradaEmparejamiento(conexion) {
+    const solicitudes = (await this.obtenerSolicitudesElegibles(conexion)).rows;
+    const parejasAbiertas = await this.obtenerParejasPendientesDocumento(conexion);
+    // Huella independiente del orden para detectar cambios entre lecturas.
+    const huella = JSON.stringify([
+      solicitudes.map(fila => JSON.stringify(fila)).sort(),
+      parejasAbiertas.map(par => [...par].sort().join('|')).sort(),
+    ]);
+    return { solicitudes, parejasAbiertas, huella };
+  }
+
   async buscarParejasOptimas() {
     const conexion = await database.connectPostgreSQL();
+    let entrada;
     try {
-      const solicitudesRes = await this.obtenerSolicitudesElegibles(conexion);
-      const algoritmo = new PermutaMatching(solicitudesRes.rows).construirGrafo();
-      const emparejamientos = algoritmo.emparejar();
-      const usuarios = new Map(solicitudesRes.rows.map((fila) => [String(fila.estudiante_id), {
-        id: fila.estudiante_id,
-        uvus: fila.estudiante_uvus,
-        nombre: fila.estudiante_nombre,
-      }]));
-      const asignaturas = new Map(solicitudesRes.rows.map((fila) => [String(fila.asignatura), {
-        id: fila.asignatura,
-        codigo: fila.asignatura_codigo,
-        nombre: fila.asignatura_nombre,
-        curso: fila.curso,
-      }]));
-      return {
-        solicitudesAnalizadas: new Set(solicitudesRes.rows.map((fila) => fila.solicitud_id)).size,
-        parejas: emparejamientos.map((pareja) => ({
-          estudiante1: usuarios.get(String(pareja.estudiante1)),
-          estudiante2: usuarios.get(String(pareja.estudiante2)),
-          asignaturas: pareja.asignaturas.map((id) => asignaturas.get(String(id))),
-        })),
-        asignaturasResueltas: algoritmo.estadisticas.asignaturasResueltas,
-        // Se genera un documento por cada pareja de estudiantes.
-        documentos: algoritmo.estadisticas.documentos,
-        optimoGarantizado: algoritmo.estadisticas.optimoGarantizado,
-        cotaMinimaDocumentos: algoritmo.estadisticas.cotaMinimaDocumentos,
-      };
+      entrada = await this.leerEntradaEmparejamiento(conexion);
     } finally {
       await conexion.end();
     }
+    const solicitudesRes = { rows: entrada.solicitudes };
+    const algoritmo = await emparejarEnSegundoPlano(entrada.solicitudes, { parejasAbiertas: entrada.parejasAbiertas });
+    const { emparejamientos } = algoritmo;
+    const usuarios = new Map(solicitudesRes.rows.map((fila) => [String(fila.estudiante_id), {
+      id: fila.estudiante_id,
+      uvus: fila.estudiante_uvus,
+      nombre: fila.estudiante_nombre,
+    }]));
+    const asignaturas = new Map(solicitudesRes.rows.map((fila) => [String(fila.asignatura), {
+      id: fila.asignatura,
+      codigo: fila.asignatura_codigo,
+      nombre: fila.asignatura_nombre,
+      curso: fila.curso,
+    }]));
+    return {
+      solicitudesAnalizadas: new Set(solicitudesRes.rows.map((fila) => fila.solicitud_id)).size,
+      parejas: emparejamientos.map((pareja) => ({
+        estudiante1: usuarios.get(String(pareja.estudiante1)),
+        estudiante2: usuarios.get(String(pareja.estudiante2)),
+        asignaturas: pareja.asignaturas.map((id) => asignaturas.get(String(id))),
+      })),
+      asignaturasResueltas: algoritmo.estadisticas.asignaturasResueltas,
+      // Un documento por pareja nueva; las que ya tenían permutas pendientes
+      // de documento lo comparten.
+      documentos: algoritmo.estadisticas.documentos,
+      optimoGarantizado: algoritmo.estadisticas.optimoGarantizado,
+      cotaMinimaDocumentos: algoritmo.estadisticas.cotaMinimaDocumentos,
+    };
   }
 
   async proponerPermutas() {
     const conexion = await database.connectPostgreSQL();
+    let enTransaccion = false;
     try {
+      // El cálculo (segundos de CPU, en otro hilo) se hace sin el bloqueo para no
+      // retrasar la creación de documentos, que espera al mismo bloqueo.
+      let entrada = await this.leerEntradaEmparejamiento(conexion);
+      let algoritmo = await emparejarEnSegundoPlano(entrada.solicitudes, { parejasAbiertas: entrada.parejasAbiertas });
       await conexion.query('BEGIN');
+      enTransaccion = true;
       await conexion.query(BLOQUEO_PROPUESTAS_PERMUTA);
-      const solicitudesRes = await this.obtenerSolicitudesElegibles(conexion);
-
-      const algoritmo = new PermutaMatching(solicitudesRes.rows).construirGrafo();
-      const emparejamientos = algoritmo.emparejar();
+      const actual = await this.leerEntradaEmparejamiento(conexion);
+      if (actual.huella !== entrada.huella) {
+        // Caso raro: los datos cambiaron mientras se calculaba; se recalcula con el bloqueo.
+        entrada = actual;
+        algoritmo = await emparejarEnSegundoPlano(entrada.solicitudes, { parejasAbiertas: entrada.parejasAbiertas });
+      }
+      const solicitudesRes = { rows: entrada.solicitudes };
+      const { emparejamientos } = algoritmo;
       let propuestasCreadas = 0;
       for (const permuta of emparejamientos) {
         const bloquesPorCurso = new Map();
@@ -1057,7 +1098,7 @@ class SolicitudPermutaService {
       await conexion.query('COMMIT');
       return { emparejamientos, propuestasCreadas, estadisticas: algoritmo.estadisticas };
     } catch (error) {
-      await conexion.query('ROLLBACK');
+      if (enTransaccion) await conexion.query('ROLLBACK');
       throw error;
     } finally {
       await conexion.end();
